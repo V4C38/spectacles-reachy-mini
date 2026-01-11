@@ -1,0 +1,50 @@
+- !<AssetImportMetadata/bfc88216-da36-4422-9b68-cce6841cf7d2>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> e935ef17-151d-47f0-8b92-10b2ba548035
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> e935ef17-151d-47f0-8b92-10b2ba548035
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 1ca136ab-00df-470b-8808-cee9d5d4d100
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/1ca136ab-00df-470b-8808-cee9d5d4d100>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 18aad71b-85b4-4630-922d-11e312a2f8a0
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    defaultScale: false
+    frame: false
+    initialVisibility: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - initialVisibility: false
+      defaultScale: !<Vec3> {x: 1.000000, y: 1.000000, z: 1.000000}
+      frame: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input bool initialVisibility = true
+    - "// @input vec3 defaultScale = {1,1,1}"
+    - // @input AssignableType frame

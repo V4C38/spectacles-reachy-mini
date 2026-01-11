@@ -1,0 +1,50 @@
+- !<AssetImportMetadata/5122ea7a-46b7-4a6c-a559-1b57d537ed2e>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 148b16bd-4d52-4af9-9781-53489ab659e7
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 148b16bd-4d52-4af9-9781-53489ab659e7
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> d292003a-bdb5-465b-8ca6-db5b2557e857
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/d292003a-bdb5-465b-8ca6-db5b2557e857>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 061956e7-6099-4801-a27c-481af6e0b8f4
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    controlledEntity: false
+    daemonInterface: false
+    roundButton: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - daemonInterface: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
+      roundButton: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      controlledEntity: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @input Component.ScriptComponent daemonInterface {"hint":"Reference to the DaemonInterface component (singleton)"}'
+    - '// @input AssignableType roundButton {"hint":"RoundButton component from Spectacles UI Kit (should be set to toggleable mode)"}'
+    - '// @input SceneObject controlledEntity {"hint":"SceneObject entity to show/hide based on button toggle state"}'

@@ -1,0 +1,47 @@
+- !<AssetImportMetadata/4f460380-e48b-452b-8363-47c4afc0700e>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> c501df7e-c44d-462e-ab27-2026bc12d364
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> c501df7e-c44d-462e-ab27-2026bc12d364
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> af004db9-c512-44b4-89f9-f03b866c83b3
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/af004db9-c512-44b4-89f9-f03b866c83b3>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 4651ca54-02ca-41e0-9809-f72738254b46
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    baseUrl: false
+    internetModule: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - baseUrl: "http://192.168.1.108:8000"
+      internetModule: !<reference.InternetModule> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @input string baseUrl = "http://192.168.1.108:8000" {"hint":"Base URL for the Reachy Mini daemon (e.g., http://192.168.1.108:8000)"}'
+    - '// @input Asset.InternetModule internetModule {"hint":"InternetModule asset for making HTTP requests"}'
