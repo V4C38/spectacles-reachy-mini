@@ -380,7 +380,7 @@
   Enabled: true
   ScriptAsset: !<reference> 148b16bd-4d52-4af9-9781-53489ab659e7
   ScriptInputsDefault:
-    {}
+    entityOffset: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -388,6 +388,7 @@
       daemonInterface: !<reference.ScriptComponent> 37423103-2105-48f1-86aa-18e72b387397
       roundButton: !<MappingBased.AssignableType> 2c7cf82e-fa4d-4fbf-9f14-919518571b42
       controlledEntity: !<reference.SceneObject> c76b7fa3-de7a-4967-b802-3ebd5d4b6c82
+      entityOffset: !<Vec3> {x: 0.000000, y: 15.000000, z: 0.000000}
   ScriptTypes:
     "":
       {}
@@ -830,12 +831,12 @@
   Enabled: true
   ScriptAsset: !<reference> c501df7e-c44d-462e-ab27-2026bc12d364
   ScriptInputsDefault:
-    baseUrl: true
+    {}
   ScriptTypesDefault:
     {}
   ScriptInputs:
     "":
-      baseUrl: "http://192.168.1.108:8000"
+      baseUrl: "http://192.168.1.98:8000"
       internetModule: !<reference.InternetModule> 18654882-5fcd-4b6a-8eb7-f7f008eeb099
   ScriptTypes:
     "":
@@ -2742,7 +2743,7 @@
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 8.223927, z: 0.000000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    Scale: {x: 0.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
     - !<own> d7fbfed9-25e4-4f29-b4ca-c57ae814bdc4

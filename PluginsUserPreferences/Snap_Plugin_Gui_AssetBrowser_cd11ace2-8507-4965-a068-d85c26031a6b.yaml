@@ -1,11 +1,12 @@
 CollapsedEntities:
   type: stringset
   value:
-    size: 585
+    size: 586
     values:
       - ""
       - Echopark.hdr
       - Internet Module.internetModule
+      - Scripts/ControllerLookAtTarget.ts
       - Scripts/DaemonInterface.ts
       - Scripts/ReachyMiniController.ts
       - SpectaclesInteractionKit.lspkg

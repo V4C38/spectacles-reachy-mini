@@ -13,9 +13,9 @@ metaInfo:
     []
   tags:
     []
-  lensName: reachy-mini
+  lensName: Reachy Mini
   lensDescriptors:
-    []
+    - EXPERIMENTAL_API
   lensApplicability:
     - Front
     - Back

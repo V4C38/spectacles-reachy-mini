@@ -28,6 +28,7 @@
   ScriptInputsHidden:
     controlledEntity: false
     daemonInterface: false
+    entityOffset: false
     roundButton: false
   ScriptTypesHidden:
     {}
@@ -41,6 +42,7 @@
     - daemonInterface: !<reference.ScriptComponent> 00000000-0000-0000-0000-000000000000
       roundButton: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
       controlledEntity: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      entityOffset: !<Vec3> {x: 0.000000, y: 15.000000, z: 0.000000}
   ScriptTypes:
     -
       {}
@@ -48,3 +50,4 @@
     - '// @input Component.ScriptComponent daemonInterface {"hint":"Reference to the DaemonInterface component (singleton)"}'
     - '// @input AssignableType roundButton {"hint":"RoundButton component from Spectacles UI Kit (should be set to toggleable mode)"}'
     - '// @input SceneObject controlledEntity {"hint":"SceneObject entity to show/hide based on button toggle state"}'
+    - '// @input vec3 entityOffset = {0,15,0} {"hint":"Offset from button origin for controlled entity position (in local space)"}'
