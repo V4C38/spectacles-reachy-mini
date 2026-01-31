@@ -1,5 +1,9 @@
 data:
   externalSources:
     - 2dd3280a-3c26-4611-84a9-1f91ca32afc0: /Users/johannestscharn/Library/Preferences/Snap/Lens Studio/LibraryComponents/SpectaclesUIKit@0.0.8/SpectaclesUIKit.lspkg
+    - 4cb4ceb4-324f-4000-9d85-3121bbf4065c: /Users/johannestscharn/Downloads/body_down_3dprint.glb
     - 4f460380-e48b-452b-8363-47c4afc0700e: /Applications/Lens Studio.app/Contents/JsPlugins/PresetsRegistry/Assets/TypeScript/Resources/Untitled TypeScript.ts
+    - 69e05b4c-eaf8-4280-9eba-dbdb1593c35d: /Users/johannestscharn/Downloads/body_top_3dprint.glb
     - 7a9b0580-248f-450b-a33b-af40d4798e92: /Applications/Lens Studio.app/Contents/JsPlugins/PresetsRegistry/Assets/TypeScript/Resources/Untitled TypeScript.ts
+    - 9d96b868-ea37-4728-abbe-6a7f9cf52828: /Applications/Lens Studio.app/Contents/Plugins/Es_ShaderGraph_Presets.bundle/Assets/Empty.ss_graph
+    - cb475c72-60d0-434a-a7c9-6f8f7d06dd3a: /Users/johannestscharn/Downloads/body_foot_3dprint.glb

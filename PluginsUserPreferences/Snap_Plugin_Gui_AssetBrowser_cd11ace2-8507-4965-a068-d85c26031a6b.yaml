@@ -1,14 +1,14 @@
 CollapsedEntities:
   type: stringset
   value:
-    size: 586
+    size: 599
     values:
-      - ""
       - Echopark.hdr
       - Internet Module.internetModule
       - Scripts/ControllerLookAtTarget.ts
       - Scripts/DaemonInterface.ts
       - Scripts/ReachyMiniController.ts
+      - Scripts/UIManager.ts
       - SpectaclesInteractionKit.lspkg
       - SpectaclesInteractionKit.lspkg/Assets
       - SpectaclesInteractionKit.lspkg/Assets/Audio
@@ -479,6 +479,7 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Meshes/DefaultSwitchKnob.mesh
       - SpectaclesUIKit.lspkg/Meshes/StretchableCircle.mesh
       - SpectaclesUIKit.lspkg/Meshes/Unit Plane.mesh
+      - SpectaclesUIKit.lspkg/Prefabs
       - SpectaclesUIKit.lspkg/Prefabs/DropShadow.prefab
       - SpectaclesUIKit.lspkg/Prefabs/ExampleInterface.prefab
       - SpectaclesUIKit.lspkg/Prefabs/FrameButton.prefab
@@ -579,14 +580,26 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Textures/test-image.jpg
       - SpectaclesUIKit.lspkg/package.native
       - SpectaclesUIKit.lspkg/package_dependencies.json
-      - Visuals
-      - Visuals/AI Visual
       - Visuals/AI Visual/Animations
-      - Visuals/AI Visual/Materials
       - Visuals/AI Visual/Materials/HoverColor.ss_graph
       - Visuals/AI Visual/Meshes
       - Visuals/AI Visual/Meshes/HoverMesh.mesh
       - Visuals/AI Visual/Textures
       - Visuals/ActivityIndicator
+      - Visuals/Materials/FresnelHologram.mat
+      - Visuals/Materials/fadey_unlit.ss_graph
+      - Visuals/Meshes
+      - Visuals/Meshes/body_down_3dprint.glb
+      - Visuals/Meshes/body_down_3dprint.glb/Meshes
+      - Visuals/Meshes/body_down_3dprint.glb/Meshes/body_down_3dprint
+      - Visuals/Meshes/body_down_3dprint.glb/body_down_3dprint
+      - Visuals/Meshes/body_foot_3dprint.glb
+      - Visuals/Meshes/body_foot_3dprint.glb/Meshes
+      - Visuals/Meshes/body_foot_3dprint.glb/Meshes/body_foot_3dprint
+      - Visuals/Meshes/body_foot_3dprint.glb/body_foot_3dprint
+      - Visuals/Meshes/body_top_3dprint.glb
+      - Visuals/Meshes/body_top_3dprint.glb/Meshes
+      - Visuals/Meshes/body_top_3dprint.glb/Meshes/body_top_3dprint
+      - Visuals/Meshes/body_top_3dprint.glb/body_top_3dprint
       - Visuals/Textures
   options: 4

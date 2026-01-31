@@ -1,0 +1,56 @@
+- !<AssetImportMetadata/4529b7c0-3854-4980-86d2-22e22064b375>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 79c93c11-0c33-497d-93aa-9854b9422d79
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 79c93c11-0c33-497d-93aa-9854b9422d79
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> c8293644-8a88-481d-8dca-0518ed7d9f7d
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/c8293644-8a88-481d-8dca-0518ed7d9f7d>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: a0b783ef-60a8-4226-a23a-81a1a2804054
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    buttonEnable: false
+    buttonEnableVFX: false
+    positioningInteraction: false
+    robotHologram: false
+    uiContainer: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - uiContainer: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      robotHologram: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      positioningInteraction: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      buttonEnable: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      buttonEnableVFX: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input SceneObject uiContainer
+    - // @input SceneObject robotHologram
+    - // @input AssignableType positioningInteraction
+    - // @input AssignableType_1 buttonEnable
+    - // @input SceneObject buttonEnableVFX
