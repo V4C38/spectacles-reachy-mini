@@ -1,0 +1,59 @@
+- !<AssetImportMetadata/98f5d142-f95a-4fec-8209-df752feec2fd>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 9bce496a-9da5-4719-90c0-a559979f6a6a
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 9bce496a-9da5-4719-90c0-a559979f6a6a
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> bbec78ef-7e1e-4e34-a8a9-fa70e97ab39e
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/bbec78ef-7e1e-4e34-a8a9-fa70e97ab39e>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: f9ca77a8-be56-44c3-9895-9418cba26053
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    daemonInterface: false
+    mode1Interactable: false
+    mode1InteractableRoot: false
+    positioningHologram: false
+    positioningInteraction: false
+    reachyMiniRoot: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - reachyMiniRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      daemonInterface: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      positioningHologram: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      positioningInteraction: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      mode1Interactable: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      mode1InteractableRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input SceneObject reachyMiniRoot
+    - // @input AssignableType daemonInterface
+    - // @input SceneObject positioningHologram
+    - // @input AssignableType_1 positioningInteraction
+    - // @input AssignableType_2 mode1Interactable
+    - // @input SceneObject mode1InteractableRoot

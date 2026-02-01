@@ -1,13 +1,15 @@
 CollapsedEntities:
   type: stringset
   value:
-    size: 599
+    size: 597
     values:
       - Echopark.hdr
       - Internet Module.internetModule
       - Scripts/ControllerLookAtTarget.ts
       - Scripts/DaemonInterface.ts
       - Scripts/ReachyMiniController.ts
+      - Scripts/ReachyMiniManager.ts
+      - Scripts/SetupWizard.ts
       - Scripts/UIManager.ts
       - SpectaclesInteractionKit.lspkg
       - SpectaclesInteractionKit.lspkg/Assets
@@ -479,7 +481,6 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Meshes/DefaultSwitchKnob.mesh
       - SpectaclesUIKit.lspkg/Meshes/StretchableCircle.mesh
       - SpectaclesUIKit.lspkg/Meshes/Unit Plane.mesh
-      - SpectaclesUIKit.lspkg/Prefabs
       - SpectaclesUIKit.lspkg/Prefabs/DropShadow.prefab
       - SpectaclesUIKit.lspkg/Prefabs/ExampleInterface.prefab
       - SpectaclesUIKit.lspkg/Prefabs/FrameButton.prefab
@@ -515,14 +516,12 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Scripts/Components/TextInputField
       - SpectaclesUIKit.lspkg/Scripts/Components/TextInputField/TextInputField.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/TextInputField/TextInputFieldManager.ts
-      - SpectaclesUIKit.lspkg/Scripts/Components/Toggle
       - SpectaclesUIKit.lspkg/Scripts/Components/Toggle/BaseToggleGroup.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/Toggle/SwitchToggleGroup.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/Toggle/ToggleGroup.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/Toggle/Toggleable.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/VisualElement.ts
       - SpectaclesUIKit.lspkg/Scripts/DropShadow.ts
-      - SpectaclesUIKit.lspkg/Scripts/Example
       - SpectaclesUIKit.lspkg/Scripts/Example/Capsule3D
       - SpectaclesUIKit.lspkg/Scripts/Example/Capsule3D/Capsule3DButton.ts
       - SpectaclesUIKit.lspkg/Scripts/Example/Capsule3D/Visual
@@ -551,7 +550,6 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Scripts/Themes/Style.ts
       - SpectaclesUIKit.lspkg/Scripts/Themes/Theme.ts
       - SpectaclesUIKit.lspkg/Scripts/Tooltip.ts
-      - SpectaclesUIKit.lspkg/Scripts/Utility
       - SpectaclesUIKit.lspkg/Scripts/Utility/DebugCamera
       - SpectaclesUIKit.lspkg/Scripts/Utility/DebugCamera/DebugCamera.ts
       - SpectaclesUIKit.lspkg/Scripts/Utility/DebugCamera/Unit Plane.mesh
@@ -562,7 +560,6 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Scripts/Utility/ScaleResetter.ts
       - SpectaclesUIKit.lspkg/Scripts/Utility/SceneUtilities.ts
       - SpectaclesUIKit.lspkg/Scripts/Utility/UIKitUtilities.ts
-      - SpectaclesUIKit.lspkg/Scripts/Visuals
       - SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle
       - SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle/RoundedRectangle.ts
       - SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle/RoundedRectangleVisual.ts
@@ -580,6 +577,7 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Textures/test-image.jpg
       - SpectaclesUIKit.lspkg/package.native
       - SpectaclesUIKit.lspkg/package_dependencies.json
+      - Visuals
       - Visuals/AI Visual/Animations
       - Visuals/AI Visual/Materials/HoverColor.ss_graph
       - Visuals/AI Visual/Meshes

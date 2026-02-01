@@ -1,0 +1,71 @@
+- !<AssetImportMetadata/22edc452-5f20-4217-a9ac-53067e7b36bc>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 0957a920-830a-4a14-b9bc-a9e974353f9d
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 0957a920-830a-4a14-b9bc-a9e974353f9d
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 0f5c1dff-f6fa-4678-b317-212602273b61
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/0f5c1dff-f6fa-4678-b317-212602273b61>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 862b5cd4-2467-43f4-a81b-88dbb2472a31
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    buttonNext: false
+    buttonPrevious: false
+    buttonRestart: false
+    reachyMiniManager: false
+    textInputField: false
+    textStepDescription: false
+    textStepIndicator: false
+    textStepStatus: false
+    uiManager: false
+    uiSetupContainer: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - reachyMiniManager: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      uiManager: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      buttonRestart: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      uiSetupContainer: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      textStepIndicator: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      textStepDescription: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      textStepStatus: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      buttonNext: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      buttonPrevious: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
+      textInputField: !<MappingBased.AssignableType_5> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType reachyMiniManager
+    - // @input AssignableType_1 uiManager
+    - // @input AssignableType_2 buttonRestart
+    - // @input SceneObject uiSetupContainer
+    - // @input Component.Text textStepIndicator
+    - // @input Component.Text textStepDescription
+    - // @input Component.Text textStepStatus
+    - // @input AssignableType_3 buttonNext
+    - // @input AssignableType_4 buttonPrevious
+    - // @input AssignableType_5 textInputField
