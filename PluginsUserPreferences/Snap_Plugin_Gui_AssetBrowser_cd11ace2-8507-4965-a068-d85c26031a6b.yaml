@@ -5,9 +5,8 @@ CollapsedEntities:
     values:
       - Echopark.hdr
       - Internet Module.internetModule
-      - Scripts/ControllerLookAtTarget.ts
+      - Scripts/ControllerPuppeteer.ts
       - Scripts/DaemonInterface.ts
-      - Scripts/ReachyMiniController.ts
       - Scripts/ReachyMiniManager.ts
       - Scripts/SetupWizard.ts
       - Scripts/UIManager.ts
@@ -577,13 +576,14 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Textures/test-image.jpg
       - SpectaclesUIKit.lspkg/package.native
       - SpectaclesUIKit.lspkg/package_dependencies.json
-      - Visuals
+      - Visuals/AI Visual
       - Visuals/AI Visual/Animations
       - Visuals/AI Visual/Materials/HoverColor.ss_graph
       - Visuals/AI Visual/Meshes
       - Visuals/AI Visual/Meshes/HoverMesh.mesh
       - Visuals/AI Visual/Textures
-      - Visuals/ActivityIndicator
+      - Visuals/ActivityIndicator/ActivityIndicator_LookAtInteraction.mat
+      - Visuals/Materials
       - Visuals/Materials/FresnelHologram.mat
       - Visuals/Materials/fadey_unlit.ss_graph
       - Visuals/Meshes

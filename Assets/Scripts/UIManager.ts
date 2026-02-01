@@ -12,6 +12,8 @@ export class UIManager extends BaseScriptComponent {
     private currentMode : number = 0;
     @input
     private textStateInidcator : Text | null = null;
+    @input
+    private textConnectionStatus : Text | null = null;
 
     @input
     private uiContainer : SceneObject | null = null;
@@ -113,10 +115,8 @@ export class UIManager extends BaseScriptComponent {
                 if (this.uiContainer) {
                     this.animateSceneObjectState(this.uiContainer, false);
                 }
-                if (this.buttonEnable) {
+                if (this.buttonEnable && this.buttonEnableVFX) {
                     this.buttonEnable.sceneObject.enabled = true;
-                }
-                if (this.buttonEnableVFX) {
                     this.animateSceneObjectState(this.buttonEnableVFX, true, 0.75);
                 }
                 if (this.buttonAllowRepositioning) {
@@ -125,19 +125,36 @@ export class UIManager extends BaseScriptComponent {
                 if (this.textStateInidcator) {
                     this.textStateInidcator.text = "Reachy Mini";
                 }
+                if (this.reachyMiniManager) {
+                    this.reachyMiniManager.setIsActive(true);
+                }
                 break;
             case 2:
                 if (this.uiContainer) {
                     this.animateSceneObjectState(this.uiContainer, true);
                 }
-                if (this.buttonEnable) {
+                if (this.buttonEnable && this.buttonEnableVFX) {
                     this.buttonEnable.sceneObject.enabled = true;
-                }
-                if (this.buttonEnableVFX) {
                     this.animateSceneObjectState(this.buttonEnableVFX, false, 1.0);
                 }
                 if (this.textStateInidcator) {
                     this.textStateInidcator.text = "- Paused -";
+                }
+                if (this.reachyMiniManager) {
+                    this.reachyMiniManager.setIsActive(false);
+                }
+
+                // Update connection status
+                if (this.reachyMiniManager && this.reachyMiniManager.daemonInterface) {
+                    this.reachyMiniManager.daemonInterface.checkConnection().then((isConnected: boolean) => {
+                        if (isConnected) {
+                            this.textConnectionStatus.text = "Connected";
+                            this.textConnectionStatus.textFill.color = new vec4(0, 1, 0, 1);
+                        } else {
+                            this.textConnectionStatus.text = "Not connected";
+                            this.textConnectionStatus.textFill.color = new vec4(1, 0, 0, 1);
+                        }
+                    });
                 }
 
                 break;

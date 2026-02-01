@@ -32,7 +32,6 @@ export class SetupWizard extends BaseScriptComponent {
     private buttonNext : RectangleButton | null = null;
     @input
     private buttonPrevious : RectangleButton | null = null;
-
     @input
     private textInputField : TextInputField | null = null;
 
@@ -78,6 +77,18 @@ export class SetupWizard extends BaseScriptComponent {
                     }
                 });
             }
+
+            // Handle IP typing: update IP address in daemon interface and check connection
+            if (this.textInputField && this.reachyMiniManager.daemonInterface) {
+                this.textInputField.onReturnKeyPressed.add((value: string) => {
+                    this.updateConnectionStatus();
+                });
+                this.textInputField.onKeyboardStateChanged.add((isOpen: boolean) => {
+                    if (!isOpen) {
+                        this.updateConnectionStatus();
+                    }
+                });
+            }
         });
     }
 
@@ -92,15 +103,9 @@ export class SetupWizard extends BaseScriptComponent {
             this.textStepDescription.text = this.stepDescriptions[step];
         }
 
-        // Show / Hide text input field (Only for Step 2)
-        if (this.currentStep === 2) {
-            if (this.textInputField) {
-                this.textInputField.enabled = true;
-            }
-        } else {
-            if (this.textInputField) {
-                this.textInputField.enabled = false;
-            }
+        // Show / Hide text input field
+        if (this.textInputField) {
+            this.textInputField.enabled = step === 2;
         }
 
         // Show / Hide text step status
@@ -116,33 +121,53 @@ export class SetupWizard extends BaseScriptComponent {
 
         // Step specific actions
         switch (step) {
+
+            // Start
             case 0:
                 this.animateSceneObjectState(this.uiSetupContainer, true);
                 if (this.uiManager) {
                     this.uiManager.setUIState(0);
                 }
                 break;
+
+            // Step 1: Start Desktop application
             case 1:
                 break;
+
+            // Step 2: Connect to Desktop
             case 2:
                 if (this.reachyMiniManager) {
                     this.reachyMiniManager.setPositioningEnabled(false);
                 }
+                if (this.textInputField && this.reachyMiniManager && this.reachyMiniManager.daemonInterface && this.textStepStatus) {
+                    this.textInputField.enabled = true;
+                    this.textInputField.initialize();
+                    this.textInputField.text = this.reachyMiniManager.daemonInterface.baseUrl;
+                    this.updateConnectionStatus();
+                }
                 break;
+
+            // Step 3: Position Reachy Mini
             case 3:
                 if (this.reachyMiniManager && this.uiSetupContainer) {
-                    // Position Reachy Mini below the UI container
+                    // Position Reachy Mini Hologram below the UI container
                     const uiPosition = this.uiSetupContainer.getTransform().getWorldPosition();
                     const targetPosition = new vec3(uiPosition.x, uiPosition.y - 20, uiPosition.z);
                     this.reachyMiniManager.setRootPosition(targetPosition);
                     this.reachyMiniManager.setPositioningEnabled(true);
+
                 }
                 break;
+
+            // Step 4: Complete the setup
             case 4:
-                if (this.reachyMiniManager) {
+                if (this.reachyMiniManager && this.reachyMiniManager.daemonInterface) {
+                    this.updateConnectionStatus();
                     this.reachyMiniManager.setPositioningEnabled(false);
                 }
                 break;
+
+            // End
             case 5:
                 this.animateSceneObjectState(this.uiSetupContainer, false);
                 if (this.uiManager) {
@@ -150,14 +175,30 @@ export class SetupWizard extends BaseScriptComponent {
                     this.uiManager.setMode(2);
                 }
                 break;
-
         }
-
     }
 
     // ------------------------------------------------------------
     // Helper functions
     // ------------------------------------------------------------
+    private updateConnectionStatus() {
+        if (this.reachyMiniManager && this.reachyMiniManager.daemonInterface) {
+            this.textStepStatus.text = "Status: Checking connection...";
+            this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
+
+            this.reachyMiniManager.daemonInterface.baseUrl = this.textInputField.text;
+            this.reachyMiniManager.daemonInterface.checkConnection().then((isConnected: boolean) => {
+                if (isConnected) {
+                    this.textStepStatus.text = "Status: Connected";
+                    this.textStepStatus.textFill.color = new vec4(0, 1, 0, 1);
+                } else {
+                    this.textStepStatus.text = "Status: Not connected";
+                    this.textStepStatus.textFill.color = new vec4(1, 0, 0, 1);
+                }
+            });
+        }
+    }
+
     private animateSceneObjectState(sceneObject : SceneObject, state : boolean, duration : number = 0.5): Promise<void> {
         // Enable before animating in, disable after animating out
         if (state) {

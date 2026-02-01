@@ -1,15 +1,20 @@
 import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
-import { DaemonInterface } from "./DaemonInterface";
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
+
+import { DaemonInterface } from "./DaemonInterface";
+import { ControllerPuppeteer } from "./ControllerPuppeteer";
+
 
 @component
 export class ReachyMiniManager extends BaseScriptComponent {
 
     @input
     private reachyMiniRoot : SceneObject | null = null;
+    @input
+    private headRoot : SceneObject | null = null;
 
     @input
-    private daemonInterface : DaemonInterface | null = null;
+    public daemonInterface : DaemonInterface | null = null;
 
     // State
     private isActive : boolean = false;
@@ -23,9 +28,13 @@ export class ReachyMiniManager extends BaseScriptComponent {
 
     // Control Modes
     private controlMode : number = 0;
+    private puppeteer: ControllerPuppeteer | null = null;
+    private puppeteerUpdateEvent: SceneEvent | null = null;
 
     @input
     private mode1Interactable : Interactable | null = null;
+    @input
+    private mode1InteractableVFX : RenderMeshVisual | null = null;
     @input
     private mode1InteractableRoot : SceneObject | null = null;
 
@@ -46,6 +55,18 @@ export class ReachyMiniManager extends BaseScriptComponent {
     // ------------------------------------------------------------
     public setIsActive(isActive : boolean) {
         this.isActive = isActive;
+
+        switch (this.controlMode) {
+            case 0:
+                break;
+            case 1:
+                if (this.mode1InteractableVFX) {
+                    this.mode1InteractableVFX.mainPass.Tweak_N41 = isActive ? 1 : 0;
+                }
+                break;
+            case 2:
+                break;
+        }
     }
 
     // ------------------------------------------------------------
@@ -67,22 +88,55 @@ export class ReachyMiniManager extends BaseScriptComponent {
     }
 
     private setControlMode0() {
+        this.stopPuppeteerUpdateLoop();
         if (this.mode1Interactable) {
             this.mode1Interactable.sceneObject.enabled = false;
         }
     }
 
     private setControlMode1() {
-        if (this.mode1Interactable && this.mode1InteractableRoot) {
-            // Set location of the interactable to the center of the root
+        if (this.mode1Interactable && this.mode1InteractableRoot && this.headRoot && this.daemonInterface) {
+            
+            // Reset the target interactable position
             this.mode1Interactable.sceneObject.getTransform().setWorldPosition(this.mode1InteractableRoot.getTransform().getWorldPosition());
-            this.animateSceneObjectState(this.mode1Interactable.sceneObject, true);
+            this.animateSceneObjectState(this.mode1Interactable.sceneObject, true, 0.75);
+
+            // Puppeteer Controller
+            if (!this.puppeteer) {
+                this.puppeteer = new ControllerPuppeteer(
+                    this.daemonInterface,
+                    this.mode1Interactable.sceneObject,
+                    this.headRoot
+                );
+            }
+            this.puppeteer.reset();
+            this.startPuppeteerUpdateLoop();
         }
     }
 
     private setControlMode2() {
+        this.stopPuppeteerUpdateLoop();
         if (this.mode1Interactable) {
-            this.animateSceneObjectState(this.mode1Interactable.sceneObject, false);
+            this.animateSceneObjectState(this.mode1Interactable.sceneObject, false, 0.4);
+        }
+    }
+
+    private startPuppeteerUpdateLoop(): void {
+        if (this.puppeteerUpdateEvent) {
+            return;
+        }
+        this.puppeteerUpdateEvent = this.createEvent("UpdateEvent");
+        this.puppeteerUpdateEvent.bind(() => {
+            if (this.controlMode === 1 && this.isActive && this.puppeteer) {
+                this.puppeteer.update();
+            }
+        });
+    }
+
+    private stopPuppeteerUpdateLoop(): void {
+        if (this.puppeteerUpdateEvent) {
+            this.removeEvent(this.puppeteerUpdateEvent);
+            this.puppeteerUpdateEvent = null;
         }
     }
 
@@ -99,10 +153,16 @@ export class ReachyMiniManager extends BaseScriptComponent {
     public setPositioningEnabled(enabled : boolean) {
         if (this.positioningHologram) {
             this.animateSceneObjectState(this.positioningHologram, enabled);
-        }
+        }        
         if (this.positioningInteraction) {
             this.positioningInteraction.enabled = enabled;
         }
+        // Reset robot to default pose
+        if (this.daemonInterface) {
+            const neutralPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
+            this.daemonInterface.goto(neutralPose, 0, 1.5, "minjerk");
+        }
+
     }
 
 
@@ -110,7 +170,6 @@ export class ReachyMiniManager extends BaseScriptComponent {
     // Helper functions
     // ------------------------------------------------------------
     private animateSceneObjectState(sceneObject : SceneObject, state : boolean, duration : number = 0.5): Promise<void> {
-        // Enable before animating in, disable after animating out
         if (state) {
             sceneObject.enabled = true;
         }

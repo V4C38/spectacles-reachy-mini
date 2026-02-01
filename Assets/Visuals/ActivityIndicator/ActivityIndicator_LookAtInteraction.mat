@@ -1,8 +1,8 @@
-- !<Material/6baa0904-a7fc-4a6d-90c8-a0ce96d21fae>
+- !<Material/c9a6ee41-ccf9-4f7c-b4a1-f3edca6e5bd9>
   PackagePath: ""
   PassesInfo:
-    - !<own> 27d191d8-b1f6-4b8c-ad54-7ba45c831bd1
-- !<PassInfo/27d191d8-b1f6-4b8c-ad54-7ba45c831bd1>
+    - !<own> 1421b598-1376-487d-b3ae-0a6a1b8acc71
+- !<PassInfo/1421b598-1376-487d-b3ae-0a6a1b8acc71>
   CachedProperties:
     - Param_Saturation:
         typeIdx: 1
@@ -311,20 +311,20 @@
       value: 0
     Tweak_N23:
       typeIdx: 1
-      value: 2.630000
+      value: 1.000000
     Tweak_N33:
       typeIdx: 1
-      value: 5.990000
+      value: 1.500000
     Tweak_N37:
       typeIdx: 1
-      value: 0.300000
+      value: 0.200000
     Tweak_N38:
       typeIdx: 1
-      value: 0.300000
+      value: 0.200000
     Tweak_N41:
       typeIdx: 1
-      value: 1.000000
+      value: 0.000000
     in_out:
       typeIdx: 1
-      value: 1.000000
+      value: 0.750000
   Pass: !<reference> 11ee2b9e-22c2-4138-a11d-abce6d544287
