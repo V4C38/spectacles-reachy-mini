@@ -166,14 +166,25 @@ export class UIManager extends BaseScriptComponent {
     // Helper functions
     // ------------------------------------------------------------
     private animateSceneObjectState(sceneObject : SceneObject, state : boolean, duration : number = 0.5): Promise<void> {
-        // Enable before animating in, disable after animating out
+
+
+        // DEBUG: resolve immediately
+        sceneObject.enabled = state;
+        return new Promise<void>((resolve) => {
+            resolve();
+        });
+
+        // Enable before animating in
         if (state) {
             sceneObject.enabled = true;
         }
 
-        // if boolean is true set scale to 0,0,0 else to 1,1,1
-        const startScale = state ? new vec3(0, 0, 0) : new vec3(1, 1, 1);
-        const targetScale = state ? new vec3(1, 1, 1) : new vec3(0, 0, 0);
+        // Get the current scale to handle interruptions gracefully
+        const currentScale = sceneObject.getTransform().getLocalScale();
+        const targetScale = state ? new vec3(1, 1, 1) : new vec3(0.01, 0.01, 0.01);
+
+        // Use current scale as starting point to handle mid-animation interruptions
+        const startScale = new vec3(currentScale.x, currentScale.y, currentScale.z);
 
         // animate the scale from startScale to targetScale
         return new Promise<void>((resolve) => {
@@ -187,6 +198,8 @@ export class UIManager extends BaseScriptComponent {
                     sceneObject.getTransform().setLocalScale(new vec3(x, y, z));
                 },
                 ended: () => {
+                    // Ensure final scale is exactly the target
+                    sceneObject.getTransform().setLocalScale(targetScale);
                     if (!state) {
                         sceneObject.enabled = false;
                     }

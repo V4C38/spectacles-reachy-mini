@@ -29,6 +29,7 @@
     buttonNext: false
     buttonPrevious: false
     buttonRestart: false
+    persistenceManager: false
     reachyMiniManager: false
     textInputField: false
     textStepDescription: false
@@ -47,25 +48,27 @@
   DefaultScriptInputs:
     - reachyMiniManager: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
       uiManager: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
-      buttonRestart: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      persistenceManager: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      buttonRestart: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
       uiSetupContainer: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       textStepIndicator: !<reference.Text> 00000000-0000-0000-0000-000000000000
       textStepDescription: !<reference.Text> 00000000-0000-0000-0000-000000000000
       textStepStatus: !<reference.Text> 00000000-0000-0000-0000-000000000000
-      buttonNext: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
-      buttonPrevious: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
-      textInputField: !<MappingBased.AssignableType_5> 00000000-0000-0000-0000-000000000000
+      buttonNext: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
+      buttonPrevious: !<MappingBased.AssignableType_5> 00000000-0000-0000-0000-000000000000
+      textInputField: !<MappingBased.AssignableType_6> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
   InputLines:
     - // @input AssignableType reachyMiniManager
     - // @input AssignableType_1 uiManager
-    - // @input AssignableType_2 buttonRestart
+    - // @input AssignableType_2 persistenceManager
+    - // @input AssignableType_3 buttonRestart
     - // @input SceneObject uiSetupContainer
     - // @input Component.Text textStepIndicator
     - // @input Component.Text textStepDescription
     - // @input Component.Text textStepStatus
-    - // @input AssignableType_3 buttonNext
-    - // @input AssignableType_4 buttonPrevious
-    - // @input AssignableType_5 textInputField
+    - // @input AssignableType_4 buttonNext
+    - // @input AssignableType_5 buttonPrevious
+    - // @input AssignableType_6 textInputField

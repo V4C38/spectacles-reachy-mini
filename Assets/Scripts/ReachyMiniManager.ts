@@ -3,6 +3,7 @@ import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 
 import { DaemonInterface } from "./DaemonInterface";
 import { ControllerPuppeteer } from "./ControllerPuppeteer";
+import { PersistenceManager } from "./PersistenceManager";
 
 
 @component
@@ -15,6 +16,8 @@ export class ReachyMiniManager extends BaseScriptComponent {
 
     @input
     public daemonInterface : DaemonInterface | null = null;
+    @input
+    public persistenceManager : PersistenceManager | null = null;
 
     // State
     private isActive : boolean = false;
@@ -30,6 +33,10 @@ export class ReachyMiniManager extends BaseScriptComponent {
     private controlMode : number = 0;
     private puppeteer: ControllerPuppeteer | null = null;
     private puppeteerUpdateEvent: SceneEvent | null = null;
+    
+    // Positioning save tracking
+    private positioningSaveEnabled: boolean = false;
+    private positioningSaveListenerAdded: boolean = false;
 
     @input
     private mode1Interactable : Interactable | null = null;
@@ -41,13 +48,11 @@ export class ReachyMiniManager extends BaseScriptComponent {
 
 
     onAwake() {
-
-        // Defer button subscription to OnStartEvent
+        // Defer initialization to OnStartEvent when inputs are ready
         this.createEvent("OnStartEvent").bind(() => {
             this.setPositioningEnabled(false);
             this.setControlMode(0);
         });
-
     }
 
     // ------------------------------------------------------------
@@ -99,7 +104,7 @@ export class ReachyMiniManager extends BaseScriptComponent {
             
             // Reset the target interactable position
             this.mode1Interactable.sceneObject.getTransform().setWorldPosition(this.mode1InteractableRoot.getTransform().getWorldPosition());
-            this.animateSceneObjectState(this.mode1Interactable.sceneObject, true, 0.75);
+            this.animateSceneObjectState(this.mode1Interactable.sceneObject, true, 0.75, new vec3(0.35, 0.35, 0.35));
 
             // Puppeteer Controller
             if (!this.puppeteer) {
@@ -150,31 +155,45 @@ export class ReachyMiniManager extends BaseScriptComponent {
         }
     }
 
-    public setPositioningEnabled(enabled : boolean) {
+    public setPositioningEnabled(enabled : boolean, saveOnMove : boolean = false) {
         if (this.positioningHologram) {
             this.animateSceneObjectState(this.positioningHologram, enabled);
         }        
         if (this.positioningInteraction) {
             this.positioningInteraction.enabled = enabled;
         }
+        
+        // Track whether to save on positioning changes
+        this.positioningSaveEnabled = enabled && saveOnMove;
+        
+        // Set up the save-on-move listener once (first time saveOnMove is requested)
+        if (saveOnMove && this.positioningInteraction && !this.positioningSaveListenerAdded) {
+            this.positioningSaveListenerAdded = true;
+            this.positioningInteraction.onTriggerEnd.add(() => {
+                if (this.positioningSaveEnabled) {
+                    print("ReachyMiniManager: Position changed, saving anchor");
+                    this.saveCurrentPosition();
+                }
+            });
+        }
+        
         // Reset robot to default pose
         if (this.daemonInterface) {
             const neutralPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
             this.daemonInterface.goto(neutralPose, 0, 1.5, "minjerk");
         }
-
     }
 
 
     // ------------------------------------------------------------
     // Helper functions
     // ------------------------------------------------------------
-    private animateSceneObjectState(sceneObject : SceneObject, state : boolean, duration : number = 0.5): Promise<void> {
+    private animateSceneObjectState(sceneObject : SceneObject, state : boolean, duration : number = 0.5, scale : vec3 = new vec3(1, 1, 1)): Promise<void> {
         if (state) {
             sceneObject.enabled = true;
         }
-        const startScale = state ? new vec3(0, 0, 0) : new vec3(1, 1, 1);
-        const targetScale = state ? new vec3(1, 1, 1) : new vec3(0, 0, 0);
+        const startScale = state ? new vec3(0, 0, 0) : scale;
+        const targetScale = state ? scale : new vec3(0, 0, 0);
         return new Promise<void>((resolve) => {
             animate({
                 duration: duration,
@@ -193,5 +212,17 @@ export class ReachyMiniManager extends BaseScriptComponent {
                 },
             });
         });
+    }
+
+    // ------------------------------------------------------------
+    // Persistence
+    // ------------------------------------------------------------
+    public async saveCurrentPosition(): Promise<void> {
+        if (this.persistenceManager && this.reachyMiniRoot) {
+            const transform = this.reachyMiniRoot.getTransform();
+            const position = transform.getWorldPosition();
+            const rotation = transform.getWorldRotation();
+            await this.persistenceManager.savePosition(position, rotation);
+        }
     }
 }

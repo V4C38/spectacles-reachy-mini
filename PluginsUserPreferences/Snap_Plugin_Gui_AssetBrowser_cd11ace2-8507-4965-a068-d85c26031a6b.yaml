@@ -1,15 +1,45 @@
 CollapsedEntities:
   type: stringset
   value:
-    size: 597
+    size: 660
     values:
+      - ""
+      - Device Camera Texture.deviceCameraTexture
       - Echopark.hdr
+      - Echopark.hdr/Diffuse
+      - Echopark.hdr/Specular
       - Internet Module.internetModule
+      - Render Target.renderTarget
+      - Scene.scene
+      - Scripts
       - Scripts/ControllerPuppeteer.ts
       - Scripts/DaemonInterface.ts
+      - Scripts/PersistenceManager.ts
       - Scripts/ReachyMiniManager.ts
       - Scripts/SetupWizard.ts
       - Scripts/UIManager.ts
+      - Spatial Anchors.lspkg/AlignmentProvider.ts
+      - Spatial Anchors.lspkg/SpatialPersistence
+      - Spatial Anchors.lspkg/SpatialPersistence/Logging.ts
+      - Spatial Anchors.lspkg/SpatialPersistence/MapScanning.ts
+      - Spatial Anchors.lspkg/SpatialPersistence/MappingTrackingSession.ts
+      - Spatial Anchors.lspkg/SpatialPersistence/Model.ts
+      - Spatial Anchors.lspkg/SpatialPersistence/PersistentStorage.ts
+      - Spatial Anchors.lspkg/SpatialPersistence/Queue.ts
+      - Spatial Anchors.lspkg/SpatialPersistence/SpatialPersistence.ts
+      - Spatial Anchors.lspkg/SpatialPersistence/Tracking.ts
+      - Spatial Anchors.lspkg/Util
+      - Spatial Anchors.lspkg/Util/Deferred.ts
+      - Spatial Anchors.lspkg/Util/Delay.ts
+      - Spatial Anchors.lspkg/Util/Event.ts
+      - Spatial Anchors.lspkg/Util/LensConfig.ts
+      - Spatial Anchors.lspkg/Util/README.md
+      - Spatial Anchors.lspkg/Util/Singleton.ts
+      - Spatial Anchors.lspkg/Util/UpdateDispatcher.ts
+      - Spatial Anchors.lspkg/Util/Util.ts
+      - Spatial Anchors.lspkg/Util/algorithms.ts
+      - Spatial Anchors.lspkg/Util/debounce.ts
+      - Spatial Anchors.lspkg/package.native
       - SpectaclesInteractionKit.lspkg
       - SpectaclesInteractionKit.lspkg/Assets
       - SpectaclesInteractionKit.lspkg/Assets/Audio
@@ -432,6 +462,7 @@ CollapsedEntities:
       - SpectaclesInteractionKit.lspkg/VersionNumber.ts
       - SpectaclesInteractionKit.lspkg/package.native
       - SpectaclesInteractionKit.lspkg/tsconfig.json
+      - SpectaclesUIKit.lspkg
       - SpectaclesUIKit.lspkg/Audio
       - SpectaclesUIKit.lspkg/Audio/HoverAudioTrack.wav
       - SpectaclesUIKit.lspkg/Audio/SliderProgressionAudioTrack.wav
@@ -480,6 +511,7 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Meshes/DefaultSwitchKnob.mesh
       - SpectaclesUIKit.lspkg/Meshes/StretchableCircle.mesh
       - SpectaclesUIKit.lspkg/Meshes/Unit Plane.mesh
+      - SpectaclesUIKit.lspkg/Prefabs
       - SpectaclesUIKit.lspkg/Prefabs/DropShadow.prefab
       - SpectaclesUIKit.lspkg/Prefabs/ExampleInterface.prefab
       - SpectaclesUIKit.lspkg/Prefabs/FrameButton.prefab
@@ -487,7 +519,10 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Prefabs/LabelledButton.prefab
       - SpectaclesUIKit.lspkg/Prefabs/LabelledToggle.prefab
       - SpectaclesUIKit.lspkg/README.md
+      - SpectaclesUIKit.lspkg/Scripts
       - SpectaclesUIKit.lspkg/Scripts/BackPlate.ts
+      - SpectaclesUIKit.lspkg/Scripts/Components
+      - SpectaclesUIKit.lspkg/Scripts/Components/Button
       - SpectaclesUIKit.lspkg/Scripts/Components/Button/BaseButton.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/Button/CapsuleButton.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/Button/RectangleButton.ts
@@ -515,12 +550,14 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Scripts/Components/TextInputField
       - SpectaclesUIKit.lspkg/Scripts/Components/TextInputField/TextInputField.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/TextInputField/TextInputFieldManager.ts
+      - SpectaclesUIKit.lspkg/Scripts/Components/Toggle
       - SpectaclesUIKit.lspkg/Scripts/Components/Toggle/BaseToggleGroup.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/Toggle/SwitchToggleGroup.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/Toggle/ToggleGroup.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/Toggle/Toggleable.ts
       - SpectaclesUIKit.lspkg/Scripts/Components/VisualElement.ts
       - SpectaclesUIKit.lspkg/Scripts/DropShadow.ts
+      - SpectaclesUIKit.lspkg/Scripts/Example
       - SpectaclesUIKit.lspkg/Scripts/Example/Capsule3D
       - SpectaclesUIKit.lspkg/Scripts/Example/Capsule3D/Capsule3DButton.ts
       - SpectaclesUIKit.lspkg/Scripts/Example/Capsule3D/Visual
@@ -549,6 +586,7 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Scripts/Themes/Style.ts
       - SpectaclesUIKit.lspkg/Scripts/Themes/Theme.ts
       - SpectaclesUIKit.lspkg/Scripts/Tooltip.ts
+      - SpectaclesUIKit.lspkg/Scripts/Utility
       - SpectaclesUIKit.lspkg/Scripts/Utility/DebugCamera
       - SpectaclesUIKit.lspkg/Scripts/Utility/DebugCamera/DebugCamera.ts
       - SpectaclesUIKit.lspkg/Scripts/Utility/DebugCamera/Unit Plane.mesh
@@ -559,6 +597,7 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Scripts/Utility/ScaleResetter.ts
       - SpectaclesUIKit.lspkg/Scripts/Utility/SceneUtilities.ts
       - SpectaclesUIKit.lspkg/Scripts/Utility/UIKitUtilities.ts
+      - SpectaclesUIKit.lspkg/Scripts/Visuals
       - SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle
       - SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle/RoundedRectangle.ts
       - SpectaclesUIKit.lspkg/Scripts/Visuals/RoundedRectangle/RoundedRectangleVisual.ts
@@ -576,17 +615,37 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Textures/test-image.jpg
       - SpectaclesUIKit.lspkg/package.native
       - SpectaclesUIKit.lspkg/package_dependencies.json
+      - Visuals
       - Visuals/AI Visual
       - Visuals/AI Visual/Animations
+      - Visuals/AI Visual/Animations/BaseLayer.animationMixerLayer
+      - Visuals/AI Visual/Animations/Constraint_rotation_45.animationLayer
+      - Visuals/AI Visual/Materials
+      - Visuals/AI Visual/Materials/Assist_sphere_Idle_L_T_T.mat
+      - Visuals/AI Visual/Materials/Assist_sphere_Idle_L_T_T.ss_graph
+      - Visuals/AI Visual/Materials/HoverColor.mat
       - Visuals/AI Visual/Materials/HoverColor.ss_graph
       - Visuals/AI Visual/Meshes
       - Visuals/AI Visual/Meshes/HoverMesh.mesh
+      - Visuals/AI Visual/Meshes/Main_sphere_default_normals.mesh
       - Visuals/AI Visual/Textures
+      - Visuals/AI Visual/Textures/Noise_combine_512.png
+      - Visuals/AI Visual/Textures/purple_halfcolor.png
+      - Visuals/AI Visual/Textures/yellow_alt.png
+      - Visuals/AI Visual/Textures/yellow_halfcolor.png
+      - Visuals/ActivityIndicator
+      - Visuals/ActivityIndicator/ActivityIndicator.mat
+      - Visuals/ActivityIndicator/ActivityIndicator.ss_graph
       - Visuals/ActivityIndicator/ActivityIndicator_LookAtInteraction.mat
       - Visuals/Materials
+      - Visuals/Materials/CloseIcon.mat
       - Visuals/Materials/FresnelHologram.mat
+      - Visuals/Materials/Image.mat
+      - Visuals/Materials/MicIcon.mat
       - Visuals/Materials/fadey_unlit.ss_graph
+      - Visuals/Materials/image_unlit.ss_graph
       - Visuals/Meshes
+      - Visuals/Meshes/Plane.mesh
       - Visuals/Meshes/body_down_3dprint.glb
       - Visuals/Meshes/body_down_3dprint.glb/Meshes
       - Visuals/Meshes/body_down_3dprint.glb/Meshes/body_down_3dprint
@@ -600,4 +659,8 @@ CollapsedEntities:
       - Visuals/Meshes/body_top_3dprint.glb/Meshes/body_top_3dprint
       - Visuals/Meshes/body_top_3dprint.glb/body_top_3dprint
       - Visuals/Textures
+      - Visuals/Textures/Image.mat
+      - Visuals/Textures/Microphone.png
+      - Visuals/Textures/NoInternetAlert.png
+      - Visuals/Textures/NoInternetWarning.mat
   options: 4
