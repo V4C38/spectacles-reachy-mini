@@ -1,11 +1,13 @@
 data:
   externalSources:
+    - 06b97a5f-077f-457b-bef7-770fb40ee5e2: /Applications/Lens Studio.app/Contents/JsPlugins/PresetsRegistry/Assets/TypeScript/Resources/Untitled TypeScript.ts
     - 2dd3280a-3c26-4611-84a9-1f91ca32afc0: /Users/johannestscharn/Library/Preferences/Snap/Lens Studio/LibraryComponents/SpectaclesUIKit@0.0.8/SpectaclesUIKit.lspkg
     - 43cf3cdb-131a-4362-a3c3-d50709c25f72: /Applications/Lens Studio.app/Contents/JsPlugins/PresetsRegistry/Assets/TypeScript/Resources/Untitled TypeScript.ts
     - 4cb4ceb4-324f-4000-9d85-3121bbf4065c: /Users/johannestscharn/Downloads/body_down_3dprint.glb
-    - 4f460380-e48b-452b-8363-47c4afc0700e: /Applications/Lens Studio.app/Contents/JsPlugins/PresetsRegistry/Assets/TypeScript/Resources/Untitled TypeScript.ts
     - 51b6da57-f602-4c0a-8611-809390c0cafc: /Applications/Lens Studio.app/Contents/JsPlugins/PresetsRegistry/Assets/TypeScript/Resources/Untitled TypeScript.ts
     - 6200c805-d610-4990-b5b2-205697b383a7: /Users/johannestscharn/Downloads/reachy-icon.png
+    - 6593a916-5390-4091-b487-787a0f8b61bd: /Applications/Lens Studio.app/Contents/JsPlugins/PresetsRegistry/Assets/TypeScript/Resources/Untitled TypeScript.ts
+    - 6791524f-715b-4ec5-b835-8e8a79df9247: /Users/johannestscharn/Downloads/ReachyHead.fbx
     - 69e05b4c-eaf8-4280-9eba-dbdb1593c35d: /Users/johannestscharn/Downloads/body_top_3dprint.glb
     - 708a8fc9-305c-4726-9a01-72cbad0f933f: /Applications/Lens Studio.app/Contents/JsPlugins/PresetsRegistry/Assets/TypeScript/Resources/Untitled TypeScript.ts
     - 8dee5d4f-5ffb-424e-8d9a-186817a3ead6: /Applications/Lens Studio.app/Contents/JsPlugins/PresetsRegistry/Assets/TypeScript/Resources/Untitled TypeScript.ts

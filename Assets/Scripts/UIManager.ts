@@ -145,16 +145,23 @@ export class UIManager extends BaseScriptComponent {
                 }
 
                 // Update connection status
-                if (this.reachyMiniManager && this.reachyMiniManager.daemonInterface) {
-                    this.reachyMiniManager.daemonInterface.checkConnection().then((isConnected: boolean) => {
-                        if (isConnected) {
-                            this.textConnectionStatus.text = "Connected";
-                            this.textConnectionStatus.textFill.color = new vec4(0, 1, 0, 1);
-                        } else {
-                            this.textConnectionStatus.text = "Not connected";
-                            this.textConnectionStatus.textFill.color = new vec4(1, 0, 0, 1);
+                if (this.reachyMiniManager) {
+                    if (this.reachyMiniManager.isSimulationMode) {
+                        this.textConnectionStatus.text = "Simulation Mode";
+                        this.textConnectionStatus.textFill.color = new vec4(1, 1, 1, 1);
+                    } else {
+                        if (this.reachyMiniManager.hardwareInterface) {
+                            this.reachyMiniManager.hardwareInterface.checkConnection().then((isConnected: boolean) => {
+                                if (isConnected) {
+                                    this.textConnectionStatus.text = "Connected";
+                                    this.textConnectionStatus.textFill.color = new vec4(0, 1, 0, 1);
+                                } else {
+                                    this.textConnectionStatus.text = "Not connected";
+                                    this.textConnectionStatus.textFill.color = new vec4(1, 0, 0, 1);
+                                }
+                            });
                         }
-                    });
+                    }
                 }
 
                 break;

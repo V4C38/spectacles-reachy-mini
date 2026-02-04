@@ -1,4 +1,4 @@
-import { DaemonInterface, XYZRPYPose } from "./DaemonInterface";
+import { XYZRPYPose, IMovementInterface } from "./MovementInterface";
 
 /**
  * Clean look-at controller for Reachy Mini.
@@ -25,7 +25,7 @@ export class ControllerPuppeteer {
     private readonly MAX_BODY_YAW: number = 160 * Math.PI / 180;
 
     constructor(
-        private daemon: DaemonInterface,
+        private movementInterface: IMovementInterface,
         private target: SceneObject,
         private origin: SceneObject
     ) {}
@@ -106,7 +106,7 @@ export class ControllerPuppeteer {
             yaw: this.headYaw
         };
 
-        this.daemon.setTarget(headPose, this.bodyYaw).catch(() => {});
+        this.movementInterface.setTarget(headPose, this.bodyYaw).catch(() => {});
     }
 
     private dampenChange(delta: number, maxDelta: number): number {

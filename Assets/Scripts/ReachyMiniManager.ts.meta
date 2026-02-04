@@ -26,7 +26,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
-    daemonInterface: false
+    hardwareInterface: false
     headRoot: false
     mode1Interactable: false
     mode1InteractableRoot: false
@@ -35,6 +35,7 @@
     positioningHologram: false
     positioningInteraction: false
     reachyMiniRoot: false
+    simulationInterface: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -46,11 +47,12 @@
   DefaultScriptInputs:
     - reachyMiniRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       headRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      daemonInterface: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
-      persistenceManager: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      hardwareInterface: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      simulationInterface: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      persistenceManager: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
       positioningHologram: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      positioningInteraction: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
-      mode1Interactable: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      positioningInteraction: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      mode1Interactable: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
       mode1InteractableVFX: !<reference.RenderMeshVisual> 00000000-0000-0000-0000-000000000000
       mode1InteractableRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
@@ -59,10 +61,11 @@
   InputLines:
     - // @input SceneObject reachyMiniRoot
     - // @input SceneObject headRoot
-    - // @input AssignableType daemonInterface
-    - // @input AssignableType_1 persistenceManager
+    - // @input AssignableType hardwareInterface
+    - // @input AssignableType_1 simulationInterface
+    - // @input AssignableType_2 persistenceManager
     - // @input SceneObject positioningHologram
-    - // @input AssignableType_2 positioningInteraction
-    - // @input AssignableType_3 mode1Interactable
+    - // @input AssignableType_3 positioningInteraction
+    - // @input AssignableType_4 mode1Interactable
     - // @input Component.RenderMeshVisual mode1InteractableVFX
     - // @input SceneObject mode1InteractableRoot

@@ -1,19 +1,11 @@
-// Represents a 3D pose using position (x, y, z) in meters and orientation (roll, pitch, yaw) angles in radians
-export interface XYZRPYPose {
-    x: number;
-    y: number;
-    z: number;
-    roll: number;
-    pitch: number;
-    yaw: number;
-}
+import { XYZRPYPose, IMovementInterface } from "./MovementInterface";
 
 export interface MoveUUID {
     uuid: string;
 }
 
 @component
-export class DaemonInterface extends BaseScriptComponent {
+export class HardwareInterface extends BaseScriptComponent implements IMovementInterface {
 
     @input
     public baseUrl: string = "http://192.168.1.98:8000";
@@ -46,12 +38,12 @@ export class DaemonInterface extends BaseScriptComponent {
             if (!response || response.status !== 200) {
                 const status = response ? response.status : "no response";
                 const bodyStr = body ? JSON.stringify(body) : "none";
-                print(`DaemonInterface: Request to ${endpoint} returned ${status}. Method: ${method}, Body: ${bodyStr}`);
+                print(`HardwareInterface: Request to ${endpoint} returned ${status}. Method: ${method}, Body: ${bodyStr}`);
             }
             
             return response;
         } catch (error) {
-            print(`DaemonInterface: Error making request to ${endpoint}: ${error}`);
+            print(`HardwareInterface: Error making request to ${endpoint}: ${error}`);
             return null;
         }
     }

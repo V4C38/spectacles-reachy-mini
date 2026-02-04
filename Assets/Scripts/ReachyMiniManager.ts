@@ -1,9 +1,11 @@
 import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 
-import { DaemonInterface } from "./DaemonInterface";
+import { IMovementInterface } from "./MovementInterface";
+import { HardwareInterface } from "./HardwareInterface";
 import { ControllerPuppeteer } from "./ControllerPuppeteer";
 import { PersistenceManager } from "./PersistenceManager";
+import { SimulationInterface } from "./SimulationInterface";
 
 
 @component
@@ -14,13 +16,17 @@ export class ReachyMiniManager extends BaseScriptComponent {
     @input
     private headRoot : SceneObject | null = null;
 
+
     @input
-    public daemonInterface : DaemonInterface | null = null;
+    public hardwareInterface : HardwareInterface | null = null;
+    @input
+    public simulationInterface : SimulationInterface | null = null;
     @input
     public persistenceManager : PersistenceManager | null = null;
 
     // State
     private isActive : boolean = false;
+    public isSimulationMode : boolean = false;
 
 
     // Positioning
@@ -80,6 +86,21 @@ export class ReachyMiniManager extends BaseScriptComponent {
     }
 
     // ------------------------------------------------------------
+    // Simulation Mode
+    // ------------------------------------------------------------
+    public setSimulationMode(enabled: boolean): void {
+        this.isSimulationMode = enabled;
+        this.puppeteer = null;
+    }
+
+    private getMovementInterface(): IMovementInterface | null {
+        if (this.isSimulationMode) {
+            return this.simulationInterface;
+        }
+        return this.hardwareInterface;
+    }
+
+    // ------------------------------------------------------------
     // ControlMode
     // ------------------------------------------------------------
     public setControlMode(mode : number) {
@@ -105,7 +126,8 @@ export class ReachyMiniManager extends BaseScriptComponent {
     }
 
     private setControlMode1() {
-        if (this.mode1Interactable && this.mode1InteractableRoot && this.headRoot && this.daemonInterface) {
+        const movementInterface = this.getMovementInterface();
+        if (this.mode1Interactable && this.mode1InteractableRoot && this.headRoot && movementInterface) {
             
             // Reset the target interactable position
             this.mode1Interactable.sceneObject.getTransform().setWorldPosition(this.mode1InteractableRoot.getTransform().getWorldPosition());
@@ -114,7 +136,7 @@ export class ReachyMiniManager extends BaseScriptComponent {
             // Puppeteer Controller
             if (!this.puppeteer) {
                 this.puppeteer = new ControllerPuppeteer(
-                    this.daemonInterface,
+                    movementInterface,
                     this.mode1Interactable.sceneObject,
                     this.headRoot
                 );
@@ -162,19 +184,26 @@ export class ReachyMiniManager extends BaseScriptComponent {
 
     public setPositioningEnabled(enabled : boolean) {
         this.positioningEnabled = enabled;
-        
-        if (this.positioningHologram) {
-            this.animateSceneObjectState(this.positioningHologram, enabled);
-        }        
+
+        if (!this.isSimulationMode) {
+            this.showReachyMiniMesh(enabled);
+        }
         if (this.positioningInteraction) {
             this.positioningInteraction.enabled = enabled;
         }
         
         // Reset robot to default pose
-        if (this.daemonInterface) {
+        const movementInterface = this.getMovementInterface();
+        if (movementInterface) {
             const neutralPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
-            this.daemonInterface.goto(neutralPose, 0, 1.5, "minjerk");
+            movementInterface.goto(neutralPose, 0, 1.5, "minjerk");
         }
+    }
+
+    public showReachyMiniMesh(enabled : boolean) {
+        if (this.positioningHologram) {
+            this.animateSceneObjectState(this.positioningHologram, enabled);
+        }     
     }
 
 

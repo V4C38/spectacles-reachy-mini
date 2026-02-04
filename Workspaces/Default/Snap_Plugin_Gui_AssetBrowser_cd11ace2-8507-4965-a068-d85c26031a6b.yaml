@@ -1,7 +1,7 @@
 CollapsedEntities:
   type: stringset
   value:
-    size: 678
+    size: 684
     values:
       - Device Camera Texture.deviceCameraTexture
       - Echopark.hdr
@@ -11,11 +11,14 @@ CollapsedEntities:
       - Render Target.renderTarget
       - Scene.scene
       - Scripts/ControllerPuppeteer.ts
-      - Scripts/DaemonInterface.ts
+      - Scripts/HardwareInterface.ts
+      - Scripts/MovementInterface.ts
       - Scripts/PersistenceManager.ts
       - Scripts/ReachyMiniManager.ts
       - Scripts/SetupWizard.ts
+      - Scripts/SimulationInterface.ts
       - Scripts/UIManager.ts
+      - Scripts/Utils
       - Scripts/Utils/MLObjectDetector.ts
       - Scripts/Utils/ObjectLinkRenderer.ts
       - Spatial Anchors.lspkg/AlignmentProvider.ts
@@ -630,8 +633,11 @@ CollapsedEntities:
       - Visuals/Materials/UnlitColor.ss_graph
       - Visuals/Materials/UnlitFresnelFade.ss_graph
       - Visuals/Materials/UnlitImage.ss_graph
-      - Visuals/Meshes
       - Visuals/Meshes/Plane.mesh
+      - Visuals/Meshes/ReachyHead.fbx
+      - Visuals/Meshes/ReachyHead.fbx/Meshes
+      - Visuals/Meshes/ReachyHead.fbx/Meshes/big_lens_d40.001
+      - Visuals/Meshes/ReachyHead.fbx/ReachyHead
       - Visuals/Meshes/body_down_3dprint.glb
       - Visuals/Meshes/body_down_3dprint.glb/Meshes
       - Visuals/Meshes/body_down_3dprint.glb/Meshes/body_down_3dprint
