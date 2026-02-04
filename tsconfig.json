@@ -12,6 +12,10 @@
         "./Assets/*",
         "./Packages/*",
         "./Cache/TypeScript/Src/Packages/*"
+      ],
+      "World Mesh - Spawn On Surfaces.lspkg/*": [
+        "./Assets/World Mesh - Spawn On Surfaces.lspkg/*",
+        "./Cache/TypeScript/Src/Assets/World Mesh - Spawn On Surfaces.lspkg/*"
       ]
     },
     "skipDefaultLibCheck": true,
@@ -25,6 +29,7 @@
     "./Cache/TypeScript/lib/LensifyTS/Declarations/**/*.d.ts",
     "./Assets/**/*.ts",
     "./Packages/**/*.ts",
-    "./Cache/TypeScript/Src/Packages/**/*.ts"
+    "./Cache/TypeScript/Src/Packages/**/*.ts",
+    "./Cache/TypeScript/Src/Assets/World Mesh - Spawn On Surfaces.lspkg/**/*.ts"
   ]
 }

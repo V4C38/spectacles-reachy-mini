@@ -1,0 +1,56 @@
+- !<AssetImportMetadata/b9fa1e57-12cb-4167-9651-e5b0baf32d88>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 3c034c80-8b5b-43f3-8fb3-9c398daa2b25
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 3c034c80-8b5b-43f3-8fb3-9c398daa2b25
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 30bf55b5-bfe4-4983-9e33-894a65911221
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/30bf55b5-bfe4-4983-9e33-894a65911221>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 49ac7a9f-9273-4553-9437-1f8fcdc5230c
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    fadeToEnd: false
+    lineColor: false
+    lineMaterial: false
+    lineWidth: false
+    targetObject: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - targetObject: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      lineMaterial: !<reference.Material> 00000000-0000-0000-0000-000000000000
+      lineColor: !<Vec4> {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+      lineWidth: 0.500000
+      fadeToEnd: true
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input SceneObject targetObject
+    - // @input Asset.Material lineMaterial
+    - "// @input vec4 lineColor = {1,1,1,1}"
+    - // @input float lineWidth = 5
+    - // @input bool fadeToEnd = true

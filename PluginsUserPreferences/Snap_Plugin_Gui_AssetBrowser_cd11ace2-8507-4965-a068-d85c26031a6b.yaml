@@ -1,9 +1,8 @@
 CollapsedEntities:
   type: stringset
   value:
-    size: 660
+    size: 678
     values:
-      - ""
       - Device Camera Texture.deviceCameraTexture
       - Echopark.hdr
       - Echopark.hdr/Diffuse
@@ -11,13 +10,14 @@ CollapsedEntities:
       - Internet Module.internetModule
       - Render Target.renderTarget
       - Scene.scene
-      - Scripts
       - Scripts/ControllerPuppeteer.ts
       - Scripts/DaemonInterface.ts
       - Scripts/PersistenceManager.ts
       - Scripts/ReachyMiniManager.ts
       - Scripts/SetupWizard.ts
       - Scripts/UIManager.ts
+      - Scripts/Utils/MLObjectDetector.ts
+      - Scripts/Utils/ObjectLinkRenderer.ts
       - Spatial Anchors.lspkg/AlignmentProvider.ts
       - Spatial Anchors.lspkg/SpatialPersistence
       - Spatial Anchors.lspkg/SpatialPersistence/Logging.ts
@@ -40,14 +40,10 @@ CollapsedEntities:
       - Spatial Anchors.lspkg/Util/algorithms.ts
       - Spatial Anchors.lspkg/Util/debounce.ts
       - Spatial Anchors.lspkg/package.native
-      - SpectaclesInteractionKit.lspkg
-      - SpectaclesInteractionKit.lspkg/Assets
       - SpectaclesInteractionKit.lspkg/Assets/Audio
       - SpectaclesInteractionKit.lspkg/Assets/Audio/HoverAudioTrack.wav
       - SpectaclesInteractionKit.lspkg/Assets/Audio/TriggerEndAudioTrack.wav
       - SpectaclesInteractionKit.lspkg/Assets/Audio/TriggerStartAudioTrack.wav
-      - SpectaclesInteractionKit.lspkg/Assets/Materials
-      - SpectaclesInteractionKit.lspkg/Assets/Materials/BaseHandVisualsMaterials
       - SpectaclesInteractionKit.lspkg/Assets/Materials/BaseHandVisualsMaterials/FingerHighlightLeft.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/BaseHandVisualsMaterials/FingerHighlightRight.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/BaseHandVisualsMaterials/FingerTipGlow.mat
@@ -64,7 +60,6 @@ CollapsedEntities:
       - SpectaclesInteractionKit.lspkg/Assets/Materials/PinchButtonToggleOnDefault.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/PinchButtonToggleOnIcon.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/PinchButtonToggleOnSelect.mat
-      - SpectaclesInteractionKit.lspkg/Assets/Materials/PlatformUI
       - SpectaclesInteractionKit.lspkg/Assets/Materials/PlatformUI/ButtonHover.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/PlatformUI/ButtonIdle.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/PlatformUI/ButtonPinched.mat
@@ -92,7 +87,6 @@ CollapsedEntities:
       - SpectaclesInteractionKit.lspkg/Assets/Materials/ScrollBarButton.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/ScrollBarSlider.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/SimplePBRMaterial.mat
-      - SpectaclesInteractionKit.lspkg/Assets/Materials/SliderMat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/SliderMat/PinchButtonDarkDefault.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/SliderMat/PinchButtonOnSelect.mat
       - SpectaclesInteractionKit.lspkg/Assets/Materials/SliderMat/SliderMat.mat
@@ -128,7 +122,6 @@ CollapsedEntities:
       - SpectaclesInteractionKit.lspkg/Assets/Meshes/SnapGhost_Mesh.mesh
       - SpectaclesInteractionKit.lspkg/Assets/Meshes/SphereMesh.mesh
       - SpectaclesInteractionKit.lspkg/Assets/Meshes/Uncheck.mesh
-      - SpectaclesInteractionKit.lspkg/Assets/Shaders
       - SpectaclesInteractionKit.lspkg/Assets/Shaders/BaseHandVisualsShaders
       - SpectaclesInteractionKit.lspkg/Assets/Shaders/BaseHandVisualsShaders/FingerHighlightAdd.ss_graph
       - SpectaclesInteractionKit.lspkg/Assets/Shaders/BaseHandVisualsShaders/FingerHighlightOpaque.ss_graph
@@ -418,7 +411,6 @@ CollapsedEntities:
       - SpectaclesInteractionKit.lspkg/Providers/TargetProvider/TargetingData.ts
       - SpectaclesInteractionKit.lspkg/README.md
       - SpectaclesInteractionKit.lspkg/SIK.ts
-      - SpectaclesInteractionKit.lspkg/Utils
       - SpectaclesInteractionKit.lspkg/Utils/BinaryHeap.ts
       - SpectaclesInteractionKit.lspkg/Utils/BistableThreshold.ts
       - SpectaclesInteractionKit.lspkg/Utils/ColliderUtils.ts
@@ -453,8 +445,6 @@ CollapsedEntities:
       - SpectaclesInteractionKit.lspkg/Utils/notEmpty.ts
       - SpectaclesInteractionKit.lspkg/Utils/springAnimate.ts
       - SpectaclesInteractionKit.lspkg/Utils/validate.ts
-      - SpectaclesInteractionKit.lspkg/Utils/views
-      - SpectaclesInteractionKit.lspkg/Utils/views/LineRenderer
       - SpectaclesInteractionKit.lspkg/Utils/views/LineRenderer/LineMeshUtils.ts
       - SpectaclesInteractionKit.lspkg/Utils/views/LineRenderer/LineRenderer.ts
       - SpectaclesInteractionKit.lspkg/Utils/views/MeshView.ts
@@ -615,14 +605,10 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Textures/test-image.jpg
       - SpectaclesUIKit.lspkg/package.native
       - SpectaclesUIKit.lspkg/package_dependencies.json
-      - Visuals
-      - Visuals/AI Visual
       - Visuals/AI Visual/Animations
       - Visuals/AI Visual/Animations/BaseLayer.animationMixerLayer
       - Visuals/AI Visual/Animations/Constraint_rotation_45.animationLayer
-      - Visuals/AI Visual/Materials
       - Visuals/AI Visual/Materials/Assist_sphere_Idle_L_T_T.mat
-      - Visuals/AI Visual/Materials/Assist_sphere_Idle_L_T_T.ss_graph
       - Visuals/AI Visual/Materials/HoverColor.mat
       - Visuals/AI Visual/Materials/HoverColor.ss_graph
       - Visuals/AI Visual/Meshes
@@ -637,13 +623,13 @@ CollapsedEntities:
       - Visuals/ActivityIndicator/ActivityIndicator.mat
       - Visuals/ActivityIndicator/ActivityIndicator.ss_graph
       - Visuals/ActivityIndicator/ActivityIndicator_LookAtInteraction.mat
-      - Visuals/Materials
       - Visuals/Materials/CloseIcon.mat
       - Visuals/Materials/FresnelHologram.mat
-      - Visuals/Materials/Image.mat
+      - Visuals/Materials/Image_Reachy.mat
       - Visuals/Materials/MicIcon.mat
-      - Visuals/Materials/fadey_unlit.ss_graph
-      - Visuals/Materials/image_unlit.ss_graph
+      - Visuals/Materials/UnlitColor.ss_graph
+      - Visuals/Materials/UnlitFresnelFade.ss_graph
+      - Visuals/Materials/UnlitImage.ss_graph
       - Visuals/Meshes
       - Visuals/Meshes/Plane.mesh
       - Visuals/Meshes/body_down_3dprint.glb
@@ -658,9 +644,41 @@ CollapsedEntities:
       - Visuals/Meshes/body_top_3dprint.glb/Meshes
       - Visuals/Meshes/body_top_3dprint.glb/Meshes/body_top_3dprint
       - Visuals/Meshes/body_top_3dprint.glb/body_top_3dprint
-      - Visuals/Textures
       - Visuals/Textures/Image.mat
       - Visuals/Textures/Microphone.png
       - Visuals/Textures/NoInternetAlert.png
       - Visuals/Textures/NoInternetWarning.mat
+      - Visuals/Textures/reachy-icon.png
+      - World Mesh - Spawn On Surfaces.lspkg
+      - World Mesh - Spawn On Surfaces.lspkg/Materials
+      - World Mesh - Spawn On Surfaces.lspkg/Materials/Blue.mat
+      - World Mesh - Spawn On Surfaces.lspkg/Materials/Brown.mat
+      - World Mesh - Spawn On Surfaces.lspkg/Materials/Green.mat
+      - World Mesh - Spawn On Surfaces.lspkg/Materials/Occluder.mat
+      - World Mesh - Spawn On Surfaces.lspkg/Materials/Orange.mat
+      - World Mesh - Spawn On Surfaces.lspkg/Materials/Pink.mat
+      - World Mesh - Spawn On Surfaces.lspkg/Materials/Purple.mat
+      - World Mesh - Spawn On Surfaces.lspkg/Materials/Red.mat
+      - World Mesh - Spawn On Surfaces.lspkg/Materials/Yellow.mat
+      - World Mesh - Spawn On Surfaces.lspkg/Meshes
+      - World Mesh - Spawn On Surfaces.lspkg/Meshes/Box.mesh
+      - World Mesh - Spawn On Surfaces.lspkg/Meshes/Plane.mesh
+      - World Mesh - Spawn On Surfaces.lspkg/Meshes/Sphere.mesh
+      - World Mesh - Spawn On Surfaces.lspkg/Meshes/World Mesh.worldmesh
+      - World Mesh - Spawn On Surfaces.lspkg/Scripts
+      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner
+      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/CloneMaterialToObjects.js
+      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/InstanceController.js
+      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/InstanceSpawner.js
+      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/RayCasting.js
+      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/SpawnerSetup.js
+      - World Mesh - Spawn On Surfaces.lspkg/Scripts/WorldMesh Scripts
+      - World Mesh - Spawn On Surfaces.lspkg/Scripts/WorldMesh Scripts/WorldMeshController.js
+      - World Mesh - Spawn On Surfaces.lspkg/Shaders
+      - World Mesh - Spawn On Surfaces.lspkg/Shaders/Color.ss_graph
+      - World Mesh - Spawn On Surfaces.lspkg/Shaders/Occluder.ss_graph
+      - World Mesh - Spawn On Surfaces.lspkg/Textures
+      - World Mesh - Spawn On Surfaces.lspkg/Textures/Placeholder Texture.png
+      - World Mesh - Spawn On Surfaces.lspkg/World Mesh - Spawn On Surfaces__PLACE_IN_SCENE.prefab
+      - World Mesh - Spawn On Surfaces.lspkg/package.native
   options: 4

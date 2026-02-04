@@ -34,9 +34,7 @@ export class ReachyMiniManager extends BaseScriptComponent {
     private puppeteer: ControllerPuppeteer | null = null;
     private puppeteerUpdateEvent: SceneEvent | null = null;
     
-    // Positioning save tracking
-    private positioningSaveEnabled: boolean = false;
-    private positioningSaveListenerAdded: boolean = false;
+    private positioningEnabled: boolean = false;
 
     @input
     private mode1Interactable : Interactable | null = null;
@@ -52,6 +50,13 @@ export class ReachyMiniManager extends BaseScriptComponent {
         this.createEvent("OnStartEvent").bind(() => {
             this.setPositioningEnabled(false);
             this.setControlMode(0);
+            
+            // Save anchor when positioning interaction ends
+            if (this.positioningInteraction) {
+                this.positioningInteraction.onTriggerEnd.add(() => {
+                    this.saveCurrentPosition();
+                });
+            }
         });
     }
 
@@ -148,33 +153,21 @@ export class ReachyMiniManager extends BaseScriptComponent {
     // ------------------------------------------------------------
     // Positioning
     // ------------------------------------------------------------
-    public setRootPosition(position : vec3, rotation : quat = new quat(0, 0, 0, 0)) {
+    public setRootPosition(position : vec3, rotation : quat = quat.quatIdentity()) {
         if (this.reachyMiniRoot) {
             this.reachyMiniRoot.getTransform().setWorldPosition(position);
             this.reachyMiniRoot.getTransform().setWorldRotation(rotation);
         }
     }
 
-    public setPositioningEnabled(enabled : boolean, saveOnMove : boolean = false) {
+    public setPositioningEnabled(enabled : boolean) {
+        this.positioningEnabled = enabled;
+        
         if (this.positioningHologram) {
             this.animateSceneObjectState(this.positioningHologram, enabled);
         }        
         if (this.positioningInteraction) {
             this.positioningInteraction.enabled = enabled;
-        }
-        
-        // Track whether to save on positioning changes
-        this.positioningSaveEnabled = enabled && saveOnMove;
-        
-        // Set up the save-on-move listener once (first time saveOnMove is requested)
-        if (saveOnMove && this.positioningInteraction && !this.positioningSaveListenerAdded) {
-            this.positioningSaveListenerAdded = true;
-            this.positioningInteraction.onTriggerEnd.add(() => {
-                if (this.positioningSaveEnabled) {
-                    print("ReachyMiniManager: Position changed, saving anchor");
-                    this.saveCurrentPosition();
-                }
-            });
         }
         
         // Reset robot to default pose
@@ -219,10 +212,8 @@ export class ReachyMiniManager extends BaseScriptComponent {
     // ------------------------------------------------------------
     public async saveCurrentPosition(): Promise<void> {
         if (this.persistenceManager && this.reachyMiniRoot) {
-            const transform = this.reachyMiniRoot.getTransform();
-            const position = transform.getWorldPosition();
-            const rotation = transform.getWorldRotation();
-            await this.persistenceManager.savePosition(position, rotation);
+            const position = this.reachyMiniRoot.getTransform().getWorldPosition();
+            await this.persistenceManager.saveAnchorPosition(position);
         }
     }
 }
