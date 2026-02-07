@@ -6,7 +6,7 @@ interface CapturedDepthFrame {
 }
 
 @component
-export class DepthCacheHelper extends BaseScriptComponent {
+export class DepthCache extends BaseScriptComponent {
     
     private depthModule: DepthModule = require("LensStudio:DepthModule");
     private depthFrameSession: DepthFrameSession;
@@ -57,7 +57,7 @@ export class DepthCacheHelper extends BaseScriptComponent {
 
     public captureFrame(): void {
         if (!this.latestFrame) {
-            throw new Error("DepthCacheHelper: No depth frames available");
+            throw new Error("DepthCache: No depth frames available");
         }
         // Store a snapshot of the latest frame for the current detection
         this.capturedFrame = this.latestFrame;

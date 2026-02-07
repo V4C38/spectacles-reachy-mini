@@ -4,53 +4,53 @@ import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 
 import { ReachyMiniManager } from "./ReachyMiniManager";
 import { UIManager } from "./UIManager";
-import { PersistenceManager } from "./PersistenceManager";
+import { PersistenceManager } from "./Utils/PersistenceManager";
 
 @component
 export class SetupWizard extends BaseScriptComponent {
 
     @input
-    private reachyMiniManager : ReachyMiniManager | null = null;
+    private reachyMiniManager: ReachyMiniManager | null = null;
     @input
-    private uiManager : UIManager | null = null;
+    private uiManager: UIManager | null = null;
     @input
-    private persistenceManager : PersistenceManager | null = null;
+    private persistenceManager: PersistenceManager | null = null;
     @input
-    private buttonRestart : RectangleButton | null = null;
+    private buttonRestart: RectangleButton | null = null;
 
-    private currentStep : number = 0;
-    private stepOperationId : number = 0;
-    private simulationMode : boolean = false;
-
-    @input
-    private uiSetupContainer : SceneObject | null = null;
+    private currentStep: number = 0;
+    private stepOperationId: number = 0;
+    private simulationMode: boolean = false;
 
     @input
-    private textStepIndicator : Text | null = null;
-    @input
-    private textStepDescription : Text | null = null;
-    @input
-    private textStepStatus : Text | null = null;
+    private uiSetupContainer: SceneObject | null = null;
 
     @input
-    private buttonNext : RectangleButton | null = null;
+    private textStepIndicator: Text | null = null;
     @input
-    private textButtonNext : Text | null = null;
+    private textStepDescription: Text | null = null;
     @input
-    private buttonPrevious : RectangleButton | null = null;
-    @input
-    private textButtonPrevious : Text | null = null;
-    @input
-    private textInputField : TextInputField | null = null;
+    private textStepStatus: Text | null = null;
 
-    private steps : string[] = [
+    @input
+    private buttonNext: RectangleButton | null = null;
+    @input
+    private textButtonNext: Text | null = null;
+    @input
+    private buttonPrevious: RectangleButton | null = null;
+    @input
+    private textButtonPrevious: Text | null = null;
+    @input
+    private textInputField: TextInputField | null = null;
+
+    private steps: string[] = [
         "Launch Reachy Mini App",
         "Connect to Desktop App",
         "Position Reachy Mini",
         ""
     ];
 
-    private stepDescriptions : string[] = [
+    private stepDescriptions: string[] = [
         " \n \n In the Reachy Mini Desktop application, start the app: \n 'reachy_mini_spectacles' ",
         " \n Enter the IP address of your PC",
         " \n \n Position Reachy Mini in the desired location  \n You can adjust this later in the settings.",
@@ -94,8 +94,8 @@ export class SetupWizard extends BaseScriptComponent {
                 });
             }
 
-            // Handle IP typing: update IP address in daemon interface and check connection
-            if (this.textInputField && this.reachyMiniManager.hardwareInterface) {
+            // Handle IP typing: update IP address and check connection via facade
+            if (this.textInputField && this.reachyMiniManager) {
                 this.textInputField.onReturnKeyPressed.add((value: string) => {
                     this.updateConnectionStatus();
                 });
@@ -121,7 +121,7 @@ export class SetupWizard extends BaseScriptComponent {
         }
     }
 
-    private async setStep(step : number) {
+    private async setStep(step: number) {
         // Cancel any previous async operations by incrementing the operation ID
         this.stepOperationId++;
         const currentOperationId = this.stepOperationId;
@@ -155,7 +155,7 @@ export class SetupWizard extends BaseScriptComponent {
                     this.textButtonNext.text = "Next";
                     this.buttonNext.enabled = true;
                 }
-                
+
                 if (this.uiManager) {
                     this.uiManager.setUIState(0);
                 }
@@ -171,18 +171,18 @@ export class SetupWizard extends BaseScriptComponent {
                     this.textButtonPrevious.text = "Back";
                     this.textButtonNext.text = "Next";
                 }
-                
+
                 // Load saved IP and populate text field
                 const savedIp = this.persistenceManager ? this.persistenceManager.loadIp() : null;
-                if (savedIp && this.reachyMiniManager && this.reachyMiniManager.hardwareInterface) {
-                    this.reachyMiniManager.hardwareInterface.baseUrl = savedIp;
+                if (savedIp && this.reachyMiniManager) {
+                    this.reachyMiniManager.setBaseUrl(savedIp);
                 }
-                
-                if (this.textInputField && this.reachyMiniManager && this.reachyMiniManager.hardwareInterface && this.textStepStatus) {
+
+                if (this.textInputField && this.reachyMiniManager && this.textStepStatus) {
                     this.textInputField.enabled = true;
                     this.textInputField.initialize();
                     // Use saved IP if available, otherwise use current baseUrl
-                    this.textInputField.text = savedIp || this.reachyMiniManager.hardwareInterface.baseUrl;
+                    this.textInputField.text = savedIp || this.reachyMiniManager.getBaseUrl();
                     this.updateConnectionStatus();
                 }
                 if (this.textStepStatus) {
@@ -226,7 +226,7 @@ export class SetupWizard extends BaseScriptComponent {
                         const uiPosition = this.uiSetupContainer.getTransform().getWorldPosition();
                         const defaultPosition = new vec3(uiPosition.x, uiPosition.y - 35, uiPosition.z);
                         this.reachyMiniManager.setRootPosition(defaultPosition);
-                        
+
                         if (this.textStepStatus) {
                             this.textStepStatus.text = "No saved position found";
                             this.textStepStatus.textFill.color = new vec4(1, 1, 0, 1);
@@ -262,32 +262,31 @@ export class SetupWizard extends BaseScriptComponent {
     // Helper functions
     // ------------------------------------------------------------
     private updateConnectionStatus() {
-        if (this.reachyMiniManager && this.reachyMiniManager.hardwareInterface) {
-            const operationIdAtStart = this.stepOperationId;
-            
-            this.textStepStatus.text = "Checking connection...";
-            this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
+        if (!this.reachyMiniManager) return;
+        const operationIdAtStart = this.stepOperationId;
 
-            this.reachyMiniManager.hardwareInterface.baseUrl = this.textInputField.text;
-            this.reachyMiniManager.hardwareInterface.checkConnection().then((isConnected: boolean) => {
-                // Check if step changed during async operation
-                if (operationIdAtStart !== this.stepOperationId) {
-                    return;
+        this.textStepStatus.text = "Checking connection...";
+        this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
+
+        this.reachyMiniManager.setBaseUrl(this.textInputField.text);
+        this.reachyMiniManager.checkConnection().then((isConnected: boolean) => {
+            // Check if step changed during async operation
+            if (operationIdAtStart !== this.stepOperationId) {
+                return;
+            }
+
+            if (isConnected) {
+                this.textStepStatus.text = "Connected";
+                this.textStepStatus.textFill.color = new vec4(0, 1, 0, 1);
+                // Save IP on successful connection
+                if (this.persistenceManager) {
+                    this.persistenceManager.saveIp(this.textInputField.text);
                 }
-                
-                if (isConnected) {
-                    this.textStepStatus.text = "Connected";
-                    this.textStepStatus.textFill.color = new vec4(0, 1, 0, 1);
-                    // Save IP on successful connection
-                    if (this.persistenceManager) {
-                        this.persistenceManager.saveIp(this.textInputField.text);
-                    }
-                } else {
-                    this.textStepStatus.text = "Not connected";
-                    this.textStepStatus.textFill.color = new vec4(1, 0, 0, 1);
-                }
-            });
-        }
+            } else {
+                this.textStepStatus.text = "Not connected";
+                this.textStepStatus.textFill.color = new vec4(1, 0, 0, 1);
+            }
+        });
     }
 
     private async tryLoadAnchor(): Promise<boolean> {
@@ -296,7 +295,7 @@ export class SetupWizard extends BaseScriptComponent {
         }
 
         const position = await this.persistenceManager.loadAnchorPosition();
-        
+
         if (position) {
             this.reachyMiniManager.setRootPosition(position);
             return true;
@@ -304,7 +303,7 @@ export class SetupWizard extends BaseScriptComponent {
         return false;
     }
 
-    private animateSceneObjectState(sceneObject : SceneObject, state : boolean, duration : number = 0.5): Promise<void> {
+    private animateSceneObjectState(sceneObject: SceneObject, state: boolean, duration: number = 0.5): Promise<void> {
         // Enable before animating in, disable after animating out
         if (state) {
             sceneObject.enabled = true;

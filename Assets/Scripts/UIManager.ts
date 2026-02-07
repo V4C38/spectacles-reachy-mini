@@ -2,39 +2,43 @@ import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 import { RoundButton } from "SpectaclesUIKit.lspkg/Scripts/Components/Button/RoundButton";
 import { RectangleButton } from "SpectaclesUIKit.lspkg/Scripts/Components/Button/RectangleButton";
 import { ReachyMiniManager } from "./ReachyMiniManager";
-import { AssistantState } from "./ControllerAssistant";
+import { AssistantState } from "./AssistantMode";
 
 
 @component
 export class UIManager extends BaseScriptComponent {
 
     @input
-    private reachyMiniManager : ReachyMiniManager | null = null;
+    private reachyMiniManager: ReachyMiniManager | null = null;
 
-    private currentMode : number = 0;
+    private currentMode: number = 0;
     @input
-    private textStateInidcator : Text | null = null;
+    private textStateInidcator: Text | null = null;
     @input
-    private textConnectionStatus : Text | null = null;
-
-    @input
-    private uiContainer : SceneObject | null = null;
-    @input
-    private uiContainerMode1 : SceneObject | null = null;
-    @input
-    private uiContainerMode2 : SceneObject | null = null;
+    private textConnectionStatus: Text | null = null;
 
     @input
-    private buttonEnable : RoundButton | null = null;
+    private uiContainer: SceneObject | null = null;
     @input
-    private buttonEnableVFX : SceneObject | null = null;
+    private uiContainerMode1: SceneObject | null = null;
     @input
-    private buttonMode1 : RectangleButton | null = null;
-    @input
-    private buttonMode2 : RectangleButton | null = null;
-    @input
-    private buttonAllowRepositioning : RectangleButton | null = null;
+    private uiContainerMode2: SceneObject | null = null;
 
+    @input
+    private buttonEnable: RoundButton | null = null;
+    @input
+    private buttonEnableVFX: SceneObject | null = null;
+    @input
+    private buttonMode1: RectangleButton | null = null;
+    @input
+    private buttonMode2: RectangleButton | null = null;
+    @input
+    private buttonAllowRepositioning: RectangleButton | null = null;
+
+    @input
+    private buttonShowDebugInfo: RectangleButton | null = null;
+    @input
+    private textDebugInfo: Text | null = null;
 
 
     onAwake() {
@@ -60,20 +64,23 @@ export class UIManager extends BaseScriptComponent {
                         this.reachyMiniManager.setPositioningEnabled(value === 1);
                     }
                 });
+
+                // Debug Info
+                this.buttonShowDebugInfo.onValueChange.add((value: number) => {
+                    this.textDebugInfo.sceneObject.enabled = value === 1;
+                });
             }
 
-            // Subscribe to assistant state & session changes to update the status text
-            if (this.reachyMiniManager && this.reachyMiniManager.assistantController) {
-                const assistant = this.reachyMiniManager.assistantController;
-
-                assistant.onStateChanged.push((newState: AssistantState) => {
+            // Subscribe to assistant state & session changes via facade
+            if (this.reachyMiniManager) {
+                this.reachyMiniManager.onAssistantStateChanged.push((newState: AssistantState) => {
                     if (!this.textStateInidcator || this.reachyMiniManager.controlMode !== 2) return;
-                    if (newState === AssistantState.Inactive) {
-                        this.textStateInidcator.text = "- Paused -";
+                    if (newState === AssistantState.Sleeping) {
+                        this.textStateInidcator.text = "Say 'Reachy' to wake up";
                     }
                 });
 
-                assistant.onSessionChanged.push((active: boolean) => {
+                this.reachyMiniManager.onSessionChanged.push((active: boolean) => {
                     if (!this.textStateInidcator || this.reachyMiniManager.controlMode !== 2) return;
                     this.textStateInidcator.text = active ? "Reachy" : "Say 'Reachy' to wake up";
                 });
@@ -84,15 +91,15 @@ export class UIManager extends BaseScriptComponent {
     // ------------------------------------------------------------
     // State
     // ------------------------------------------------------------
-    public setMode(mode : number) {
+    public setMode(mode: number) {
         this.currentMode = mode;
         switch (mode) {
             case 1:
                 if (this.buttonMode1 && this.buttonMode2) {
-                    this.buttonMode1.isOn = true;     
+                    this.buttonMode1.isOn = true;
                     this.buttonMode2.isOn = false;
                 }
-                if (this.uiContainerMode1 && this.uiContainerMode2) {   
+                if (this.uiContainerMode1 && this.uiContainerMode2) {
                     this.uiContainerMode1.enabled = true;
                     this.uiContainerMode2.enabled = false;
                 }
@@ -119,7 +126,7 @@ export class UIManager extends BaseScriptComponent {
     // ------------------------------------------------------------
     // Show / Hide UI & Pause / Resume Interaction
     // ------------------------------------------------------------
-    public setUIState(state : number) {
+    public setUIState(state: number) {
 
         switch (state) {
             case 0:
@@ -141,16 +148,12 @@ export class UIManager extends BaseScriptComponent {
                 if (this.buttonAllowRepositioning) {
                     this.buttonAllowRepositioning.toggle(false);
                 }
-                if (this.textStateInidcator) {
+                if (this.textStateInidcator && this.reachyMiniManager) {
                     if (this.reachyMiniManager.controlMode === 2) {
-                        
-                        // If Conversation is active, show the conversation state
-                        if (this.reachyMiniManager.assistantController) {
-                            if (this.reachyMiniManager.assistantController.isConversationActive) {
-                                this.textStateInidcator.text = "Reachy";
-                            } else {
-                                this.textStateInidcator.text = "Say 'Reachy' to wake up";
-                            }
+                        if (this.reachyMiniManager.isConversationActive) {
+                            this.textStateInidcator.text = "Reachy";
+                        } else {
+                            this.textStateInidcator.text = "Say 'Reachy' to wake up";
                         }
                     } else {
                         this.textStateInidcator.text = "Reachy";
@@ -175,23 +178,21 @@ export class UIManager extends BaseScriptComponent {
                     this.reachyMiniManager.setIsActive(false);
                 }
 
-                // Update connection status
+                // Update connection status via facade
                 if (this.reachyMiniManager) {
                     if (this.reachyMiniManager.isSimulationMode) {
                         this.textConnectionStatus.text = "Simulation Mode";
                         this.textConnectionStatus.textFill.color = new vec4(1, 1, 1, 1);
                     } else {
-                        if (this.reachyMiniManager.hardwareInterface) {
-                            this.reachyMiniManager.hardwareInterface.checkConnection().then((isConnected: boolean) => {
-                                if (isConnected) {
-                                    this.textConnectionStatus.text = "Connected";
-                                    this.textConnectionStatus.textFill.color = new vec4(0, 1, 0, 1);
-                                } else {
-                                    this.textConnectionStatus.text = "Not connected";
-                                    this.textConnectionStatus.textFill.color = new vec4(1, 0, 0, 1);
-                                }
-                            });
-                        }
+                        this.reachyMiniManager.checkConnection().then((isConnected: boolean) => {
+                            if (isConnected) {
+                                this.textConnectionStatus.text = "Connected";
+                                this.textConnectionStatus.textFill.color = new vec4(0, 1, 0, 1);
+                            } else {
+                                this.textConnectionStatus.text = "Not connected";
+                                this.textConnectionStatus.textFill.color = new vec4(1, 0, 0, 1);
+                            }
+                        });
                     }
                 }
 
@@ -203,7 +204,7 @@ export class UIManager extends BaseScriptComponent {
     // ------------------------------------------------------------
     // Helper functions
     // ------------------------------------------------------------
-    private animateSceneObjectState(sceneObject : SceneObject, state : boolean, duration : number = 0.5): Promise<void> {
+    private animateSceneObjectState(sceneObject: SceneObject, state: boolean, duration: number = 0.5): Promise<void> {
 
 
         // DEBUG: resolve immediately

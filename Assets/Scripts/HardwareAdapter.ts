@@ -1,17 +1,20 @@
-import { XYZRPYPose, IMovementInterface } from "./MovementInterface";
+import { XYZRPYPose, RobotInterface } from "./RobotDriver";
 
 export interface MoveUUID {
     uuid: string;
 }
 
 @component
-export class HardwareInterface extends BaseScriptComponent implements IMovementInterface {
+export class HardwareAdapter extends BaseScriptComponent implements RobotInterface {
 
     @input
     public baseUrl: string = "http://192.168.1.98:8000";
 
     @input
     private internetModule!: InternetModule;
+
+    @input
+    private audioComponent: AudioComponent | null = null;
 
     onAwake() {
     }
@@ -38,12 +41,12 @@ export class HardwareInterface extends BaseScriptComponent implements IMovementI
             if (!response || response.status !== 200) {
                 const status = response ? response.status : "no response";
                 const bodyStr = body ? JSON.stringify(body) : "none";
-                print(`HardwareInterface: Request to ${endpoint} returned ${status}. Method: ${method}, Body: ${bodyStr}`);
+                print(`HardwareAdapter: Request to ${endpoint} returned ${status}. Method: ${method}, Body: ${bodyStr}`);
             }
             
             return response;
         } catch (error) {
-            print(`HardwareInterface: Error making request to ${endpoint}: ${error}`);
+            print(`HardwareAdapter: Error making request to ${endpoint}: ${error}`);
             return null;
         }
     }
@@ -113,10 +116,27 @@ export class HardwareInterface extends BaseScriptComponent implements IMovementI
     }
 
     /**
-     * Play audio on the hardware speaker (stub for now).
-     * TODO: Extract audio data from AudioTrackAsset and POST to robot speaker endpoint: /api/audio/play
+     * Play an AudioTrackAsset through the AudioComponent.
+     * Promise resolves when playback completes.
      */
     public async playAudio(audioTrack: AudioTrackAsset): Promise<void> {
-        print("HardwareInterface: playAudio stub - received AudioTrackAsset");
+        if (!this.audioComponent) {
+            throw new Error("HardwareAdapter: AudioComponent not assigned");
+        }
+
+        this.audioComponent.audioTrack = audioTrack;
+        this.audioComponent.play(1);
+
+        const durationSec = this.audioComponent.duration;
+        print(`HardwareAdapter: Playing audio (${durationSec.toFixed(2)}s)`);
+
+        // Wait for playback to complete
+        return new Promise<void>((resolve) => {
+            const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
+            delayEvent.bind(() => {
+                resolve();
+            });
+            delayEvent.reset(durationSec);
+        });
     }
 }

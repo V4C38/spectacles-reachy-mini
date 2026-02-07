@@ -4,6 +4,23 @@
     - !<own> c88c59f9-5706-4a01-8f18-62389a07e42a
   LazyLoading: false
   RetainAssets: true
+- !<ScriptComponent/05f31631-5710-4b03-af9f-11255520d622>
+  PrefabRemaps:
+    []
+  Name: ObjectLinkRenderer
+  Enabled: true
+  ScriptAsset: !<reference> 3c034c80-8b5b-43f3-8fb3-9c398daa2b25
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      endPosition: !<Vec3> {x: 0.000000, y: 0.000000, z: 0.000000}
+      material: !<reference.Material> f25e3adb-5630-4ad9-a459-0f2413e28bc1
+  ScriptTypes:
+    "":
+      {}
 - !<RenderMeshVisual/0e29490c-d976-4dd1-96bd-5fed02685135>
   PrefabRemaps:
     []
@@ -31,7 +48,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 1.000000, z: 0.000000}
+    Position: {x: 0.000000, y: 4.000000, z: 0.000000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -58,35 +75,19 @@
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 0.000000, z: -0.500000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.330000}
+    Scale: {x: 5.000000, y: 5.000000, z: 5.000000}
     HasSegmentScaleCompensation: false
   Children:
     []
   Components:
     - !<own> 0e29490c-d976-4dd1-96bd-5fed02685135
-- !<ScriptComponent/bb99511a-47c2-4e29-95f3-8bbf83ac7887>
-  PrefabRemaps:
-    []
-  Name: ScaleObjectByDistance
-  Enabled: true
-  ScriptAsset: !<reference> dfcd72aa-74a6-4645-98e6-68114b64e13e
-  ScriptInputsDefault:
-    {}
-  ScriptTypesDefault:
-    {}
-  ScriptInputs:
-    "":
-      {}
-  ScriptTypes:
-    "":
-      {}
 - !<SceneObject/c88c59f9-5706-4a01-8f18-62389a07e42a>
   PrefabRemaps:
+    - 05f31631-5710-4b03-af9f-11255520d622: 7e07c966-6acb-4dbe-becf-7f1e24658a13
     - 0e29490c-d976-4dd1-96bd-5fed02685135: 0e29490c-d976-4dd1-6942-a012fd97aeca
     - 860c7663-afbd-4e7b-9524-63393b7388ed: 860c7663-afbd-4e7b-6adb-9cc6c48c7712
     - 8d95e95d-5e76-4dbe-b92a-e9c71ac9222b: 8d95e95d-5e76-4dbe-46d5-1638e536ddd4
     - 9952fbd1-0480-4a9f-b983-b03eb28b0094: 9952fbd1-0480-4a9f-467c-4fc14d74ff6b
-    - bb99511a-47c2-4e29-95f3-8bbf83ac7887: dcbf2480-fc21-4f28-9d95-d26826ef3da6
     - c88c59f9-5706-4a01-8f18-62389a07e42a: c88c59f9-5706-4a01-70e7-9dc765f81bd5
     - fa36e99d-163e-4b9c-90f6-bdb4b962dad6: fa36e99d-163e-4b9c-6f09-424b469d2529
   Name: ObjectMarker
@@ -102,7 +103,7 @@
     - !<own> 860c7663-afbd-4e7b-9524-63393b7388ed
   Components:
     - !<own> 8d95e95d-5e76-4dbe-b92a-e9c71ac9222b
-    - !<own> bb99511a-47c2-4e29-95f3-8bbf83ac7887
+    - !<own> 05f31631-5710-4b03-af9f-11255520d622
 - !<Text/fa36e99d-163e-4b9c-90f6-bdb4b962dad6>
   PrefabRemaps:
     []
@@ -120,7 +121,7 @@
   ShowEditingPreview: true
   TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000
   SizeToFit: false
-  FontSize: 25
+  FontSize: 65
   Font: !<reference> 00000000-0000-0000-0000-000000000000
   LayoutRect:
     left: -7.500000

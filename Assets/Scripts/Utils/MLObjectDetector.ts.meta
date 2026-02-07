@@ -26,11 +26,8 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
-    buttonManualObjectDetect: false
     depthCacheHelper: false
-    objectDetectionPrompt: false
     objectMarkerPrefab: false
-    textStatus: false
     worldMeshRenderer: false
     worldMeshRoot: false
   ScriptTypesHidden:
@@ -43,20 +40,14 @@
     []
   DefaultScriptInputs:
     - depthCacheHelper: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
-      textStatus: !<reference.Text> 00000000-0000-0000-0000-000000000000
-      buttonManualObjectDetect: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       objectMarkerPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
       worldMeshRenderer: !<reference.RenderMeshVisual> 00000000-0000-0000-0000-000000000000
       worldMeshRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      objectDetectionPrompt: Find all objects in the room
   ScriptTypes:
     -
       {}
   InputLines:
     - // @input AssignableType depthCacheHelper
-    - // @input Component.Text textStatus
-    - // @input AssignableType_1 buttonManualObjectDetect
     - // @input Asset.ObjectPrefab objectMarkerPrefab
     - // @input Component.RenderMeshVisual worldMeshRenderer
     - // @input SceneObject worldMeshRoot
-    - '// @input string objectDetectionPrompt = "Find all objects in the room"'

@@ -1,0 +1,59 @@
+- !<AssetImportMetadata/83367ff1-87a5-44d8-b033-e0b732b3dbb5>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 543f8c6e-ec04-4709-bc24-d4db9c86a8c8
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 543f8c6e-ec04-4709-bc24-d4db9c86a8c8
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 2a30f6ae-6cc0-4580-bfbf-06841e8903c3
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/2a30f6ae-6cc0-4580-bfbf-06841e8903c3>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: a7dd06e3-0853-4ef9-b531-2d6458a458b5
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    assistantMode: false
+    lineMaterial: false
+    mlDetector: false
+    objectMarkerPrefab: false
+    robotDriver: false
+    textDebugInfo: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - assistantMode: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      mlDetector: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      robotDriver: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      objectMarkerPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      lineMaterial: !<reference.Material> 00000000-0000-0000-0000-000000000000
+      textDebugInfo: !<reference.Text> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType assistantMode
+    - // @input AssignableType_1 mlDetector
+    - // @input AssignableType_2 robotDriver
+    - // @input Asset.ObjectPrefab objectMarkerPrefab
+    - // @input Asset.Material lineMaterial
+    - // @input Component.Text textDebugInfo

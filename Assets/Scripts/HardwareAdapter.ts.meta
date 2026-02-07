@@ -26,6 +26,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    audioComponent: false
     baseUrl: false
     internetModule: false
   ScriptTypesHidden:
@@ -39,9 +40,11 @@
   DefaultScriptInputs:
     - baseUrl: "http://192.168.1.98:8000"
       internetModule: !<reference.InternetModule> 00000000-0000-0000-0000-000000000000
+      audioComponent: !<reference.AudioComponent> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
   InputLines:
     - '// @input string baseUrl = "http://192.168.1.98:8000"'
     - // @input Asset.InternetModule internetModule
+    - // @input Component.AudioComponent audioComponent

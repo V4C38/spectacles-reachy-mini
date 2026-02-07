@@ -77,7 +77,7 @@ export class PersistenceManager extends BaseScriptComponent {
                     resolve(null);
                 }
             });
-            delayedEvent.reset(2.0);
+            delayedEvent.reset(1.5);
         });
     }
 

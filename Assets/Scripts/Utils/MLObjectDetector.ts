@@ -1,21 +1,35 @@
-import { DepthCacheHelper } from "./DepthCacheHelper";
-import { DetectedObject, GeminiDetectionResult } from "./DetectedObject";
+import { DepthCache } from "./DepthCache";
 import { Gemini } from "RemoteServiceGateway.lspkg/HostedExternal/Gemini";
 import { GeminiTypes } from "RemoteServiceGateway.lspkg/HostedExternal/GeminiTypes";
-import { RectangleButton } from "SpectaclesUIKit.lspkg/Scripts/Components/Button/RectangleButton";
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
+
+
+export interface DetectedObject {
+    id: string;                 // Unique identifier
+    name: string;               // Object class name
+    position: vec3;             // World position
+    confidence: number;         // Detection confidence (0-1)
+    lastSeen: number;           // Timestamp of last detection
+    markerObject: SceneObject;  // Reference to spawned marker
+}
+
+export interface DetectionItem {
+    name: string;
+    x: number;          // Logical center X (0-1 normalized)
+    y: number;          // Logical center Y (0-1 normalized)
+    confidence: number;
+}
+
+export interface GeminiDetectionResult {
+    objects: DetectionItem[];
+}
+
 
 @component
 export class MLObjectDetector extends BaseScriptComponent {
     
     @input
-    private depthCacheHelper: DepthCacheHelper;
-
-    @input
-    private textStatus: Text;
-
-    @input
-    private buttonManualObjectDetect: RectangleButton;
+    private depthCacheHelper: DepthCache;
 
     @input
     private objectMarkerPrefab: ObjectPrefab;
@@ -26,22 +40,18 @@ export class MLObjectDetector extends BaseScriptComponent {
     @input
     private worldMeshRoot: SceneObject | null = null;
 
-    @input
-    private objectDetectionPrompt: string = "Find all objects in the room";
-
-    // Camera Module
     private cameraModule: CameraModule = require("LensStudio:CameraModule");
 
-    // State management
+    // --- State ---
     private detectedObjects: Map<string, DetectedObject> = new Map();
     private currentMarkers: SceneObject[] = [];   // Markers from the latest run
     private isProcessing: boolean = false;
-    
-    // Configuration
+        
+    // --- Configuration ---
     private readonly CONFIDENCE_THRESHOLD = 0.3;  // Minimum confidence
     private readonly STALE_DESTROY_DELAY_MS = 500; // Delay before destroying old markers
 
-    // World-mesh animation state
+    // --- World-mesh animation state ---
     private worldMeshVisible: boolean = false;
     private worldMeshPulsing: boolean = false;
     private currentDistance: number = 0;
@@ -56,68 +66,36 @@ export class MLObjectDetector extends BaseScriptComponent {
     onAwake() {
         // Initialize on start
         this.createEvent("OnStartEvent").bind(() => {
-            // Bind button (starts disabled until depth is ready)
-            if (this.buttonManualObjectDetect && this.buttonManualObjectDetect.onTriggerUp) {
-                this.setButtonEnabled(false);
-                this.buttonManualObjectDetect.onTriggerUp.add(() => {
-                    this.triggerScan();
-                });
-            }
-            
-            // Wait for depth data then enable button
-            this.setStatus("Initializing...");
             this.waitForDepthReady();
         });
     }
 
-    /**
-     * Poll until depth data is available, then enable the button
-     */
     private waitForDepthReady(): void {
         const checkEvent = this.createEvent("UpdateEvent");
         checkEvent.bind(() => {
             if (this.depthCacheHelper && this.depthCacheHelper.hasDepthData()) {
                 checkEvent.enabled = false;
-                this.setButtonEnabled(true);
-                this.setStatus("Ready");
             }
         });
     }
 
-    /**
-     * Trigger a scan from the button
-     */
-    private triggerScan(): void {
-        if (this.isProcessing) {
-            return;
-        }
-        
-        if (!this.objectMarkerPrefab) {
-            this.setStatus("Error: No marker prefab");
-            return;
-        }
-
-        this.requestObjectDetection(this.objectDetectionPrompt, this.objectMarkerPrefab);
+    public getIsProcessing(): boolean {
+        return this.isProcessing;
     }
 
-    /**
-     * Update status text
-     */
-    private setStatus(status: string): void {
-        if (this.textStatus) {
-            this.textStatus.text = status;
+    // ----------------------------------------------------------------
+    // Object Detection
+    // ----------------------------------------------------------------
+    public clearAllDetections(): void {
+        const staleMarkers = this.currentMarkers;
+        for (const marker of staleMarkers) {
+            if (!isNull(marker)) {
+                marker.destroy();
+            }
         }
+        this.currentMarkers = [];
+        this.detectedObjects.clear();
     }
-
-    /**
-     * Enable/disable the scan button
-     */
-    private setButtonEnabled(enabled: boolean): void {
-        if (this.buttonManualObjectDetect) {
-            this.buttonManualObjectDetect.sceneObject.enabled = enabled;
-        }
-    }
-
 
     /**
      * Main entry point for object detection
@@ -129,72 +107,51 @@ export class MLObjectDetector extends BaseScriptComponent {
             return;
         }
         this.isProcessing = true;
-        this.setButtonEnabled(false);
         
         try {
-            // 1. Capture camera frame AND depth frame at the exact same moment
-            this.setStatus("Capturing...");
-            
             this.showWorldMesh();
-            
+            this.clearAllDetections();
+
+            // 1. Capture camera frame AND depth frame
             const imageBase64 = await this.captureFrameAndDepth();
-            
             if (!imageBase64) {
                 throw new Error("Failed to capture camera frame");
             }
             
             // 2. Send to Gemini
-            this.setStatus("Analyzing...");
             const results = await this.sendToGemini(imageBase64, prompt);
             
-            if (results.objects.length === 0) {
-                this.setStatus("No objects found");
-                this.hideWorldMesh();
-                // Hide current markers immediately, then destroy after delay
-                const staleMarkers = this.currentMarkers;
-                for (const marker of staleMarkers) {
-                    marker.enabled = false;
-                }
-                this.currentMarkers = [];
-                this.detectedObjects.clear();
-                this.destroyStaleMarkers(staleMarkers);
-                return;
-            }
-            
-            // 3. Step 1: Hide all existing markers immediately (do NOT destroy yet)
+
+            // 3. Hide all existing markers
             const staleMarkers = this.currentMarkers;
             for (const marker of staleMarkers) {
                 marker.enabled = false;
             }
             this.currentMarkers = [];
             this.detectedObjects.clear();
-
-            // 4. Step 2: Spawn FRESH new markers for every detection
-            let markerIndex = 0;
             
+            // Spawn markers for each detection
+            let markerIndex = 0;            
             for (const detection of results.objects) {
                 if (detection.confidence < this.CONFIDENCE_THRESHOLD) {
                     continue;
                 }
                 
                 const worldPos = this.depthCacheHelper.getWorldPosition(detection.x, detection.y);
-                
                 if (!worldPos) {
                     continue;
                 }
                 
-                // Always instantiate a brand-new marker
+                // Spawn marker
                 const marker = markerPrefab.instantiate(null);
-                marker.enabled = false; // start hidden so we can animate in
+                marker.enabled = false;
                 
-                // Configure position and label
                 marker.getTransform().setWorldPosition(worldPos);
                 const textComponent = this.findTextInChildren(marker);
                 if (textComponent) {
                     textComponent.text = detection.name;
                 }
                 
-                // Show and animate in
                 marker.enabled = true;
                 this.animateMarkerIn(marker);
                 
@@ -213,212 +170,15 @@ export class MLObjectDetector extends BaseScriptComponent {
                 this.detectedObjects.set(obj.id, obj);
             }
             
-            // 5. Step 3: Destroy stale markers AFTER new ones are created (delayed)
-            this.destroyStaleMarkers(staleMarkers);
-            
-            // 6. Hide the world mesh now that markers are placed
-            this.hideWorldMesh();
-            
-            this.setStatus(`Found ${this.detectedObjects.size} objects`);
-            
         } catch (error) {
-            this.setStatus(`Error: ${error}`);
-            this.hideWorldMesh();
             throw error;
         } finally {
+            this.hideWorldMesh();
             this.isProcessing = false;
-            this.setButtonEnabled(true);
         }
     }
 
-    /**
-     * Destroy stale markers after a short delay.
-     * They are already hidden (enabled = false) before this is called,
-     * so the user never sees them.  The delay ensures Lens Studio does not
-     * pool/recycle a destroyed object into the slot of a freshly
-     * instantiated one (the race condition that caused reuse bugs).
-     */
-    private destroyStaleMarkers(markers: SceneObject[]): void {
-        if (markers.length === 0) {
-            return;
-        }
-
-        const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
-        delayEvent.bind(() => {
-            for (const marker of markers) {
-                if (!isNull(marker)) {
-                    marker.destroy();
-                }
-            }
-        });
-        delayEvent.reset(this.STALE_DESTROY_DELAY_MS / 1000); // convert ms → seconds
-    }
-
-    /**
-     * Recursively find a Text component in an object or its children
-     */
-    private findTextInChildren(obj: SceneObject): Text | null {
-        // Check this object
-        const text = obj.getComponent("Component.Text") as Text;
-        if (text) return text;
-        
-        // Check children
-        const childCount = obj.getChildrenCount();
-        for (let i = 0; i < childCount; i++) {
-            const child = obj.getChild(i);
-            const found = this.findTextInChildren(child);
-            if (found) return found;
-        }
-        
-        return null;
-    }
-
-    /**
-     * Animate a marker in with a scale animation
-     */
-    private animateMarkerIn(marker: SceneObject): void {
-        const startScale = new vec3(0, 0, 0);
-        const targetScale = new vec3(1, 1, 1);
-        
-        animate({
-            duration: 0.5,
-            easing: "ease-in-out-quad",
-            update: (t: number) => {
-                const s = startScale.x + (targetScale.x - startScale.x) * t;
-                marker.getTransform().setLocalScale(new vec3(s, s, s));
-            }
-        });
-    }
-
-    /**
-     * Show the world mesh: fade in opacity & distance, then continuously
-     * pulse distance between 100% and 70% of max.
-     * Sets OriginLocation to the worldMeshRoot world position.
-     */
-    public showWorldMesh(): void {
-        if (!this.worldMeshRenderer || !this.worldMeshRenderer.mainMaterial) {
-            return;
-        }
-        if (this.worldMeshVisible) {
-            return; // already showing
-        }
-
-        this.worldMeshVisible = true;
-        this.worldMeshPulsing = false;
-
-        const material = this.worldMeshRenderer.mainMaterial;
-
-        // Set OriginLocation to worldMeshRoot's world position
-        if (this.worldMeshRoot) {
-            const originPos = this.worldMeshRoot.getTransform().getWorldPosition();
-            material.mainPass.OriginLocation = originPos;
-        }
-
-        // Fade in from current values to max
-        const startOpacity = this.currentOpacity;
-        const startDistance = this.currentDistance;
-
-        animate({
-            duration: this.WM_FADE_IN_DURATION,
-            easing: "ease-in-out-quad",
-            update: (t: number) => {
-                this.currentOpacity = startOpacity + (this.WM_MAX_OPACITY - startOpacity) * t;
-                this.currentDistance = startDistance + (this.WM_MAX_DISTANCE - startDistance) * t;
-                material.mainPass.Opacity = this.currentOpacity;
-                material.mainPass.Distance = this.currentDistance;
-            },
-            ended: () => {
-                if (this.worldMeshVisible) {
-                    this.worldMeshPulsing = true;
-                    this.pulseWorldMesh();
-                }
-            }
-        });
-    }
-
-    /**
-     * Hide the world mesh: stop pulsing and fade distance & opacity
-     * from their current values down to 0.
-     */
-    public hideWorldMesh(): void {
-        if (!this.worldMeshRenderer || !this.worldMeshRenderer.mainMaterial) {
-            return;
-        }
-        if (!this.worldMeshVisible) {
-            return; // already hidden
-        }
-
-        this.worldMeshVisible = false;
-        this.worldMeshPulsing = false;
-
-        const material = this.worldMeshRenderer.mainMaterial;
-        const startOpacity = this.currentOpacity;
-        const startDistance = this.currentDistance;
-
-        animate({
-            duration: this.WM_FADE_OUT_DURATION,
-            easing: "ease-in-out-quad",
-            update: (t: number) => {
-                this.currentOpacity = startOpacity * (1 - t);
-                this.currentDistance = startDistance * (1 - t);
-                material.mainPass.Opacity = this.currentOpacity;
-                material.mainPass.Distance = this.currentDistance;
-            }
-        });
-    }
-
-    /**
-     * Internal: continuously pulse distance between 100% ↔ 70% of max.
-     * Loops as long as worldMeshPulsing is true.
-     */
-    private pulseWorldMesh(): void {
-        if (!this.worldMeshPulsing || !this.worldMeshRenderer?.mainMaterial) {
-            return;
-        }
-
-        const material = this.worldMeshRenderer.mainMaterial;
-        const high = this.WM_MAX_DISTANCE;
-        const low = this.WM_MAX_DISTANCE * this.WM_PULSE_MIN;
-
-        // 100% → 70%
-        animate({
-            duration: this.WM_PULSE_DURATION / 2,
-            easing: "ease-in-out-quad",
-            update: (t: number) => {
-                if (!this.worldMeshPulsing) return;
-                this.currentDistance = high + (low - high) * t;
-                material.mainPass.Distance = this.currentDistance;
-            },
-            ended: () => {
-                if (!this.worldMeshPulsing) return;
-                // 70% → 100%
-                animate({
-                    duration: this.WM_PULSE_DURATION / 2,
-                    easing: "ease-in-out-quad",
-                    update: (t: number) => {
-                        if (!this.worldMeshPulsing) return;
-                        this.currentDistance = low + (high - low) * t;
-                        material.mainPass.Distance = this.currentDistance;
-                    },
-                    ended: () => {
-                        // Loop
-                        this.pulseWorldMesh();
-                    }
-                });
-            }
-        });
-    }
-
-    /**
-     * Capture a fresh camera frame and depth frame for this detection run.
-     * 
-     * Creates a NEW camera request each time so we get a fresh Texture object.
-     * This avoids the stale-image bug where encodeTextureAsync caches/reuses
-     * data from a previous run's texture.
-     * 
-     * Depth is captured inside the onNewFrame callback so both originate from
-     * approximately the same instant.
-     */
+    //Capture a fresh camera frame and depth frame for this detection run.
     private captureFrameAndDepth(): Promise<string | null> {
         return new Promise((resolve) => {
             try {
@@ -452,26 +212,23 @@ export class MLObjectDetector extends BaseScriptComponent {
         });
     }
 
-    /**
-     * Send image to Gemini for object detection
-     */
     private async sendToGemini(imageBase64: string, prompt: string): Promise<GeminiDetectionResult> {
         const systemPrompt = `You are an object detection system. Analyze the image and return ONLY a JSON object with detected objects matching the user's query.
 
-Output format (strict JSON, no markdown):
-{
-  "objects": [
-    {"name": "object_name", "x": 0.5, "y": 0.5, "confidence": 0.95}
-  ]
-}
+        Output format (strict JSON, no markdown):
+        {
+        "objects": [
+            {"name": "object_name", "x": 0.5, "y": 0.5, "confidence": 0.95}
+        ]
+        }
 
-Rules:
-- x,y is the LOGICAL CENTER of the object — the point you would naturally point at or touch (e.g. the body of a mug, the screen of a monitor, the seat of a chair), NOT the geometric center of its bounding box
-- Coordinates are normalized 0-1 (0,0 is top-left, 1,1 is bottom-right)
-- confidence is 0-1 representing detection certainty
-- Return {"objects": []} if no objects found
-- Do NOT wrap in markdown code blocks
-- Return ONLY valid JSON`;
+        Rules:
+        - x,y is the LOGICAL CENTER of the object — the point you would naturally point at or touch (e.g. the body of a mug, the screen of a monitor, the seat of a chair), NOT the geometric center of its bounding box
+        - Coordinates are normalized 0-1 (0,0 is top-left, 1,1 is bottom-right)
+        - confidence is 0-1 representing detection certainty
+        - Return {"objects": []} if no objects found
+        - Do NOT wrap in markdown code blocks
+        - Return ONLY valid JSON`;
         
         const request: GeminiTypes.Models.GenerateContentRequest = {
             model: "gemini-2.5-flash-lite",
@@ -518,31 +275,10 @@ Rules:
         }
     }
 
-    /**
-     * Clear all detected objects — hides markers immediately, destroys after delay
-     */
-    public clearAll(): void {
-        const staleMarkers = this.currentMarkers;
-        for (const marker of staleMarkers) {
-            if (!isNull(marker)) {
-                marker.enabled = false;
-            }
-        }
-        this.currentMarkers = [];
-        this.detectedObjects.clear();
-        this.destroyStaleMarkers(staleMarkers);
-    }
 
-    /**
-     * Get the number of currently tracked objects
-     */
-    public getTrackedObjectCount(): number {
-        return this.detectedObjects.size;
-    }
-
-    /**
-     * Get names of all currently tracked objects
-     */
+    // ----------------------------------------------------------------
+    // Accessor Helpers
+    // ----------------------------------------------------------------
     public getTrackedObjectNames(): string[] {
         const names: string[] = [];
         this.detectedObjects.forEach((obj) => {
@@ -551,9 +287,6 @@ Rules:
         return names;
     }
 
-    /**
-     * Get summaries (name + world position) of all currently tracked objects
-     */
     public getTrackedObjectSummaries(): { name: string; x: number; y: number; z: number }[] {
         const summaries: { name: string; x: number; y: number; z: number }[] = [];
         this.detectedObjects.forEach((obj) => {
@@ -561,11 +294,7 @@ Rules:
         });
         return summaries;
     }
-
-    /**
-     * Find a tracked object by name (case-insensitive partial match).
-     * Returns the first match or null if not found.
-     */
+    
     public getObjectByName(name: string): DetectedObject | null {
         const searchName = name.toLowerCase();
         let bestMatch: DetectedObject | null = null;
@@ -577,14 +306,152 @@ Rules:
                 }
             }
         });
-
         return bestMatch;
     }
 
-    /**
-     * Check if a detection is currently in progress
-     */
-    public getIsProcessing(): boolean {
-        return this.isProcessing;
+
+
+    // ----------------------------------------------------------------
+    // Marker Animation
+    // ----------------------------------------------------------------
+    private findTextInChildren(obj: SceneObject): Text | null {
+        // Check this object
+        const text = obj.getComponent("Component.Text") as Text;
+        if (text) return text;
+        
+        // Check children
+        const childCount = obj.getChildrenCount();
+        for (let i = 0; i < childCount; i++) {
+            const child = obj.getChild(i);
+            const found = this.findTextInChildren(child);
+            if (found) return found;
+        }
+        
+        return null;
+    }
+
+    // Animate a marker in with a scale animation
+    private animateMarkerIn(marker: SceneObject): void {
+        const startScale = new vec3(0, 0, 0);
+        const targetScale = new vec3(1, 1, 1);
+        
+        animate({
+            duration: 0.5,
+            easing: "ease-in-out-quad",
+            update: (t: number) => {
+                const s = startScale.x + (targetScale.x - startScale.x) * t;
+                marker.getTransform().setLocalScale(new vec3(s, s, s));
+            }
+        });
+    }
+
+    // ----------------------------------------------------------------
+    // World Mesh
+    // ----------------------------------------------------------------
+    public showWorldMesh(): void {
+        if (!this.worldMeshRenderer || !this.worldMeshRenderer.mainMaterial) {
+            return;
+        }
+        if (this.worldMeshVisible) {
+            return;
+        }
+
+        this.worldMeshVisible = true;
+        this.worldMeshPulsing = false;
+
+        const material = this.worldMeshRenderer.mainMaterial;
+
+        // Set OriginLocation to worldMeshRoot's world position
+        if (this.worldMeshRoot) {
+            const originPos = this.worldMeshRoot.getTransform().getWorldPosition();
+            material.mainPass.OriginLocation = originPos;
+        }
+
+        // Fade in from current values to max
+        const startOpacity = this.currentOpacity;
+        const startDistance = this.currentDistance;
+
+        animate({
+            duration: this.WM_FADE_IN_DURATION,
+            easing: "ease-in-out-quad",
+            update: (t: number) => {
+                this.currentOpacity = startOpacity + (this.WM_MAX_OPACITY - startOpacity) * t;
+                this.currentDistance = startDistance + (this.WM_MAX_DISTANCE - startDistance) * t;
+                material.mainPass.Opacity = this.currentOpacity;
+                material.mainPass.Distance = this.currentDistance;
+            },
+            ended: () => {
+                if (this.worldMeshVisible) {
+                    this.worldMeshPulsing = true;
+                    this.pulseWorldMesh();
+                }
+            }
+        });
+    }
+
+
+    public hideWorldMesh(): void {
+        if (!this.worldMeshRenderer || !this.worldMeshRenderer.mainMaterial) {
+            return;
+        }
+        if (!this.worldMeshVisible) {
+            return; // already hidden
+        }
+
+        this.worldMeshVisible = false;
+        this.worldMeshPulsing = false;
+
+        const material = this.worldMeshRenderer.mainMaterial;
+        const startOpacity = this.currentOpacity;
+        const startDistance = this.currentDistance;
+
+        animate({
+            duration: this.WM_FADE_OUT_DURATION,
+            easing: "ease-in-out-quad",
+            update: (t: number) => {
+                this.currentOpacity = startOpacity * (1 - t);
+                this.currentDistance = startDistance * (1 - t);
+                material.mainPass.Opacity = this.currentOpacity;
+                material.mainPass.Distance = this.currentDistance;
+            }
+        });
+    }
+
+    private pulseWorldMesh(): void {
+        if (!this.worldMeshPulsing || !this.worldMeshRenderer?.mainMaterial) {
+            return;
+        }
+
+        const material = this.worldMeshRenderer.mainMaterial;
+        const high = this.WM_MAX_DISTANCE;
+        const low = this.WM_MAX_DISTANCE * this.WM_PULSE_MIN;
+
+        // 100% → 70%
+        animate({
+            duration: this.WM_PULSE_DURATION / 2,
+            easing: "ease-in-out-quad",
+            update: (t: number) => {
+                if (!this.worldMeshPulsing) return;
+                this.currentDistance = high + (low - high) * t;
+                material.mainPass.Distance = this.currentDistance;
+            },
+            ended: () => {
+                if (!this.worldMeshPulsing) return;
+                // 70% → 100%
+                animate({
+                    duration: this.WM_PULSE_DURATION / 2,
+                    easing: "ease-in-out-quad",
+                    update: (t: number) => {
+                        if (!this.worldMeshPulsing) return;
+                        this.currentDistance = low + (high - low) * t;
+                        material.mainPass.Distance = this.currentDistance;
+                    },
+                    ended: () => {
+                        // Loop
+                        this.pulseWorldMesh();
+                    }
+                });
+            }
+        });
     }
 }

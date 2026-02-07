@@ -26,17 +26,14 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
-    assistantController: false
-    hardwareInterface: false
-    headRoot: false
-    mode1Interactable: false
-    mode1InteractableRoot: false
-    mode1InteractableVFX: false
+    assistantMode: false
     persistenceManager: false
     positioningHologram: false
     positioningInteraction: false
+    puppeteerMode: false
     reachyMiniRoot: false
-    simulationInterface: false
+    robotDriver: false
+    textDebugInfo: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -47,28 +44,22 @@
     []
   DefaultScriptInputs:
     - reachyMiniRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      headRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      hardwareInterface: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
-      simulationInterface: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
-      persistenceManager: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      robotDriver: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      persistenceManager: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       positioningHologram: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      positioningInteraction: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
-      mode1Interactable: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
-      mode1InteractableVFX: !<reference.RenderMeshVisual> 00000000-0000-0000-0000-000000000000
-      mode1InteractableRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      assistantController: !<MappingBased.AssignableType_5> 00000000-0000-0000-0000-000000000000
+      positioningInteraction: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      puppeteerMode: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      assistantMode: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
+      textDebugInfo: !<reference.Text> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
   InputLines:
     - // @input SceneObject reachyMiniRoot
-    - // @input SceneObject headRoot
-    - // @input AssignableType hardwareInterface
-    - // @input AssignableType_1 simulationInterface
-    - // @input AssignableType_2 persistenceManager
+    - // @input AssignableType robotDriver
+    - // @input AssignableType_1 persistenceManager
     - // @input SceneObject positioningHologram
-    - // @input AssignableType_3 positioningInteraction
-    - // @input AssignableType_4 mode1Interactable
-    - // @input Component.RenderMeshVisual mode1InteractableVFX
-    - // @input SceneObject mode1InteractableRoot
-    - // @input AssignableType_5 assistantController
+    - // @input AssignableType_2 positioningInteraction
+    - // @input AssignableType_3 puppeteerMode
+    - // @input AssignableType_4 assistantMode
+    - // @input Component.Text textDebugInfo

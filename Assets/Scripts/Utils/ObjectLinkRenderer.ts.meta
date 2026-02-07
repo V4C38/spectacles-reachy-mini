@@ -26,11 +26,8 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
-    fadeToEnd: false
-    lineColor: false
-    lineMaterial: false
-    lineWidth: false
-    targetObject: false
+    endPosition: false
+    material: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -40,17 +37,11 @@
   Attachments:
     []
   DefaultScriptInputs:
-    - targetObject: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      lineMaterial: !<reference.Material> 00000000-0000-0000-0000-000000000000
-      lineColor: !<Vec4> {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
-      lineWidth: 0.500000
-      fadeToEnd: true
+    - endPosition: !<Vec3> {x: 0.000000, y: 0.000000, z: 0.100000}
+      material: !<reference.Material> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
   InputLines:
-    - // @input SceneObject targetObject
-    - // @input Asset.Material lineMaterial
-    - "// @input vec4 lineColor = {1,1,1,1}"
-    - // @input float lineWidth = 5
-    - // @input bool fadeToEnd = true
+    - "// @input vec3 endPosition = {0,0,0.1}"
+    - // @input Asset.Material material

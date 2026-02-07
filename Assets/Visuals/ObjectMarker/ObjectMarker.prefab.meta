@@ -39,6 +39,23 @@
   BlendNormals: false
   BlendShapes:
     {}
+- !<ScriptComponent/7e07c966-6acb-4dbe-becf-7f1e24658a13>
+  PrefabRemaps:
+    []
+  Name: ObjectLinkRenderer
+  Enabled: true
+  ScriptAsset: !<reference> 3c034c80-8b5b-43f3-8fb3-9c398daa2b25
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      endPosition: !<Vec3> {x: 0.000000, y: 0.000000, z: 0.000000}
+      material: !<reference.Material> f25e3adb-5630-4ad9-a459-0f2413e28bc1
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/860c7663-afbd-4e7b-6adb-9cc6c48c7712>
   PrefabRemaps:
     []
@@ -46,7 +63,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 1.000000, z: 0.000000}
+    Position: {x: 0.000000, y: 4.000000, z: 0.000000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -73,7 +90,7 @@
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 0.000000, z: -0.500000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.330000}
+    Scale: {x: 5.000000, y: 5.000000, z: 5.000000}
     HasSegmentScaleCompensation: false
   Children:
     []
@@ -95,23 +112,7 @@
     - !<own> 860c7663-afbd-4e7b-6adb-9cc6c48c7712
   Components:
     - !<own> 8d95e95d-5e76-4dbe-46d5-1638e536ddd4
-    - !<own> dcbf2480-fc21-4f28-9d95-d26826ef3da6
-- !<ScriptComponent/dcbf2480-fc21-4f28-9d95-d26826ef3da6>
-  PrefabRemaps:
-    []
-  Name: ScaleObjectByDistance
-  Enabled: true
-  ScriptAsset: !<reference> dfcd72aa-74a6-4645-98e6-68114b64e13e
-  ScriptInputsDefault:
-    {}
-  ScriptTypesDefault:
-    {}
-  ScriptInputs:
-    "":
-      {}
-  ScriptTypes:
-    "":
-      {}
+    - !<own> 7e07c966-6acb-4dbe-becf-7f1e24658a13
 - !<Text/fa36e99d-163e-4b9c-6f09-424b469d2529>
   PrefabRemaps:
     []
@@ -129,7 +130,7 @@
   ShowEditingPreview: true
   TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000
   SizeToFit: false
-  FontSize: 25
+  FontSize: 65
   Font: !<reference> 00000000-0000-0000-0000-000000000000
   LayoutRect:
     left: -7.500000

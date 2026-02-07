@@ -22,8 +22,13 @@ interface ChatMessage {
     name?: string;
 }
 
+
+// ----------------------------------------------------------------
+// LLMService
+// This class is used to handle the LLM interactions and tool calls with OpenAI
+// ----------------------------------------------------------------
 @component
-export class LLMInterface extends BaseScriptComponent {
+export class LLMService extends BaseScriptComponent {
 
     @input
     public model: string = "gpt-4.1-nano";
@@ -39,8 +44,24 @@ export class LLMInterface extends BaseScriptComponent {
     private tools: ToolDefinition[] = [];
     private messages: ChatMessage[] = [];
 
+    // Logger
     @input
-    private systemPrompt: string = "You are Reachy, a friendly and helpful robot assistant. Keep responses concise and conversational — aim for 1-3 sentences. You have access to tools for scanning the environment and interacting with objects.";
+    private textDebugInfo: Text | null = null;
+
+    private logDebug(message: string): void {
+        if (this.textDebugInfo) {
+            this.textDebugInfo.text = message;
+        }
+    }
+
+    @input
+    private systemPrompt: string = `You are Reachy, a friendly and helpful robot assistant. Keep responses concise and conversational — aim for 1-2 sentences. You have access to tools for finding and pointing at objects and looking in relative directions.
+
+    Spatial awareness rules:
+    - When the user asks you to FIND an object: call scan_objects, then call look_at_location to gaze at the most relevant object (set the draw line to true to draw a helpful line).
+    - When the user asks you to LOOK in a relative direction (left, right, up, down, behind): call look_direction with the appropriate direction name. Do NOT try to compute coordinates yourself.
+    - You are a physical robot with a head that can turn. You are aware of your own position and orientation. Use get_state whenever you need to know where you are or which way you are facing.
+    - Never respond with coordinates. Always use relative directions.`;
 
     // --- Agentic loop safety ---
     private readonly MAX_TOOL_ITERATIONS = 5;
@@ -55,14 +76,15 @@ export class LLMInterface extends BaseScriptComponent {
     public async sendMessage(text: string): Promise<LLMResponse> {
         // Add user message to history
         this.messages.push({ role: "user", content: text });
-        print(`LLMInterface: User says: "${text}"`);
+        print(`LLMService: User says: "${text}"`);
 
         // Run agentic loop
         const responseText = await this.runAgenticLoop();
 
         // Add assistant response to history
         this.messages.push({ role: "assistant", content: responseText });
-        print(`LLMInterface: Assistant says: "${responseText}"`);
+        print(`LLMService: Assistant says: "${responseText}"`);
+        this.logDebug(`Agent - ${responseText}`);
 
         // Generate TTS audio
         const audioTrack = await this.generateTTS(responseText);
@@ -72,7 +94,7 @@ export class LLMInterface extends BaseScriptComponent {
 
     public clearHistory(): void {
         this.messages = [];
-        print("LLMInterface: Conversation history cleared");
+        print("LLMService: Conversation history cleared");
     }
 
     // Personality
@@ -106,10 +128,10 @@ export class LLMInterface extends BaseScriptComponent {
                 continue;
             }
 
-            throw new Error(`LLMInterface: Unexpected result type from chat completions`);
+            throw new Error(`LLMService: Unexpected result type from chat completions`);
         }
 
-        throw new Error(`LLMInterface: Max tool iterations (${this.MAX_TOOL_ITERATIONS}) exceeded`);
+        throw new Error(`LLMService: Max tool iterations (${this.MAX_TOOL_ITERATIONS}) exceeded`);
     }
 
 
@@ -130,24 +152,27 @@ export class LLMInterface extends BaseScriptComponent {
         } else {
             this.tools.push(tool);
         }
-        print(`LLMInterface: Registered tool "${tool.name}"`);
+        print(`LLMService: Registered tool "${tool.name}"`);
     }
 
     private async executeToolCall(toolCall: { id: string; name: string; arguments: string }): Promise<string> {
         const tool = this.tools.find(t => t.name === toolCall.name);
         if (!tool) {
-            print(`LLMInterface: Unknown tool "${toolCall.name}"`);
+            print(`LLMService: Unknown tool "${toolCall.name}"`);
             return JSON.stringify({ error: `Unknown tool: ${toolCall.name}` });
         }
 
-        print(`LLMInterface: Executing tool "${toolCall.name}" with args: ${toolCall.arguments}`);
+        print(`LLMService: Executing tool "${toolCall.name}" with args: ${toolCall.arguments}`);
+        this.logDebug(`Agent - called tool ${toolCall.name}: ${toolCall.arguments}`);
         try {
             const args = JSON.parse(toolCall.arguments);
             const result = await tool.handler(args);
-            print(`LLMInterface: Tool "${toolCall.name}" returned: ${result}`);
+            print(`LLMService: Tool "${toolCall.name}" returned: ${result}`);
+            this.logDebug(`Agent - tool response ${toolCall.name}: ${result}`);
             return result;
         } catch (error) {
-            print(`LLMInterface: Tool "${toolCall.name}" failed: ${error}`);
+            print(`LLMService: Tool "${toolCall.name}" failed: ${error}`);
+            this.logDebug(`Agent - Error: Tool ${toolCall.name} failed: ${error}`);
             return JSON.stringify({ error: `Tool execution failed: ${error}` });
         }
     }
