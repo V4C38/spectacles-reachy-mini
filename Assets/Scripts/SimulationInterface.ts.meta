@@ -26,8 +26,11 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    audioComponent: false
     bodySceneObject: false
     headSceneObject: false
+    leftAntennaSceneObject: false
+    rightAntennaSceneObject: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -39,9 +42,15 @@
   DefaultScriptInputs:
     - bodySceneObject: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       headSceneObject: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      leftAntennaSceneObject: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      rightAntennaSceneObject: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      audioComponent: !<reference.AudioComponent> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
   InputLines:
     - // @input SceneObject bodySceneObject
     - // @input SceneObject headSceneObject
+    - // @input SceneObject leftAntennaSceneObject
+    - // @input SceneObject rightAntennaSceneObject
+    - // @input Component.AudioComponent audioComponent

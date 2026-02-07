@@ -1,0 +1,62 @@
+- !<AssetImportMetadata/51b6da57-f602-4c0a-8611-809390c0cafc>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> a545dde7-4974-4930-987c-5a7bd4bc3dfe
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> a545dde7-4974-4930-987c-5a7bd4bc3dfe
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 5473ebdb-3445-4a96-a740-8ff3d1f33be8
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/5473ebdb-3445-4a96-a740-8ff3d1f33be8>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: d81c510a-4159-4218-8a52-cb94dec6ce1c
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    buttonManualObjectDetect: false
+    depthCacheHelper: false
+    objectDetectionPrompt: false
+    objectMarkerPrefab: false
+    textStatus: false
+    worldMeshRenderer: false
+    worldMeshRoot: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - depthCacheHelper: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      textStatus: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      buttonManualObjectDetect: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      objectMarkerPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      worldMeshRenderer: !<reference.RenderMeshVisual> 00000000-0000-0000-0000-000000000000
+      worldMeshRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      objectDetectionPrompt: Find all objects in the room
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType depthCacheHelper
+    - // @input Component.Text textStatus
+    - // @input AssignableType_1 buttonManualObjectDetect
+    - // @input Asset.ObjectPrefab objectMarkerPrefab
+    - // @input Component.RenderMeshVisual worldMeshRenderer
+    - // @input SceneObject worldMeshRoot
+    - '// @input string objectDetectionPrompt = "Find all objects in the room"'

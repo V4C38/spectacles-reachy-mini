@@ -150,9 +150,10 @@ export class SetupWizard extends BaseScriptComponent {
                     this.textStepStatus.sceneObject.enabled = false;
                 }
 
-                if (this.textButtonPrevious && this.textButtonNext) {
+                if (this.textButtonPrevious && this.textButtonNext && this.buttonNext) {
                     this.textButtonPrevious.text = "I have no Reachy Mini";
                     this.textButtonNext.text = "Next";
+                    this.buttonNext.enabled = true;
                 }
                 
                 if (this.uiManager) {

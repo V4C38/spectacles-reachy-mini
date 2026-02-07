@@ -111,4 +111,12 @@ export class HardwareInterface extends BaseScriptComponent implements IMovementI
             throw new Error(`Failed to set_target: HTTP ${status}`);
         }
     }
+
+    /**
+     * Play audio on the hardware speaker (stub for now).
+     * TODO: Extract audio data from AudioTrackAsset and POST to robot speaker endpoint: /api/audio/play
+     */
+    public async playAudio(audioTrack: AudioTrackAsset): Promise<void> {
+        print("HardwareInterface: playAudio stub - received AudioTrackAsset");
+    }
 }

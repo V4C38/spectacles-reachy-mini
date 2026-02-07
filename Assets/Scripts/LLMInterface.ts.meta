@@ -1,0 +1,53 @@
+- !<AssetImportMetadata/01982cd8-43e4-49d2-8aeb-2e84783c993e>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 7f4ef111-71c6-4c81-8c28-3ce1206fa2dd
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 7f4ef111-71c6-4c81-8c28-3ce1206fa2dd
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 280648a3-64bf-4a6c-b2fc-cb223780f2df
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/280648a3-64bf-4a6c-b2fc-cb223780f2df>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: dd996fd5-e632-4f00-9313-ad49842c4acc
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    model: false
+    systemPrompt: false
+    ttsModel: false
+    ttsVoice: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - model: gpt-4.1-nano
+      ttsModel: tts-1
+      ttsVoice: alloy
+      systemPrompt: "You are Reachy, a friendly and helpful robot assistant. You can see the user through AR glasses. Keep responses concise and conversational — aim for 1-3 sentences. You have access to tools for scanning the environment and interacting with objects."
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @input string model = "gpt-4.1-nano"'
+    - '// @input string ttsModel = "tts-1"'
+    - '// @input string ttsVoice = "alloy"'
+    - '// @input string systemPrompt = "You are Reachy, a friendly and helpful robot assistant. Keep responses concise and conversational — aim for 1-3 sentences. You have access to tools for scanning the environment and interacting with objects."'

@@ -43,6 +43,9 @@
     - Port_GSplatScale_N004:
         typeIdx: 4
         value: {x: 0.000000, y: 0.000000, z: 0.000000}
+    - Port_Input0_N002:
+        typeIdx: 5
+        value: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
     - Port_Input0_N021:
         typeIdx: 1
         value: 1.000000
@@ -54,7 +57,7 @@
         value: 0.100000
     - Port_Input1_N002:
         typeIdx: 1
-        value: 0.400000
+        value: 1.000000
     - Port_Input1_N026:
         typeIdx: 1
         value: 0.000000
@@ -328,8 +331,8 @@
     - overrideTimeEnabled:
         typeIdx: 0
         value: 0
-  DepthWrite: true
-  DepthTest: true
+  DepthWrite: false
+  DepthTest: false
   DepthFunction: LessEqual
   TwoSided: false
   ColorMask: {x: true, y: true, z: true, w: true}
@@ -342,6 +345,9 @@
     []
   BlendMode: PremultipliedAlphaAuto
   Properties:
+    Opacity:
+      typeIdx: 1
+      value: 1.000000
     Port_Exponent_N025:
       typeIdx: 1
       value: 1.500000

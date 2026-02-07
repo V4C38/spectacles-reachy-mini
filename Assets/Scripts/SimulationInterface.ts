@@ -7,33 +7,59 @@ export class SimulationInterface extends BaseScriptComponent implements IMovemen
     private bodySceneObject: SceneObject | null = null;
     @input
     private headSceneObject: SceneObject | null = null;
+    @input
+    private leftAntennaSceneObject: SceneObject | null = null;
+    @input
+    private rightAntennaSceneObject: SceneObject | null = null;
+    @input
+    private audioComponent: AudioComponent | null = null;
 
-    // Store current body yaw for calculating relative head rotation
-    private currentBodyYaw: number = 0;
+    private headRestPosition: vec3 | null = null;
 
     onAwake() {
     }
 
     /**
-     * Set target pose immediately by applying rotations to scene objects
-     * @param headPose Target head pose (only pitch and yaw are used for rotation)
+     * Set target pose immediately by applying transforms to scene objects
+     * @param headPose Target head pose (x,y,z translation in meters + pitch, yaw, roll rotation)
      * @param bodyYaw Optional target body yaw in radians
-     * @param antennas Optional antenna positions (ignored in simulation)
+     * @param antennas Optional antenna positions [left, right] in radians
      */
     public async setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void> {
-        if (bodyYaw !== undefined) {
-            this.currentBodyYaw = bodyYaw;
-            if (this.bodySceneObject) {
-                const bodyRotation = quat.fromEulerAngles(0, bodyYaw, 0);
-                this.bodySceneObject.getTransform().setLocalRotation(bodyRotation);
-            }
+
+        // Update body rotation
+        if (bodyYaw !== undefined && this.bodySceneObject) {
+            const bodyRotation = quat.fromEulerAngles(0, bodyYaw, 0);
+            this.bodySceneObject.getTransform().setLocalRotation(bodyRotation);
         }
 
-        // Update head rotation
+        // Update head position + rotation
         if (this.headSceneObject) {
-            const relativeHeadYaw = headPose.yaw - this.currentBodyYaw;
-            const headRotation = quat.fromEulerAngles(headPose.pitch, relativeHeadYaw, 0);
+            // Capture rest position once so we can offset from it
+            if (!this.headRestPosition) {
+                this.headRestPosition = this.headSceneObject.getTransform().getLocalPosition();
+            }
+            this.headSceneObject.getTransform().setLocalPosition(new vec3(
+                this.headRestPosition.x + headPose.x,
+                this.headRestPosition.y + headPose.y,
+                this.headRestPosition.z + headPose.z
+            ));
+            const headRotation = quat.fromEulerAngles(headPose.pitch, headPose.yaw, headPose.roll);
             this.headSceneObject.getTransform().setLocalRotation(headRotation);
+        }
+
+        // Update antenna rotations (relative to head orientation, not world)
+        if (this.leftAntennaSceneObject && this.rightAntennaSceneObject && antennas) {
+            const headWorldRot = this.headSceneObject
+                ? this.headSceneObject.getTransform().getWorldRotation()
+                : quat.quatIdentity();
+
+            this.leftAntennaSceneObject.getTransform().setWorldRotation(
+                headWorldRot.multiply(quat.fromEulerAngles(antennas[0], 0, 0))
+            );
+            this.rightAntennaSceneObject.getTransform().setWorldRotation(
+                headWorldRot.multiply(quat.fromEulerAngles(antennas[1], 0, 0))
+            );
         }
     }
 
@@ -49,5 +75,30 @@ export class SimulationInterface extends BaseScriptComponent implements IMovemen
         await this.setTarget(headPose, bodyYaw);
         // Return a dummy UUID for compatibility
         return "simulation-" + Date.now().toString();
+    }
+
+    /**
+     * Play an AudioTrackAsset through the AudioComponent.
+     * Promise resolves when playback completes.
+     */
+    public async playAudio(audioTrack: AudioTrackAsset): Promise<void> {
+        if (!this.audioComponent) {
+            throw new Error("SimulationInterface: AudioComponent not assigned");
+        }
+
+        this.audioComponent.audioTrack = audioTrack;
+        this.audioComponent.play(1);
+
+        const durationSec = this.audioComponent.duration;
+        print(`SimulationInterface: Playing audio (${durationSec.toFixed(2)}s)`);
+
+        // Wait for playback to complete
+        return new Promise<void>((resolve) => {
+            const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
+            delayEvent.bind(() => {
+                resolve();
+            });
+            delayEvent.reset(durationSec);
+        });
     }
 }

@@ -1,17 +1,90 @@
 CollapsedEntities:
   type: stringset
   value:
-    size: 684
+    size: 745
     values:
+      - Asr Module.asrModule
       - Device Camera Texture.deviceCameraTexture
       - Echopark.hdr
       - Echopark.hdr/Diffuse
       - Echopark.hdr/Specular
       - Internet Module.internetModule
+      - RemoteServiceGateway.lspkg
+      - RemoteServiceGateway.lspkg/Helpers
+      - RemoteServiceGateway.lspkg/Helpers/AudioProcessor.ts
+      - RemoteServiceGateway.lspkg/Helpers/DynamicAudioOutput.ts
+      - RemoteServiceGateway.lspkg/Helpers/MicrophoneRecorder.ts
+      - RemoteServiceGateway.lspkg/Helpers/VideoController.ts
+      - RemoteServiceGateway.lspkg/HostedExternal
+      - RemoteServiceGateway.lspkg/HostedExternal/Examples
+      - RemoteServiceGateway.lspkg/HostedExternal/Examples/ExampleGeminiCalls.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/Examples/ExampleGeminiLive.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/Examples/ExampleImagenCalls.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/Examples/ExampleLyriaCall.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/Examples/ExampleOAICalls.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/Examples/ExampleOAIRealtime.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/Gemini.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/GeminiTypes.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/GoogleGenAI.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/GoogleGenAITypes.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/Imagen.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/Lyria.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/OpenAI.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/OpenAITypes.ts
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/Gemini_Live.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/Gemini_Sync.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/Imagen_Sync.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/Lyria_Sync.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/OpenAi_Completions.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/OpenAi_Generations.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/OpenAi_ImageEdits.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/OpenAi_Realtime.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedExternal/RemoteServiceModules/OpenAi_Speech.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedSnap
+      - RemoteServiceGateway.lspkg/HostedSnap/DeepSeekTypes.ts
+      - RemoteServiceGateway.lspkg/HostedSnap/Deepseek.ts
+      - RemoteServiceGateway.lspkg/HostedSnap/Examples
+      - RemoteServiceGateway.lspkg/HostedSnap/Examples/ExampleDeepseekCalls.ts
+      - RemoteServiceGateway.lspkg/HostedSnap/Examples/ExampleSnap3D.ts
+      - RemoteServiceGateway.lspkg/HostedSnap/RemoteServiceModules
+      - RemoteServiceGateway.lspkg/HostedSnap/RemoteServiceModules/Deepseek_Completions.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedSnap/RemoteServiceModules/Remote Media Module.remoteMediaModule
+      - RemoteServiceGateway.lspkg/HostedSnap/RemoteServiceModules/Snap3D_GetStatus.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedSnap/RemoteServiceModules/Snap3D_Submit.remoteServiceModule
+      - RemoteServiceGateway.lspkg/HostedSnap/Snap3D.ts
+      - RemoteServiceGateway.lspkg/HostedSnap/Snap3DTypes.ts
+      - RemoteServiceGateway.lspkg/README.md
+      - RemoteServiceGateway.lspkg/RemoteServiceGatewayCredentials.ts
+      - RemoteServiceGateway.lspkg/RemoteServiceGatewayExamples__PLACE_IN_SCENE.prefab
+      - RemoteServiceGateway.lspkg/Resources
+      - RemoteServiceGateway.lspkg/Resources/Audio Output.audioOutput
+      - RemoteServiceGateway.lspkg/Resources/Microphone Audio.micaudio
+      - RemoteServiceGateway.lspkg/Resources/Visuals
+      - RemoteServiceGateway.lspkg/Resources/Visuals/LoadingSpinner
+      - RemoteServiceGateway.lspkg/Resources/Visuals/LoadingSpinner/LoadingSpinner
+      - RemoteServiceGateway.lspkg/Resources/Visuals/LoadingSpinner/LoadingSpinner.prefab
+      - RemoteServiceGateway.lspkg/Resources/Visuals/LoadingSpinner/LoadingSpinner/LoadingSpinner.mat
+      - RemoteServiceGateway.lspkg/Resources/Visuals/LoadingSpinner/LoadingSpinner/LoadingSpinner.mesh
+      - RemoteServiceGateway.lspkg/Resources/Visuals/LoadingSpinner/LoadingSpinner/LoadingSpinner.ss_graph
+      - RemoteServiceGateway.lspkg/Resources/Visuals/LoadingSpinner/LoadingSpinner/LoadingSpinner.ts
+      - RemoteServiceGateway.lspkg/Resources/Visuals/Materials
+      - RemoteServiceGateway.lspkg/Resources/Visuals/Materials/Image.mat
+      - RemoteServiceGateway.lspkg/Resources/Visuals/Materials/Image.png
+      - RemoteServiceGateway.lspkg/Resources/Visuals/Materials/SnapImage3D.mat
+      - RemoteServiceGateway.lspkg/Resources/Visuals/Materials/Unlit.mat
+      - RemoteServiceGateway.lspkg/Resources/Visuals/Materials/flat.ss_graph
+      - RemoteServiceGateway.lspkg/Resources/Visuals/Materials/unlit.ss_graph
+      - RemoteServiceGateway.lspkg/Utils
+      - RemoteServiceGateway.lspkg/Utils/Event.ts
+      - RemoteServiceGateway.lspkg/Utils/Promisfy.ts
+      - RemoteServiceGateway.lspkg/package.native
       - Render Target.renderTarget
       - Scene.scene
+      - Scripts/ControllerAssistant.ts
       - Scripts/ControllerPuppeteer.ts
       - Scripts/HardwareInterface.ts
+      - Scripts/LLMInterface.ts
       - Scripts/MovementInterface.ts
       - Scripts/PersistenceManager.ts
       - Scripts/ReachyMiniManager.ts
@@ -19,8 +92,12 @@ CollapsedEntities:
       - Scripts/SimulationInterface.ts
       - Scripts/UIManager.ts
       - Scripts/Utils
+      - Scripts/Utils/DepthCacheHelper.ts
+      - Scripts/Utils/DetectedObject.ts
       - Scripts/Utils/MLObjectDetector.ts
       - Scripts/Utils/ObjectLinkRenderer.ts
+      - Scripts/Utils/ScaleObjectByDistance.ts
+      - Spatial Anchors.lspkg
       - Spatial Anchors.lspkg/AlignmentProvider.ts
       - Spatial Anchors.lspkg/SpatialPersistence
       - Spatial Anchors.lspkg/SpatialPersistence/Logging.ts
@@ -43,6 +120,7 @@ CollapsedEntities:
       - Spatial Anchors.lspkg/Util/algorithms.ts
       - Spatial Anchors.lspkg/Util/debounce.ts
       - Spatial Anchors.lspkg/package.native
+      - SpectaclesInteractionKit.lspkg
       - SpectaclesInteractionKit.lspkg/Assets/Audio
       - SpectaclesInteractionKit.lspkg/Assets/Audio/HoverAudioTrack.wav
       - SpectaclesInteractionKit.lspkg/Assets/Audio/TriggerEndAudioTrack.wav
@@ -608,9 +686,11 @@ CollapsedEntities:
       - SpectaclesUIKit.lspkg/Textures/test-image.jpg
       - SpectaclesUIKit.lspkg/package.native
       - SpectaclesUIKit.lspkg/package_dependencies.json
+      - Visuals/AI Visual
       - Visuals/AI Visual/Animations
       - Visuals/AI Visual/Animations/BaseLayer.animationMixerLayer
       - Visuals/AI Visual/Animations/Constraint_rotation_45.animationLayer
+      - Visuals/AI Visual/Materials
       - Visuals/AI Visual/Materials/Assist_sphere_Idle_L_T_T.mat
       - Visuals/AI Visual/Materials/HoverColor.mat
       - Visuals/AI Visual/Materials/HoverColor.ss_graph
@@ -622,22 +702,32 @@ CollapsedEntities:
       - Visuals/AI Visual/Textures/purple_halfcolor.png
       - Visuals/AI Visual/Textures/yellow_alt.png
       - Visuals/AI Visual/Textures/yellow_halfcolor.png
-      - Visuals/ActivityIndicator
       - Visuals/ActivityIndicator/ActivityIndicator.mat
       - Visuals/ActivityIndicator/ActivityIndicator.ss_graph
       - Visuals/ActivityIndicator/ActivityIndicator_LookAtInteraction.mat
       - Visuals/Materials/CloseIcon.mat
       - Visuals/Materials/FresnelHologram.mat
+      - Visuals/Materials/FresnelWorldMesh.mat
       - Visuals/Materials/Image_Reachy.mat
       - Visuals/Materials/MicIcon.mat
+      - Visuals/Materials/ObjectLinkLine.mat
       - Visuals/Materials/UnlitColor.ss_graph
-      - Visuals/Materials/UnlitFresnelFade.ss_graph
+      - Visuals/Materials/UnlitFresnel.ss_graph
+      - Visuals/Materials/UnlitFresnelFadeByDistance.ss_graph
       - Visuals/Materials/UnlitImage.ss_graph
+      - Visuals/Meshes
       - Visuals/Meshes/Plane.mesh
       - Visuals/Meshes/ReachyHead.fbx
       - Visuals/Meshes/ReachyHead.fbx/Meshes
       - Visuals/Meshes/ReachyHead.fbx/Meshes/big_lens_d40.001
       - Visuals/Meshes/ReachyHead.fbx/ReachyHead
+      - Visuals/Meshes/ReachyLowRes_Antenna.fbx
+      - Visuals/Meshes/ReachyLowRes_Antenna.fbx/Meshes
+      - Visuals/Meshes/ReachyLowRes_Antenna.fbx/Meshes/antenna
+      - Visuals/Meshes/ReachyLowRes_Antenna.fbx/Meshes/big_lens_d40
+      - Visuals/Meshes/ReachyLowRes_Antenna.fbx/Meshes/big_lens_d40.001
+      - Visuals/Meshes/ReachyLowRes_Antenna.fbx/ReachyLowRes_Antenna
+      - Visuals/Meshes/World Mesh.worldmesh
       - Visuals/Meshes/body_down_3dprint.glb
       - Visuals/Meshes/body_down_3dprint.glb/Meshes
       - Visuals/Meshes/body_down_3dprint.glb/Meshes/body_down_3dprint
@@ -650,41 +740,12 @@ CollapsedEntities:
       - Visuals/Meshes/body_top_3dprint.glb/Meshes
       - Visuals/Meshes/body_top_3dprint.glb/Meshes/body_top_3dprint
       - Visuals/Meshes/body_top_3dprint.glb/body_top_3dprint
+      - Visuals/ObjectMarker
+      - Visuals/ObjectMarker/ObjectMarker.prefab
+      - Visuals/Textures
       - Visuals/Textures/Image.mat
       - Visuals/Textures/Microphone.png
       - Visuals/Textures/NoInternetAlert.png
       - Visuals/Textures/NoInternetWarning.mat
       - Visuals/Textures/reachy-icon.png
-      - World Mesh - Spawn On Surfaces.lspkg
-      - World Mesh - Spawn On Surfaces.lspkg/Materials
-      - World Mesh - Spawn On Surfaces.lspkg/Materials/Blue.mat
-      - World Mesh - Spawn On Surfaces.lspkg/Materials/Brown.mat
-      - World Mesh - Spawn On Surfaces.lspkg/Materials/Green.mat
-      - World Mesh - Spawn On Surfaces.lspkg/Materials/Occluder.mat
-      - World Mesh - Spawn On Surfaces.lspkg/Materials/Orange.mat
-      - World Mesh - Spawn On Surfaces.lspkg/Materials/Pink.mat
-      - World Mesh - Spawn On Surfaces.lspkg/Materials/Purple.mat
-      - World Mesh - Spawn On Surfaces.lspkg/Materials/Red.mat
-      - World Mesh - Spawn On Surfaces.lspkg/Materials/Yellow.mat
-      - World Mesh - Spawn On Surfaces.lspkg/Meshes
-      - World Mesh - Spawn On Surfaces.lspkg/Meshes/Box.mesh
-      - World Mesh - Spawn On Surfaces.lspkg/Meshes/Plane.mesh
-      - World Mesh - Spawn On Surfaces.lspkg/Meshes/Sphere.mesh
-      - World Mesh - Spawn On Surfaces.lspkg/Meshes/World Mesh.worldmesh
-      - World Mesh - Spawn On Surfaces.lspkg/Scripts
-      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner
-      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/CloneMaterialToObjects.js
-      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/InstanceController.js
-      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/InstanceSpawner.js
-      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/RayCasting.js
-      - World Mesh - Spawn On Surfaces.lspkg/Scripts/MaterialInstanceSpawner/SpawnerSetup.js
-      - World Mesh - Spawn On Surfaces.lspkg/Scripts/WorldMesh Scripts
-      - World Mesh - Spawn On Surfaces.lspkg/Scripts/WorldMesh Scripts/WorldMeshController.js
-      - World Mesh - Spawn On Surfaces.lspkg/Shaders
-      - World Mesh - Spawn On Surfaces.lspkg/Shaders/Color.ss_graph
-      - World Mesh - Spawn On Surfaces.lspkg/Shaders/Occluder.ss_graph
-      - World Mesh - Spawn On Surfaces.lspkg/Textures
-      - World Mesh - Spawn On Surfaces.lspkg/Textures/Placeholder Texture.png
-      - World Mesh - Spawn On Surfaces.lspkg/World Mesh - Spawn On Surfaces__PLACE_IN_SCENE.prefab
-      - World Mesh - Spawn On Surfaces.lspkg/package.native
   options: 4

@@ -2,6 +2,8 @@ import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 import { RoundButton } from "SpectaclesUIKit.lspkg/Scripts/Components/Button/RoundButton";
 import { RectangleButton } from "SpectaclesUIKit.lspkg/Scripts/Components/Button/RectangleButton";
 import { ReachyMiniManager } from "./ReachyMiniManager";
+import { AssistantState } from "./ControllerAssistant";
+
 
 @component
 export class UIManager extends BaseScriptComponent {
@@ -57,6 +59,23 @@ export class UIManager extends BaseScriptComponent {
                     if (this.reachyMiniManager) {
                         this.reachyMiniManager.setPositioningEnabled(value === 1);
                     }
+                });
+            }
+
+            // Subscribe to assistant state & session changes to update the status text
+            if (this.reachyMiniManager && this.reachyMiniManager.assistantController) {
+                const assistant = this.reachyMiniManager.assistantController;
+
+                assistant.onStateChanged.push((newState: AssistantState) => {
+                    if (!this.textStateInidcator || this.reachyMiniManager.controlMode !== 2) return;
+                    if (newState === AssistantState.Inactive) {
+                        this.textStateInidcator.text = "- Paused -";
+                    }
+                });
+
+                assistant.onSessionChanged.push((active: boolean) => {
+                    if (!this.textStateInidcator || this.reachyMiniManager.controlMode !== 2) return;
+                    this.textStateInidcator.text = active ? "Reachy" : "Say 'Reachy' to wake up";
                 });
             }
         });
@@ -123,7 +142,19 @@ export class UIManager extends BaseScriptComponent {
                     this.buttonAllowRepositioning.toggle(false);
                 }
                 if (this.textStateInidcator) {
-                    this.textStateInidcator.text = "Reachy Mini";
+                    if (this.reachyMiniManager.controlMode === 2) {
+                        
+                        // If Conversation is active, show the conversation state
+                        if (this.reachyMiniManager.assistantController) {
+                            if (this.reachyMiniManager.assistantController.isConversationActive) {
+                                this.textStateInidcator.text = "Reachy";
+                            } else {
+                                this.textStateInidcator.text = "Say 'Reachy' to wake up";
+                            }
+                        }
+                    } else {
+                        this.textStateInidcator.text = "Reachy";
+                    }
                 }
                 if (this.reachyMiniManager) {
                     this.reachyMiniManager.setIsActive(true);

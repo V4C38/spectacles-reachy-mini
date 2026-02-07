@@ -26,6 +26,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    assistantController: false
     hardwareInterface: false
     headRoot: false
     mode1Interactable: false
@@ -55,6 +56,7 @@
       mode1Interactable: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
       mode1InteractableVFX: !<reference.RenderMeshVisual> 00000000-0000-0000-0000-000000000000
       mode1InteractableRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      assistantController: !<MappingBased.AssignableType_5> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -69,3 +71,4 @@
     - // @input AssignableType_4 mode1Interactable
     - // @input Component.RenderMeshVisual mode1InteractableVFX
     - // @input SceneObject mode1InteractableRoot
+    - // @input AssignableType_5 assistantController

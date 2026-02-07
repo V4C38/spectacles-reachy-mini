@@ -12,4 +12,5 @@ export interface XYZRPYPose {
 export interface IMovementInterface {
     goto(headPose: XYZRPYPose, bodyYaw?: number, duration?: number, interpolation?: string): Promise<string>;
     setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void>;
+    playAudio(audioTrack: AudioTrackAsset): Promise<void>;
 }

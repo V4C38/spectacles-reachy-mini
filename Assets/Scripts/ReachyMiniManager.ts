@@ -6,6 +6,7 @@ import { HardwareInterface } from "./HardwareInterface";
 import { ControllerPuppeteer } from "./ControllerPuppeteer";
 import { PersistenceManager } from "./PersistenceManager";
 import { SimulationInterface } from "./SimulationInterface";
+import { ControllerAssistant, AssistantState } from "./ControllerAssistant";
 
 
 @component
@@ -36,9 +37,10 @@ export class ReachyMiniManager extends BaseScriptComponent {
     private positioningInteraction : Interactable | null = null;
 
     // Control Modes
-    private controlMode : number = 0;
+    public controlMode : number = 0;
     private puppeteer: ControllerPuppeteer | null = null;
     private puppeteerUpdateEvent: SceneEvent | null = null;
+    private assistantUpdateEvent: SceneEvent | null = null;
     
     private positioningEnabled: boolean = false;
 
@@ -48,6 +50,9 @@ export class ReachyMiniManager extends BaseScriptComponent {
     private mode1InteractableVFX : RenderMeshVisual | null = null;
     @input
     private mode1InteractableRoot : SceneObject | null = null;
+
+    @input
+    public assistantController : ControllerAssistant | null = null;
 
 
 
@@ -81,6 +86,12 @@ export class ReachyMiniManager extends BaseScriptComponent {
                 }
                 break;
             case 2:
+                if (this.assistantController) {
+                    // Drive the assistant state machine
+                    this.assistantController.setState(
+                        isActive ? AssistantState.Idle : AssistantState.Inactive
+                    );
+                }
                 break;
         }
     }
@@ -105,6 +116,8 @@ export class ReachyMiniManager extends BaseScriptComponent {
     // ------------------------------------------------------------
     public setControlMode(mode : number) {
         this.controlMode = mode;
+        this.resetRobotToDefaultPose();
+
         switch (mode) {
             case 0:
                 this.setControlMode0();
@@ -120,12 +133,14 @@ export class ReachyMiniManager extends BaseScriptComponent {
 
     private setControlMode0() {
         this.stopPuppeteerUpdateLoop();
+        this.stopAssistantUpdateLoop();
         if (this.mode1Interactable) {
             this.mode1Interactable.sceneObject.enabled = false;
         }
     }
 
     private setControlMode1() {
+        this.stopAssistantUpdateLoop();
         const movementInterface = this.getMovementInterface();
         if (this.mode1Interactable && this.mode1InteractableRoot && this.headRoot && movementInterface) {
             
@@ -151,6 +166,17 @@ export class ReachyMiniManager extends BaseScriptComponent {
         if (this.mode1Interactable) {
             this.animateSceneObjectState(this.mode1Interactable.sceneObject, false, 0.4);
         }
+
+        // Initialize assistant movement with the current movement interface
+        const movementInterface = this.getMovementInterface();
+        if (this.assistantController && movementInterface) {
+            this.assistantController.initMovement(movementInterface);
+            // Start in Idle if already active, otherwise Inactive
+            this.assistantController.setState(
+                this.isActive ? AssistantState.Idle : AssistantState.Inactive
+            );
+            this.startAssistantUpdateLoop();
+        }
     }
 
     private startPuppeteerUpdateLoop(): void {
@@ -169,6 +195,29 @@ export class ReachyMiniManager extends BaseScriptComponent {
         if (this.puppeteerUpdateEvent) {
             this.removeEvent(this.puppeteerUpdateEvent);
             this.puppeteerUpdateEvent = null;
+        }
+    }
+
+    private startAssistantUpdateLoop(): void {
+        if (this.assistantUpdateEvent) {
+            return;
+        }
+        this.assistantUpdateEvent = this.createEvent("UpdateEvent");
+        this.assistantUpdateEvent.bind(() => {
+            if (this.controlMode === 2 && this.isActive && this.assistantController) {
+                this.assistantController.updateMovement();
+            }
+        });
+    }
+
+    private stopAssistantUpdateLoop(): void {
+        if (this.assistantUpdateEvent) {
+            this.removeEvent(this.assistantUpdateEvent);
+            this.assistantUpdateEvent = null;
+        }
+        // Transition assistant to Inactive when its loop stops
+        if (this.assistantController) {
+            this.assistantController.setState(AssistantState.Inactive);
         }
     }
 
@@ -192,7 +241,10 @@ export class ReachyMiniManager extends BaseScriptComponent {
             this.positioningInteraction.enabled = enabled;
         }
         
-        // Reset robot to default pose
+        // Reset robot and puppeteer to default pose
+        if (this.puppeteer) {
+            this.puppeteer.reset();
+        }
         const movementInterface = this.getMovementInterface();
         if (movementInterface) {
             const neutralPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
@@ -210,6 +262,14 @@ export class ReachyMiniManager extends BaseScriptComponent {
     // ------------------------------------------------------------
     // Helper functions
     // ------------------------------------------------------------
+    private resetRobotToDefaultPose() {
+        const movementInterface = this.getMovementInterface();
+        if (movementInterface) {
+            const neutralPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
+            movementInterface.goto(neutralPose, 0, 1.5, "minjerk");
+        }
+    }
+
     private animateSceneObjectState(sceneObject : SceneObject, state : boolean, duration : number = 0.5, scale : vec3 = new vec3(1, 1, 1)): Promise<void> {
         if (state) {
             sceneObject.enabled = true;
