@@ -1,0 +1,125 @@
+- !<AssetImportMetadata/4cb4ceb4-324f-4000-9d85-3121bbf4065c>
+  ImportedAssetIds:
+    4a3e924fad0e2f27: !<reference> c47d5fc9-cfdb-4b91-8b69-73d1622664c8
+    66780cf3a4dcb2b8: !<reference> c1b54431-47b7-4fd5-a71d-5a7b8ef73cb1
+    96f664b015fcd573: !<reference> c5206586-b7d5-452e-9558-9ba26b90188b
+    Meshes/body_down_3dprint: !<reference> 5593e5e3-87cd-4f89-93a9-dd73bdbcf7d0
+    Scene: !<reference> 6dbadfd3-9907-4eb1-99ed-4296f24f6e72
+    c41dc919f9c837f5: !<reference> 2f6e8703-3364-4908-bef1-89fc4b165f83
+    faae2e42156ec1d2: !<reference> 81764e03-5fc3-4014-be3e-a86f51f96fb8
+  ImporterName: GltfImporter
+  PrimaryAsset: !<reference> 6dbadfd3-9907-4eb1-99ed-4296f24f6e72
+  PackageType: LegacyPackage
+  LegacyPackagePolicy: CanBeUnpackedTransparent
+  ExtraData:
+    {}
+  AssetDataMap:
+    Scene: !<own> dc765895-3e61-476c-9346-7ba48e8ed3f9
+  DependentFiles:
+    []
+  ImporterSettings: !<GltfImporterSettings>
+    UseLegacyImporter: false
+    WithMaterials: true
+    NamingConvention: ByCategorySanitizeV2
+    PersistentIdGenerationAlgorithm: DescriptorBased
+    AnimationCurveOptimization: true
+    CustomAnimationSamplingRate: 30.000000
+    ImportVertexColor: true
+    ImportTangents: true
+    ImportMorphTargetAnimation: true
+    ConvertMetersToCentimeters: true
+    RegenerateTangents: false
+  CompressionSettings: !<ComplexCompressionSettings>
+    Presets:
+      None Compression: !<SingleCompressionSettings>
+        CompressorName: None
+        CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+    ExtensionMappings:
+      mesh: None Compression
+    Overrides:
+      {}
+- !<SceneObject/2f6e8703-3364-4908-410e-7603b4e9a07c>
+  PrefabRemaps:
+    []
+  Name: body_down_3dprint
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 81764e03-5fc3-4014-41c1-5790ae069047
+- !<RenderMeshVisual/81764e03-5fc3-4014-41c1-5790ae069047>
+  PrefabRemaps:
+    []
+  Name: body_down_3dprint
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    []
+  Mesh: !<reference> 5593e5e3-87cd-4f89-93a9-dd73bdbcf7d0
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
+- !<SceneObject/c1b54431-47b7-4fd5-58e2-a5847108c34e>
+  PrefabRemaps:
+    []
+  Name: body_down_3dprint
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> c47d5fc9-cfdb-4b91-7496-8c2e9dd99b37
+  Components:
+    []
+- !<SceneObject/c47d5fc9-cfdb-4b91-7496-8c2e9dd99b37>
+  PrefabRemaps:
+    []
+  Name: Scenes
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> c5206586-b7d5-452e-6aa7-645d946fe774
+  Components:
+    []
+- !<SceneObject/c5206586-b7d5-452e-6aa7-645d946fe774>
+  PrefabRemaps:
+    []
+  Name: Scene
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> 2f6e8703-3364-4908-410e-7603b4e9a07c
+  Components:
+    []
+- !<ObjectPrefabAssetData/dc765895-3e61-476c-9346-7ba48e8ed3f9>
+  Prototype: !<ObjectOwner/1a4ac0c4-0bb1-4bd2-98f9-322cf013063e>
+    PackagePath: ""
+    objects:
+      - !<own> c1b54431-47b7-4fd5-58e2-a5847108c34e
