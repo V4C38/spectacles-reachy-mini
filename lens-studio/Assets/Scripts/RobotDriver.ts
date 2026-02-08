@@ -501,6 +501,19 @@ export class RobotDriver extends BaseScriptComponent {
     // ----------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------
+
+    public applyHologramMaterial(): void {
+        if (this.simulationAdapter) {
+            this.simulationAdapter.applyHologramMaterial();
+        }
+    }
+
+    public applyDefaultMaterials(): void {
+        if (this.simulationAdapter) {
+            this.simulationAdapter.applyDefaultMaterials();
+        }
+    }
+
     /** Compute yaw/pitch angles from headRoot to a world position. */
     public anglesToTarget(pos: vec3): { yaw: number; pitch: number } {
         const dir = pos.sub(this.getHeadWorldPosition());

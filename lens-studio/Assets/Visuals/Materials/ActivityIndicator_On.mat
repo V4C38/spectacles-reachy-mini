@@ -103,11 +103,11 @@
     - Port_WorldTangent_N004:
         typeIdx: 4
         value: {x: 0.000000, y: 0.000000, z: 1.000000}
-    - Saturation:
+    - Tweak_N41:
         typeIdx: 1
         value: 1.000000
   DepthWrite: false
-  DepthTest: true
+  DepthTest: false
   DepthFunction: LessEqual
   TwoSided: true
   ColorMask: {x: true, y: true, z: true, w: true}
@@ -309,22 +309,22 @@
     PreviewNodeID:
       typeIdx: 0
       value: 0
+    Saturation:
+      typeIdx: 1
+      value: 1.000000
     Tweak_N23:
       typeIdx: 1
-      value: 2.630000
+      value: 1.000000
     Tweak_N33:
       typeIdx: 1
-      value: 5.990000
+      value: 0.800000
     Tweak_N37:
       typeIdx: 1
-      value: 0.300000
+      value: 0.200000
     Tweak_N38:
       typeIdx: 1
-      value: 0.300000
-    Tweak_N41:
-      typeIdx: 1
-      value: 1.000000
+      value: 0.250000
     in_out:
       typeIdx: 1
-      value: 1.000000
+      value: 0.800000
   Pass: !<reference> 11ee2b9e-22c2-4138-a11d-abce6d544287

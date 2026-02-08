@@ -8,8 +8,8 @@ import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 // Shared geometry constants
 // ================================================================
 
-const LINE_WIDTH_START = 0.15;
-const LINE_WIDTH_MID = 0.75;
+const LINE_WIDTH_START = 0.25;
+const LINE_WIDTH_MID = 1.5;
 const CURVE_HEIGHT_RATIO = 0.1;
 const CURVE_SEGMENTS = 15;
 const APPEAR_DURATION = 1;

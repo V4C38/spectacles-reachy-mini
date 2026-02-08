@@ -1,6 +1,7 @@
 import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 import { RobotDriver, PROFILES } from "./RobotDriver";
+import { getObjectLinkRenderer, ObjectLinkRenderer } from "./Utils/ObjectLinkRenderer";
 
 //Puppeteer control mode: makes the robot look at a draggable target scene object.
 @component
@@ -14,6 +15,13 @@ export class PuppeteerMode extends BaseScriptComponent {
     private interactableVFX: RenderMeshVisual | null = null;
     @input
     private interactableRoot: SceneObject | null = null;
+    @input
+    private lineRendererPrefab: ObjectPrefab | null = null;
+
+    private lineObj: SceneObject | null = null;
+    private lineRenderer: ObjectLinkRenderer | null = null;
+    @input
+    private lineRendererRoot : SceneObject | null = null;
 
     onAwake() {
     }
@@ -35,12 +43,16 @@ export class PuppeteerMode extends BaseScriptComponent {
             this.interactableRoot.getTransform().getWorldPosition()
         );
 
+
         this.animateSceneObjectState(this.interactable.sceneObject, true, 0.75, new vec3(0.35, 0.35, 0.35));
         this.robotDriver.reset();
         this.robotDriver.setProfile(PROFILES.puppeteer);
+
+        this.startHeadToInteractableLine();
     }
 
     public deactivate(): void {
+        this.stopHeadToInteractableLine();
         if (this.interactable) {
             this.animateSceneObjectState(this.interactable.sceneObject, false, 0.4);
         }
@@ -49,10 +61,16 @@ export class PuppeteerMode extends BaseScriptComponent {
 
     public pause(): void {
         if (this.robotDriver) this.robotDriver.pause();
+        if (this.interactableVFX) {
+            this.interactableVFX.mainPass["Saturation"] = 0;
+        }
     }
 
     public resume(): void {
         if (this.robotDriver) this.robotDriver.resume();
+        if (this.interactableVFX) {
+            this.interactableVFX.mainPass["Saturation"] = 1;
+        }
     }
     // ----------------------------------------------------------------
     // Update Loop
@@ -61,8 +79,46 @@ export class PuppeteerMode extends BaseScriptComponent {
         if (!this.robotDriver || !this.interactable) return;
         this.robotDriver.lookAt(this.interactable.sceneObject.getTransform().getWorldPosition());
         this.robotDriver.updateFrame();
+        this.updateHeadToInteractableLine();
     }
 
+
+    // ----------------------------------------------------------------
+    // Head-to-interactable line (ObjectLinkRenderer)
+    // ----------------------------------------------------------------
+    private startHeadToInteractableLine(): void {
+        if (!this.lineRendererPrefab || !this.interactable || !this.lineRendererRoot) return;
+        const headPos = this.lineRendererRoot.getTransform().getWorldPosition();
+        const endPos = this.interactable.sceneObject.getTransform().getWorldPosition();
+        this.lineObj = this.lineRendererPrefab.instantiate(null);
+        this.lineObj.getTransform().setWorldPosition(headPos);
+        this.lineRenderer = getObjectLinkRenderer(this.lineObj);
+        if (!this.lineRenderer) {
+            this.lineObj.destroy();
+            this.lineObj = null;
+            return;
+        }
+        this.lineRenderer.setLineAndAppear(headPos, endPos);
+    }
+
+    private updateHeadToInteractableLine(): void {
+        if (!this.lineRenderer || !this.lineObj || !this.lineRendererRoot || !this.interactable) return;
+        const headPos = this.lineRendererRoot.getTransform().getWorldPosition();
+        const endPos = this.interactable.sceneObject.getTransform().getWorldPosition();
+        this.lineObj.getTransform().setWorldPosition(headPos);
+        this.lineRenderer.updateEndPosition(endPos);
+    }
+
+    private stopHeadToInteractableLine(): void {
+        if (!this.lineRenderer || !this.lineObj) return;
+        const obj = this.lineObj;
+        const renderer = this.lineRenderer;
+        this.lineObj = null;
+        this.lineRenderer = null;
+        renderer.disappear(() => {
+            obj.destroy();
+        });
+    }
 
     // ----------------------------------------------------------------
     // Helpers

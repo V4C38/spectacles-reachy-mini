@@ -14,6 +14,11 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     @input
     private audioComponent: AudioComponent | null = null;
 
+    @input
+    private materialsDefault: Material[] | null = null;
+    @input
+    private hologramMaterial: Material | null = null;
+
     // Animation audio tracks (same names as backend animations)
     @input
     private audioGreeting: AudioTrackAsset | null = null;
@@ -253,6 +258,49 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     // ----------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------
+
+    public applyHologramMaterial(): void {
+        if (!this.hologramMaterial) return;
+        const containers = [
+            this.bodySceneObject,
+            this.headSceneObject,
+            this.leftAntennaSceneObject,
+            this.rightAntennaSceneObject,
+        ].filter((o): o is SceneObject => o !== null);
+        const single = [this.hologramMaterial];
+        for (const container of containers) {
+            this.applyMaterialsToSubobjects(container, single);
+        }
+    }
+
+    public applyDefaultMaterials(): void {
+        if (!this.materialsDefault || this.materialsDefault.length === 0) return;
+        const containers = [
+            this.bodySceneObject,
+            this.headSceneObject,
+            this.leftAntennaSceneObject,
+            this.rightAntennaSceneObject,
+        ].filter((o): o is SceneObject => o !== null);
+        for (const container of containers) {
+            this.applyMaterialsToSubobjects(container, this.materialsDefault);
+        }
+    }
+
+    private applyMaterialsToSubobjects(container: SceneObject, materials: Material[]): void {
+        if (materials.length === 0) return;
+        const childCount = container.getChildrenCount();
+        for (let c = 0; c < childCount; c++) {
+            const visual = container.getChild(c).getComponent("Component.RenderMeshVisual") as RenderMeshVisual;
+            if (!visual) continue;
+            const meshSlotCount = visual.getMaterialsCount();
+            const count = Math.min(materials.length, meshSlotCount);
+            if (count === 0) continue;
+            visual.mainMaterial = materials[0];
+            for (let i = 1; i < count; i++) {
+                visual.materials[i] = materials[i];
+            }
+        }
+    }
 
     // Apply easing curve based on interpolation mode. t is in [0,1].
     private ease(t: number, mode: string): number {

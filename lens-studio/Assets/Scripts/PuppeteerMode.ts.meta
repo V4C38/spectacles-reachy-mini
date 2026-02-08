@@ -29,6 +29,8 @@
     interactable: false
     interactableRoot: false
     interactableVFX: false
+    lineRendererPrefab: false
+    lineRendererRoot: false
     robotDriver: false
   ScriptTypesHidden:
     {}
@@ -43,6 +45,8 @@
       interactable: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       interactableVFX: !<reference.RenderMeshVisual> 00000000-0000-0000-0000-000000000000
       interactableRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      lineRendererPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      lineRendererRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -51,3 +55,5 @@
     - // @input AssignableType_1 interactable
     - // @input Component.RenderMeshVisual interactableVFX
     - // @input SceneObject interactableRoot
+    - // @input Asset.ObjectPrefab lineRendererPrefab
+    - // @input SceneObject lineRendererRoot

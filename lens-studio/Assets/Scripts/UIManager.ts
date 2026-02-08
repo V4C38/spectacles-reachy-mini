@@ -29,6 +29,8 @@ export class UIManager extends BaseScriptComponent {
     @input
     private buttonEnableVFX: SceneObject | null = null;
     @input
+    private buttonEnableVFX2: SceneObject | null = null;
+    @input
     private buttonMode1: RectangleButton | null = null;
     @input
     private buttonMode2: RectangleButton | null = null;
@@ -139,11 +141,13 @@ export class UIManager extends BaseScriptComponent {
                 break;
             case 1:
                 if (this.uiContainer) {
-                    this.animateSceneObjectState(this.uiContainer, false);
+                    this.uiContainer.enabled = false;
+                    
                 }
                 if (this.buttonEnable && this.buttonEnableVFX) {
                     this.buttonEnable.sceneObject.enabled = true;
                     this.animateSceneObjectState(this.buttonEnableVFX, true, 0.75);
+                    this.animateSceneObjectState(this.buttonEnableVFX2, false);
                 }
                 if (this.buttonAllowRepositioning) {
                     this.buttonAllowRepositioning.toggle(false);
@@ -165,11 +169,12 @@ export class UIManager extends BaseScriptComponent {
                 break;
             case 2:
                 if (this.uiContainer) {
-                    this.animateSceneObjectState(this.uiContainer, true);
+                    this.uiContainer.enabled = true;
                 }
                 if (this.buttonEnable && this.buttonEnableVFX) {
                     this.buttonEnable.sceneObject.enabled = true;
                     this.animateSceneObjectState(this.buttonEnableVFX, false, 1.0);
+                    this.animateSceneObjectState(this.buttonEnableVFX2, true, 0.75);
                 }
                 if (this.textStateInidcator) {
                     this.textStateInidcator.text = "- Paused -";
@@ -205,14 +210,6 @@ export class UIManager extends BaseScriptComponent {
     // Helper functions
     // ------------------------------------------------------------
     private animateSceneObjectState(sceneObject: SceneObject, state: boolean, duration: number = 0.5): Promise<void> {
-
-
-        // DEBUG: resolve immediately
-        sceneObject.enabled = state;
-        return new Promise<void>((resolve) => {
-            resolve();
-        });
-
         // Enable before animating in
         if (state) {
             sceneObject.enabled = true;

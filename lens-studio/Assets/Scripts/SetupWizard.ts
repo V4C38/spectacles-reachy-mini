@@ -45,13 +45,13 @@ export class SetupWizard extends BaseScriptComponent {
 
     private steps: string[] = [
         "Launch Reachy Mini App",
-        "Connect to Spectacles Bridge",
+        "Connect to Reachy Mini App",
         "Position Reachy Mini",
         ""
     ];
 
     private stepDescriptions: string[] = [
-        " \n \n In the Reachy Mini Desktop application, start the app: \n 'Spectacles AR controller' ",
+        " \n \n In the Reachy Mini Desktop application, start the app: \n \n '😎 spectacles_reachy_mini' ",
         " \n Enter the IP address shown on the app page.",
         " \n \n Position Reachy Mini in the desired location  \n You can adjust this later in the settings.",
         ""

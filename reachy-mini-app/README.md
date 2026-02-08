@@ -5,7 +5,7 @@ colorFrom: purple
 colorTo: blue
 sdk: static
 pinned: false
-short_description: WebSocket bridge to control Reachy Mini from Snap Spectacles.
+short_description: Control Reachy Mini from Snap Spectacles via WebSocket.
 tags:
   - reachy_mini
   - reachy_mini_python_app

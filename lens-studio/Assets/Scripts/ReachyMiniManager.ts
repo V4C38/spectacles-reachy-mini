@@ -250,6 +250,14 @@ export class ReachyMiniManager extends BaseScriptComponent {
             this.positioningInteraction.enabled = enabled;
         }
 
+        if (this.robotDriver) {
+            if (this.positioningEnabled) {
+                this.robotDriver.applyHologramMaterial();
+            } else {
+                this.robotDriver.applyDefaultMaterials();
+            }
+        }
+
         if (this.puppeteerMode) {
             this.puppeteerMode.reset();
         }

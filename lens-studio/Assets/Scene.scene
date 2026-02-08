@@ -4,6 +4,7 @@
     - !<own> 00000000-0000-0065-0000-000000000064
     - !<own> 0005641c-028d-459a-0000-000000014b4d
     - !<own> 5aa0f98b-e799-448c-a2dc-cae5d04fa2a4
+    - !<own> 267f89d7-97c1-4c40-a03a-fbbcb033f32e
     - !<own> de76f38b-d250-4102-bd75-fc9b3cdb0427
     - !<own> 7bddf6e7-2ff8-418c-ac05-c1cb54b58df8
     - !<own> 33d037d1-44e2-497d-b77a-038f49428ddf
@@ -298,6 +299,26 @@
     - !<own> c89d7e48-75a6-414e-a253-874f80bfe792
   Components:
     []
+- !<RenderMeshVisual/096d81f9-c082-44ca-9798-97755812994a>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 8c52a3c4-361c-4013-b836-72c3908e5d76
+  Mesh: !<reference> 177459c0-51d4-4374-9e15-6cbda2f0631a
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<Text/0a785969-2fbd-4dd8-807b-2058a04a20e1>
   PrefabRemaps:
     []
@@ -751,6 +772,8 @@
       interactable: !<MappingBased.AssignableType_1> fbcdb788-539d-43fa-8fd0-80e994863247
       interactableVFX: !<reference.RenderMeshVisual> 4396d504-cfe0-4978-9c7b-8009df70ed43
       interactableRoot: !<reference.SceneObject> 0b0ebcd0-5812-4e50-a8be-f540e26b28e0
+      lineRendererPrefab: !<reference.ObjectPrefab> f7a443b8-4645-45ff-8273-c1e6355e722c
+      lineRendererRoot: !<reference.SceneObject> 61a99ce0-463f-4074-b832-b9644b1ea9c7
   ScriptTypes:
     "":
       {}
@@ -799,6 +822,21 @@
     HasSegmentScaleCompensation: false
   Children:
     []
+  Components:
+    []
+- !<SceneObject/1b79e575-4774-4afc-b328-f15ff99edaa2>
+  PrefabRemaps:
+    []
+  Name: ButtonVFX2
+  Enabled: false
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> 9be1700c-0a68-4527-b424-e959198f3dda
   Components:
     []
 - !<SceneObject/1be2dd1d-c962-46d6-b5a9-05228e532e18>
@@ -899,6 +937,24 @@
     - !<own> d491b31f-c593-49a0-932a-b8bbe817b1bf
   Components:
     []
+- !<ScriptComponent/20aec83c-5b55-4c11-8b9e-91f31cca9e3e>
+  PrefabRemaps:
+    []
+  Name: RemoteServiceGatewayCredentials
+  Enabled: true
+  ScriptAsset: !<reference> 37976aca-6847-44c8-88d9-5edb6aadbbf2
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      openAIToken: db0ec7ef-28dc-4561-9ccc-dfdd01aa775d
+      googleToken: 77bed942-f94b-4881-b60a-6cc9f161540f
+      snapToken: fa5d61d3-777a-43f8-8810-50ba02bc20e3
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/210e408d-9607-4a16-99e4-f7382deff630>
   PrefabRemaps:
     []
@@ -962,6 +1018,21 @@
     - !<own> 00fdb93a-85d7-4497-9622-9fad02238fc3
   Components:
     []
+- !<SceneObject/267f89d7-97c1-4c40-a03a-fbbcb033f32e>
+  PrefabRemaps:
+    []
+  Name: RemoteServiceGatewayCredentials
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: -20.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 20aec83c-5b55-4c11-8b9e-91f31cca9e3e
 - !<RenderMeshVisual/269b08f5-3658-41c8-9ade-0d6a7c4de69d>
   PrefabRemaps:
     []
@@ -1143,6 +1214,7 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
+    - !<own> 61a99ce0-463f-4074-b832-b9644b1ea9c7
     - !<own> e4050029-2330-48a2-a897-7c0e4442b5eb
     - !<own> b254aa04-847c-4728-a1e1-cf805d1904e0
     - !<own> 7d2236a1-8a42-4c1a-b007-f2ac12ad6e1d
@@ -1772,6 +1844,7 @@
     HasSegmentScaleCompensation: false
   Children:
     - !<own> 8f306ac4-eb2d-49cc-8838-7b1b84d80ba6
+    - !<own> 1b79e575-4774-4afc-b328-f15ff99edaa2
     - !<own> d7d655ee-f454-4cd6-b9cd-fe5096720aa9
   Components:
     - !<own> 2c7cf82e-fa4d-4fbf-9f14-919518571b42
@@ -3061,6 +3134,21 @@
     []
   Components:
     - !<own> d422aa96-8426-402b-969a-d8a884522e06
+- !<SceneObject/61a99ce0-463f-4074-b832-b9644b1ea9c7>
+  PrefabRemaps:
+    []
+  Name: LookAtLineRoot
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.895928, z: 5.553093}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    []
 - !<SceneObject/6592fd98-8ae7-43b2-9e0d-b63edeaac767>
   PrefabRemaps:
     []
@@ -3530,7 +3618,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: -20.000000, z: 0.000000}
+    Position: {x: 0.000000, y: -22.000000, z: 0.000000}
     Rotation: {x: -90.000000, y: 180.000000, z: 0.000000}
     Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
     HasSegmentScaleCompensation: false
@@ -4163,6 +4251,21 @@
     - !<own> 541a1667-fb17-43bf-bd3b-7b713063d3f7
   Components:
     []
+- !<SceneObject/9be1700c-0a68-4527-b424-e959198f3dda>
+  PrefabRemaps:
+    []
+  Name: Unit Plane
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.250000, z: -0.500000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 4.500000, y: 5.500000, z: 0.500000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 096d81f9-c082-44ca-9798-97755812994a
 - !<SceneObject/9be257e4-3749-4903-a1c6-22bc119f2006>
   PrefabRemaps:
     []
@@ -4773,6 +4876,10 @@
       leftAntennaSceneObject: !<reference.SceneObject> e4050029-2330-48a2-a897-7c0e4442b5eb
       rightAntennaSceneObject: !<reference.SceneObject> b254aa04-847c-4728-a1e1-cf805d1904e0
       audioComponent: !<reference.AudioComponent> 0fe74073-4f29-4e6b-8f78-f6a339d7427e
+      materialsDefault: !<reference.Material[]>
+        - !<reference> 9f42074e-0291-4ed2-a48f-e44de19c5b48
+        - !<reference> c220a21b-ad5d-4ade-b075-b0313748ebba
+      hologramMaterial: !<reference.Material> 4e9ca73a-eb1f-4d7b-8511-ac0214cb723e
       audioGreeting: !<reference.AudioTrackAsset> c510c9bb-6b1e-4895-93c4-b8dac22e6b14
       audioGoodbye: !<reference.AudioTrackAsset> 4ceeb93c-4349-47db-bf37-81d83eaaa712
       audioHappy: !<reference.AudioTrackAsset> eb4e8223-9ab1-42c3-92f6-1f023a5e86ef
@@ -4988,8 +5095,8 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Position: {x: 0.000000, y: 2.000000, z: 0.000000}
+    Rotation: {x: 117.021622, y: -0.000000, z: -180.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
@@ -5116,7 +5223,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 5.707228, y: 5.000000, z: -4.000000}
+    Position: {x: 5.707228, y: 3.000000, z: -4.000000}
     Rotation: {x: 5.000000, y: -30.000000, z: -0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -6527,7 +6634,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: -5.500000, y: 5.000000, z: -4.000000}
+    Position: {x: -5.500000, y: 3.000000, z: -4.000000}
     Rotation: {x: 5.000000, y: 30.000011, z: -0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -7030,6 +7137,7 @@
       uiContainerMode2: !<reference.SceneObject> aa1eefac-73b8-40c7-b68d-3866a0a3a233
       buttonEnable: !<MappingBased.AssignableType_1> 2c7cf82e-fa4d-4fbf-9f14-919518571b42
       buttonEnableVFX: !<reference.SceneObject> 8f306ac4-eb2d-49cc-8838-7b1b84d80ba6
+      buttonEnableVFX2: !<reference.SceneObject> 1b79e575-4774-4afc-b328-f15ff99edaa2
       buttonMode1: !<MappingBased.AssignableType_2> 1c5465be-0442-49da-b64f-e2784f35a545
       buttonMode2: !<MappingBased.AssignableType_3> 4c285579-f218-4cf5-b281-5d35c4793522
       buttonAllowRepositioning: !<MappingBased.AssignableType_4> e646a13a-0e6f-4f3d-aeda-9bf855740699

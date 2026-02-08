@@ -29,6 +29,7 @@
     buttonAllowRepositioning: false
     buttonEnable: false
     buttonEnableVFX: false
+    buttonEnableVFX2: false
     buttonMode1: false
     buttonMode2: false
     buttonShowDebugInfo: false
@@ -56,6 +57,7 @@
       uiContainerMode2: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       buttonEnable: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       buttonEnableVFX: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      buttonEnableVFX2: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       buttonMode1: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
       buttonMode2: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
       buttonAllowRepositioning: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
@@ -73,6 +75,7 @@
     - // @input SceneObject uiContainerMode2
     - // @input AssignableType_1 buttonEnable
     - // @input SceneObject buttonEnableVFX
+    - // @input SceneObject buttonEnableVFX2
     - // @input AssignableType_2 buttonMode1
     - // @input AssignableType_3 buttonMode2
     - // @input AssignableType_4 buttonAllowRepositioning
