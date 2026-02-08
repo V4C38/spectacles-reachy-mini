@@ -1,0 +1,54 @@
+- !<AssetImportMetadata/5ab13859-6def-4dd7-b8ab-19aefc888e2f>
+  ImportedAssetIds:
+    ObjectPrefab: !<reference> f7a443b8-4645-45ff-8273-c1e6355e722c
+  ImporterName: ObjectPrefabImporter
+  PrimaryAsset: !<reference> f7a443b8-4645-45ff-8273-c1e6355e722c
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    ObjectPrefab: !<own> a3496eb1-f8eb-4bce-8092-7ecd3172dd51
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<SceneObject/36ae08b5-ac5f-4abc-9918-fb85e6cfdb7c>
+  PrefabRemaps:
+    []
+  Name: ObjectMarker
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 0.250000, y: 0.250000, z: 0.250000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> a544f7bf-9fb8-41f2-aee7-72fdb25cc3f5
+- !<ObjectPrefabAssetData/a3496eb1-f8eb-4bce-8092-7ecd3172dd51>
+  Prototype: !<ObjectOwner/410101ad-0345-423f-8f72-1e18faf598c7>
+    PackagePath: ""
+    objects:
+      - !<own> 36ae08b5-ac5f-4abc-9918-fb85e6cfdb7c
+- !<ScriptComponent/a544f7bf-9fb8-41f2-aee7-72fdb25cc3f5>
+  PrefabRemaps:
+    []
+  Name: ObjectLinkRenderer
+  Enabled: true
+  ScriptAsset: !<reference> 3c034c80-8b5b-43f3-8fb3-9c398daa2b25
+  ScriptInputsDefault:
+    autoAppearOnAwake: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      endPosition: !<Vec3> {x: 0.000000, y: 0.000000, z: 0.000000}
+      material: !<reference.Material> f25e3adb-5630-4ad9-a459-0f2413e28bc1
+      autoAppearOnAwake: false
+  ScriptTypes:
+    "":
+      {}

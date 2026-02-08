@@ -64,6 +64,14 @@ export class DepthCache extends BaseScriptComponent {
     }
 
     /**
+     * Clear the captured frame so no previous run's depth is reused.
+     * Call at the start of each detection run and optionally after use.
+     */
+    public clearCapturedFrame(): void {
+        this.capturedFrame = null;
+    }
+
+    /**
      * Convert normalized 2D color image coordinates to 3D world position
      * Uses the single captured frame from captureFrame()
      * 

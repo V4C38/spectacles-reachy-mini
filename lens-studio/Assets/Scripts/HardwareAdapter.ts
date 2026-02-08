@@ -34,7 +34,7 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     private isConnecting: boolean = false;
 
     // --- set_target throttling (reduces jitter from network flooding) ---
-    private static readonly SET_TARGET_MIN_INTERVAL_SEC = 0.02; // 50Hz max
+    private static readonly SET_TARGET_MIN_INTERVAL_SEC = 0.066; // ~15Hz max
     private lastSetTargetTime: number = 0;
 
     onAwake() {
@@ -289,7 +289,7 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     public async setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void> {
         const now = getTime();
         if (now - this.lastSetTargetTime < HardwareAdapter.SET_TARGET_MIN_INTERVAL_SEC) {
-            return; // Throttle to 50Hz to reduce network jitter
+            return; // Throttle to ~15Hz; Python-side LERP at 30Hz fills the gaps
         }
         this.lastSetTargetTime = now;
 
@@ -379,5 +379,34 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
         if (!result || result.type === "error") {
             throw new Error(`playTTS failed: ${result?.message || "unknown error"}`);
         }
+    }
+
+    // ================================================================
+    // Animations
+    // ================================================================
+
+    /**
+     * Play a named animation on the robot. Blocks until the animation completes.
+     * The caller (RobotDriver) should pause the update loop for the duration.
+     */
+    public async playAnimation(name: string): Promise<{ durationSec: number }> {
+        const result = await this.sendAndWait({ type: "play_animation", name: name }, 60);
+        if (!result || result.type === "error") {
+            throw new Error(`playAnimation failed: ${(result as any)?.message || "unknown error"}`);
+        }
+        const durationSec = (result as any).duration_sec ?? 0;
+        return { durationSec };
+    }
+
+    /**
+     * Get the list of available animation names from the Python bridge.
+     */
+    public async getAvailableAnimations(): Promise<string[]> {
+        const result = await this.sendAndWait({ type: "get_available_animations" }, 5);
+        if (!result || result.type === "error") {
+            throw new Error(`getAvailableAnimations failed: ${(result as any)?.message || "unknown error"}`);
+        }
+        const names = (result as any).names;
+        return Array.isArray(names) ? names : [];
     }
 }

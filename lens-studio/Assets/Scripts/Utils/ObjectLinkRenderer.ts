@@ -8,12 +8,12 @@ import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 // Shared geometry constants
 // ================================================================
 
-const LINE_WIDTH_START = 0.02;
-const LINE_WIDTH_MID = 0.15;
+const LINE_WIDTH_START = 0.15;
+const LINE_WIDTH_MID = 0.75;
 const CURVE_HEIGHT_RATIO = 0.1;
-const CURVE_SEGMENTS = 20;
-const APPEAR_DURATION = 0.25;
-const DISAPPEAR_DURATION = 0.25;
+const CURVE_SEGMENTS = 15;
+const APPEAR_DURATION = 1;
+const DISAPPEAR_DURATION = 1;
 const DEFAULT_COLOR = new vec4(1, 1, 1, 1);
 
 // ================================================================
@@ -178,6 +178,7 @@ export function createCurvedLine(
     // Create scene object positioned at start
     const obj = global.scene.createSceneObject("CurvedLine");
     obj.getTransform().setWorldPosition(start);
+    obj.layer = LayerSet.fromNumber(1);
 
     // Create RenderMeshVisual
     const meshVisual = obj.createComponent("Component.RenderMeshVisual") as RenderMeshVisual;
@@ -193,6 +194,7 @@ export function createCurvedLine(
     const mb = createLineMeshBuilder(verts, indices);
     if (mb.isValid()) {
         meshVisual.mesh = mb.getMesh();
+        mb.updateMesh();
     } else {
         print("createCurvedLine: Mesh validation failed");
     }
@@ -202,13 +204,14 @@ export function createCurvedLine(
 
     let currentAnimation: any = null;
     let isAnimating = false;
+    let isDestroyed = false;
 
     // Fade in
     currentAnimation = animate({
         duration: APPEAR_DURATION,
         easing: "ease-in-out-quad",
         update: (t: number) => {
-            setMeshAlpha(meshVisual, t);
+            if (!isDestroyed) setMeshAlpha(meshVisual, t);
         },
         ended: () => {
             isAnimating = false;
@@ -219,8 +222,10 @@ export function createCurvedLine(
 
     const handle: CurvedLineHandle = {
         disappear: () => {
+            if (isDestroyed) return;
             if (isAnimating && currentAnimation) {
                 currentAnimation.cancel();
+                currentAnimation = null;
             }
             isAnimating = true;
             const startAlpha = getMeshAlpha(meshVisual);
@@ -228,7 +233,7 @@ export function createCurvedLine(
                 duration: DISAPPEAR_DURATION,
                 easing: "ease-in-out-quad",
                 update: (t: number) => {
-                    setMeshAlpha(meshVisual, startAlpha * (1 - t));
+                    if (!isDestroyed) setMeshAlpha(meshVisual, startAlpha * (1 - t));
                 },
                 ended: () => {
                     isAnimating = false;
@@ -237,14 +242,38 @@ export function createCurvedLine(
             });
         },
         destroy: () => {
+            if (isDestroyed) return;
+            isDestroyed = true;
             if (isAnimating && currentAnimation) {
                 currentAnimation.cancel();
+                currentAnimation = null;
             }
             obj.destroy();
         }
     };
 
     return handle;
+}
+
+// ================================================================
+// Helper for finding ObjectLinkRenderer on a spawned prefab
+// ================================================================
+
+/**
+ * Find the ObjectLinkRenderer component on the given scene object or any of its children.
+ * Use this after instantiating a line prefab to get the component for setLineAndAppear.
+ */
+export function getObjectLinkRenderer(sceneObject: SceneObject): ObjectLinkRenderer | null {
+    const comp = sceneObject.getComponent("Component.ScriptComponent") as BaseScriptComponent;
+    if (comp && comp instanceof ObjectLinkRenderer) {
+        return comp as ObjectLinkRenderer;
+    }
+    const childCount = sceneObject.getChildrenCount();
+    for (let i = 0; i < childCount; i++) {
+        const found = getObjectLinkRenderer(sceneObject.getChild(i));
+        if (found) return found;
+    }
+    return null;
 }
 
 // ================================================================
@@ -266,7 +295,13 @@ export class ObjectLinkRenderer extends BaseScriptComponent {
     @input
     public material: Material | null = null;
     
+    /** If true, call appear() in onAwake (for designer-placed prefabs). Set false on prefabs used for runtime spawn so setLineAndAppear controls when the line shows. */
+    @input
+    public autoAppearOnAwake: boolean = false;
+    
     // --- Private State ---
+    /** Child scene object that holds the line mesh. The component's scene object is only the start-position holder. */
+    private meshChild: SceneObject | null = null;
     private meshVisual: RenderMeshVisual | null = null;
     private meshBuilder: MeshBuilder | null = null;
     private isVisible: boolean = false;
@@ -278,11 +313,21 @@ export class ObjectLinkRenderer extends BaseScriptComponent {
             print("ObjectLinkRenderer: material is required");
             return;
         }
-        
-        const start = this.sceneObject.getTransform().getWorldPosition();
-        print(`ObjectLinkRenderer: Start=${start}, End=${this.endPosition}, Distance=${start.distance(this.endPosition)}`);
-        
         this.setupMesh();
+        if (this.autoAppearOnAwake) {
+            this.rebuildLine();
+            this.appear();
+        }
+    }
+
+    /**
+     * Set line once: prefab (holder) at startWorld, line to endWorld (both world space).
+     * Builds geometry once. Call after spawning prefab at start.
+     */
+    public setLineAndAppear(startWorld: vec3, endWorld: vec3): void {
+        this.getSceneObject().getTransform().setWorldPosition(startWorld);
+        this.endPosition = endWorld;
+        this.rebuildLine();
         this.appear();
     }
     
@@ -310,7 +355,7 @@ export class ObjectLinkRenderer extends BaseScriptComponent {
         });
     }
     
-    public disappear(): void {
+    public disappear(onComplete?: () => void): void {
         if (!this.meshVisual) return;
         if (this.isAnimating && this.currentAnimation) {
             this.currentAnimation.cancel();
@@ -330,6 +375,7 @@ export class ObjectLinkRenderer extends BaseScriptComponent {
                 this.isVisible = false;
                 this.isAnimating = false;
                 this.currentAnimation = null;
+                onComplete?.();
             }
         });
     }
@@ -342,54 +388,41 @@ export class ObjectLinkRenderer extends BaseScriptComponent {
     // --- Private Methods ---
     
     private setupMesh(): void {
-        this.meshVisual = this.sceneObject.createComponent("Component.RenderMeshVisual") as RenderMeshVisual;
+        // Geometry on a child; this.sceneObject is only the start-position holder.
+        this.meshChild = global.scene.createSceneObject("LineMesh");
+        this.meshChild.setParent(this.sceneObject);
+        this.meshChild.getTransform().setLocalPosition(new vec3(0, 0, 0));
+
+        this.meshVisual = this.meshChild.createComponent("Component.RenderMeshVisual") as RenderMeshVisual;
         this.meshVisual.mainMaterial = this.material;
-        
         this.meshBuilder = createLineMeshBuilder([], []);
-        
-        this.rebuildLine();
-        
-        if (this.meshBuilder.isValid()) {
-            this.meshVisual.mesh = this.meshBuilder.getMesh();
-        } else {
-            print("ObjectLinkRenderer: Mesh is not valid after initial build");
-        }
     }
-    
+
+    /**
+     * Build line once: from holder world position (start) to endPosition (world).
+     * Not called every frame.
+     */
     private rebuildLine(): void {
         if (!this.meshBuilder || !this.meshVisual) return;
-        
-        const localStart = new vec3(0, 0, 0);
+
         const transform = this.sceneObject.getTransform();
+        const localStart = new vec3(0, 0, 0);
         const localEnd = transform.getInvertedWorldTransform().multiplyPoint(this.endPosition);
-        
-        const worldStart = transform.getWorldPosition();
-        print(`ObjectLinkRenderer: WorldStart=${worldStart}, WorldEnd=${this.endPosition}, LocalEnd=${localEnd}`);
-        
+
         const control = computeControlPoint(localStart, localEnd, CURVE_HEIGHT_RATIO);
         const points = sampleQuadraticBezier(localStart, control, localEnd, CURVE_SEGMENTS);
-        
-        print(`ObjectLinkRenderer: First point=${points[0]}, Last point=${points[points.length - 1]}`);
-        
-        // Clear existing data
+
         const vertCount = this.meshBuilder.getVerticesCount();
-        if (vertCount > 0) {
-            this.meshBuilder.eraseVertices(0, vertCount);
-        }
+        if (vertCount > 0) this.meshBuilder.eraseVertices(0, vertCount);
         const indexCount = this.meshBuilder.getIndicesCount();
-        if (indexCount > 0) {
-            this.meshBuilder.eraseIndices(0, indexCount);
-        }
-        
+        if (indexCount > 0) this.meshBuilder.eraseIndices(0, indexCount);
+
         const { verts, indices } = buildLineGeometry(points);
         this.meshBuilder.appendVerticesInterleaved(verts);
         this.meshBuilder.appendIndices(indices);
-        
-        if (!this.meshBuilder.isValid()) {
-            print("ObjectLinkRenderer: Mesh validation failed");
-            return;
-        }
-        
+
+        if (!this.meshBuilder.isValid()) return;
         this.meshBuilder.updateMesh();
+        this.meshVisual.mesh = this.meshBuilder.getMesh();
     }
 }

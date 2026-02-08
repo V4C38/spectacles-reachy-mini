@@ -27,10 +27,11 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     assistantMode: false
-    lineMaterial: false
+    lineRendererPrefab: false
     mlDetector: false
     objectMarkerPrefab: false
     robotDriver: false
+    switchObjectDetectionTool: false
     textDebugInfo: false
   ScriptTypesHidden:
     {}
@@ -45,7 +46,8 @@
       mlDetector: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       robotDriver: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
       objectMarkerPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
-      lineMaterial: !<reference.Material> 00000000-0000-0000-0000-000000000000
+      lineRendererPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      switchObjectDetectionTool: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
       textDebugInfo: !<reference.Text> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
@@ -55,5 +57,6 @@
     - // @input AssignableType_1 mlDetector
     - // @input AssignableType_2 robotDriver
     - // @input Asset.ObjectPrefab objectMarkerPrefab
-    - // @input Asset.Material lineMaterial
+    - // @input Asset.ObjectPrefab lineRendererPrefab
+    - // @input AssignableType_3 switchObjectDetectionTool
     - // @input Component.Text textDebugInfo

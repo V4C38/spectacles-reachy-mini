@@ -275,6 +275,7 @@ export class AssistantMode extends BaseScriptComponent {
     private openSession(): void {
         this.lastActivityTime = getTime();
         this.debounceTimer = 0;
+        this.registerTools();
         print("AssistantMode: Conversation session opened");
         this.onSessionChanged.forEach(cb => cb(true));
     }

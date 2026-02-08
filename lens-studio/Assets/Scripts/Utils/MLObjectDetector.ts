@@ -15,8 +15,8 @@ export interface DetectedObject {
 
 export interface DetectionItem {
     name: string;
-    x: number;          // Logical center X (0-1 normalized)
-    y: number;          // Logical center Y (0-1 normalized)
+    x: number;
+    y: number;
     confidence: number;
 }
 
@@ -44,24 +44,21 @@ export class MLObjectDetector extends BaseScriptComponent {
 
     // --- State ---
     private detectedObjects: Map<string, DetectedObject> = new Map();
-    private currentMarkers: SceneObject[] = [];   // Markers from the latest run
+    private currentMarkers: SceneObject[] = [];
     private isProcessing: boolean = false;
         
     // --- Configuration ---
-    private readonly CONFIDENCE_THRESHOLD = 0.3;  // Minimum confidence
-    private readonly STALE_DESTROY_DELAY_MS = 500; // Delay before destroying old markers
+    private readonly CONFIDENCE_THRESHOLD = 0.3;
+    private readonly REACHY_EXCLUSION_RADIUS_M = 0.15; 
 
     // --- World-mesh animation state ---
     private worldMeshVisible: boolean = false;
     private worldMeshPulsing: boolean = false;
-    private currentDistance: number = 0;
     private currentOpacity: number = 0;
-    private readonly WM_MAX_OPACITY = 1.5;
-    private readonly WM_MAX_DISTANCE = 125;
     private readonly WM_FADE_IN_DURATION = 1.8;
     private readonly WM_FADE_OUT_DURATION = 1.2;
-    private readonly WM_PULSE_DURATION = 3.0;  // one full pulse cycle
-    private readonly WM_PULSE_MIN = 0.4;       // pulse between 40% and 100%
+    private readonly WM_PULSE_DURATION = 3.0;
+    private readonly WM_PULSE_MIN_OPACITY = 0.5;
 
     onAwake() {
         // Initialize on start
@@ -111,6 +108,7 @@ export class MLObjectDetector extends BaseScriptComponent {
         try {
             this.showWorldMesh();
             this.clearAllDetections();
+            this.depthCacheHelper.clearCapturedFrame();
 
             // 1. Capture camera frame AND depth frame
             const imageBase64 = await this.captureFrameAndDepth();
@@ -141,6 +139,10 @@ export class MLObjectDetector extends BaseScriptComponent {
                 if (!worldPos) {
                     continue;
                 }
+
+                if (this.isWithinReachyExclusionZone(worldPos)) {
+                    continue;
+                }
                 
                 // Spawn marker
                 const marker = markerPrefab.instantiate(null);
@@ -169,8 +171,11 @@ export class MLObjectDetector extends BaseScriptComponent {
                 };
                 this.detectedObjects.set(obj.id, obj);
             }
-            
+
+            this.depthCacheHelper.clearCapturedFrame();
+
         } catch (error) {
+            this.isProcessing = false;
             throw error;
         } finally {
             this.hideWorldMesh();
@@ -178,11 +183,11 @@ export class MLObjectDetector extends BaseScriptComponent {
         }
     }
 
-    //Capture a fresh camera frame and depth frame for this detection run.
+    // Capture a fresh camera frame and depth frame for this detection run.
+    // Skips the first onNewFrame to avoid using a buffered/stale frame on subsequent runs.
     private captureFrameAndDepth(): Promise<string | null> {
         return new Promise((resolve) => {
             try {
-                // Fresh camera request — new Texture object every run
                 const cameraRequest = CameraModule.createCameraRequest();
                 cameraRequest.cameraId = CameraModule.CameraId.Left_Color;
                 const cameraTexture = this.cameraModule.requestCamera(cameraRequest);
@@ -190,21 +195,23 @@ export class MLObjectDetector extends BaseScriptComponent {
                 const textureProvider = cameraTexture.control as CameraTextureProvider;
                 const onNewFrame = textureProvider.onNewFrame;
 
-                const registration = onNewFrame.add(() => {
-                    // Remove listener immediately — we only want one frame
-                    onNewFrame.remove(registration);
+                const registration1 = onNewFrame.add(() => {
+                    onNewFrame.remove(registration1);
 
-                    // Capture the depth frame NOW, at the same instant as the camera frame
-                    this.depthCacheHelper.captureFrame();
+                    // Second frame: guaranteed fresh after we subscribed (avoids stale buffer on run 2+)
+                    const registration2 = onNewFrame.add(() => {
+                        onNewFrame.remove(registration2);
 
-                    // Encode THIS run's texture (local variable, not a shared class member)
-                    Base64.encodeTextureAsync(
-                        cameraTexture,
-                        (base64String: string) => resolve(base64String),
-                        () => resolve(null),
-                        CompressionQuality.HighQuality,
-                        EncodingType.Jpg
-                    );
+                        this.depthCacheHelper.captureFrame();
+
+                        Base64.encodeTextureAsync(
+                            cameraTexture,
+                            (base64String: string) => resolve(base64String),
+                            () => resolve(null),
+                            CompressionQuality.HighQuality,
+                            EncodingType.Jpg
+                        );
+                    });
                 });
             } catch (error) {
                 resolve(null);
@@ -276,6 +283,18 @@ export class MLObjectDetector extends BaseScriptComponent {
     }
 
 
+    private isWithinReachyExclusionZone(worldPos: vec3): boolean {
+        if (!this.worldMeshRoot) {
+            return false;
+        }
+        const reachyPos = this.worldMeshRoot.getTransform().getWorldPosition();
+        const dx = worldPos.x - reachyPos.x;
+        const dy = worldPos.y - reachyPos.y;
+        const dz = worldPos.z - reachyPos.z;
+        const distSq = dx * dx + dy * dy + dz * dz;
+        return distSq <= this.REACHY_EXCLUSION_RADIUS_M * this.REACHY_EXCLUSION_RADIUS_M;
+    }
+
     // ----------------------------------------------------------------
     // Accessor Helpers
     // ----------------------------------------------------------------
@@ -339,6 +358,7 @@ export class MLObjectDetector extends BaseScriptComponent {
             duration: 0.5,
             easing: "ease-in-out-quad",
             update: (t: number) => {
+                if (isNull(marker)) return;
                 const s = startScale.x + (targetScale.x - startScale.x) * t;
                 marker.getTransform().setLocalScale(new vec3(s, s, s));
             }
@@ -367,18 +387,13 @@ export class MLObjectDetector extends BaseScriptComponent {
             material.mainPass.OriginLocation = originPos;
         }
 
-        // Fade in from current values to max
-        const startOpacity = this.currentOpacity;
-        const startDistance = this.currentDistance;
-
+        // Fade in from 0 to 1
         animate({
             duration: this.WM_FADE_IN_DURATION,
             easing: "ease-in-out-quad",
             update: (t: number) => {
-                this.currentOpacity = startOpacity + (this.WM_MAX_OPACITY - startOpacity) * t;
-                this.currentDistance = startDistance + (this.WM_MAX_DISTANCE - startDistance) * t;
+                this.currentOpacity = t;
                 material.mainPass.Opacity = this.currentOpacity;
-                material.mainPass.Distance = this.currentDistance;
             },
             ended: () => {
                 if (this.worldMeshVisible) {
@@ -403,16 +418,13 @@ export class MLObjectDetector extends BaseScriptComponent {
 
         const material = this.worldMeshRenderer.mainMaterial;
         const startOpacity = this.currentOpacity;
-        const startDistance = this.currentDistance;
 
         animate({
             duration: this.WM_FADE_OUT_DURATION,
             easing: "ease-in-out-quad",
             update: (t: number) => {
                 this.currentOpacity = startOpacity * (1 - t);
-                this.currentDistance = startDistance * (1 - t);
                 material.mainPass.Opacity = this.currentOpacity;
-                material.mainPass.Distance = this.currentDistance;
             }
         });
     }
@@ -423,31 +435,30 @@ export class MLObjectDetector extends BaseScriptComponent {
         }
 
         const material = this.worldMeshRenderer.mainMaterial;
-        const high = this.WM_MAX_DISTANCE;
-        const low = this.WM_MAX_DISTANCE * this.WM_PULSE_MIN;
+        const high = 1;
+        const low = this.WM_PULSE_MIN_OPACITY;
 
-        // 100% → 70%
+        // 0.5 → 1
         animate({
             duration: this.WM_PULSE_DURATION / 2,
             easing: "ease-in-out-quad",
             update: (t: number) => {
                 if (!this.worldMeshPulsing) return;
-                this.currentDistance = high + (low - high) * t;
-                material.mainPass.Distance = this.currentDistance;
+                this.currentOpacity = low + (high - low) * t;
+                material.mainPass.Opacity = this.currentOpacity;
             },
             ended: () => {
                 if (!this.worldMeshPulsing) return;
-                // 70% → 100%
+                // 1 → 0.5
                 animate({
                     duration: this.WM_PULSE_DURATION / 2,
                     easing: "ease-in-out-quad",
                     update: (t: number) => {
                         if (!this.worldMeshPulsing) return;
-                        this.currentDistance = low + (high - low) * t;
-                        material.mainPass.Distance = this.currentDistance;
+                        this.currentOpacity = high + (low - high) * t;
+                        material.mainPass.Opacity = this.currentOpacity;
                     },
                     ended: () => {
-                        // Loop
                         this.pulseWorldMesh();
                     }
                 });

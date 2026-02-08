@@ -1,40 +1,128 @@
-<!doctype html>
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width" />
-	<title>Spectacles AR controller</title>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Spectacles AR controller — Reachy Mini</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link
+		href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@500&display=swap"
+		rel="stylesheet"
+	>
 	<link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-	<div class="hero">
-		<div class="hero-content">
-			<div class="app-icon">😎</div>
-			<h1>Spectacles AR controller</h1>
-			<p class="tagline">WebSocket bridge for Snap Spectacles to Reachy Mini</p>
+	<div class="stack">
+		<div class="card">
+			<div class="intro">
+				<div class="intro-icon">😎</div>
+				<div>
+					<div class="intro-title">Spectacles AR controller</div>
+					<div class="intro-desc">WebSocket bridge to control Reachy Mini from Snap Spectacles.</div>
+				</div>
+			</div>
 		</div>
-	</div>
 
-	<div class="container">
-		<div class="main-card">
-			<div class="app-preview">
-				<div class="preview-image">
-					<div class="camera-feed">🛠️</div>
+		<div class="card">
+			<h2 class="card-title">Connect to Spectacles Bridge</h2>
+			<p class="card-desc">Enter the IP address shown below on the Spectacles setup wizard.</p>
+
+			<div id="ip-box" class="ip-box">
+				<div id="content" class="loading">Loading…</div>
+			</div>
+
+			<div class="status-list">
+				<div class="status-row" id="http-status">
+					<span class="status-dot pending"></span>
+					<span id="http-status-text">HTTP server: checking…</span>
+				</div>
+				<div class="status-row" id="ws-status">
+					<span class="status-dot pending"></span>
+					<span id="ws-status-text">WebSocket: checking…</span>
 				</div>
 			</div>
 		</div>
 	</div>
 
-	<div class="footer">
-		<p>
-			😎 Spectacles AR controller •
-			<a href="https://github.com/pollen-robotics" target="_blank">Pollen Robotics</a> •
-			<a href="https://huggingface.co/spaces/pollen-robotics/reachy-mini-landing-page#apps" target="_blank">Browse More
-				Apps</a>
-		</p>
-	</div>
-</body>
+	<script>
+		function setStatus(id, ok, text) {
+			const row = document.getElementById(id);
+			const dot = row.querySelector('.status-dot');
+			const txt = row.querySelector('[id$="-status-text"]');
+			dot.className = 'status-dot ' + (ok ? 'ok' : 'err');
+			txt.textContent = text;
+		}
 
+		function checkWebSocket() {
+			const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+			const wsUrl = protocol + '//' + window.location.host + '/ws';
+			const ws = new WebSocket(wsUrl);
+			return new Promise((resolve) => {
+				const t = setTimeout(() => {
+					ws.close();
+					resolve(false);
+				}, 3000);
+				ws.onopen = () => {
+					clearTimeout(t);
+					ws.close();
+					resolve(true);
+				};
+				ws.onerror = () => {
+					clearTimeout(t);
+					resolve(false);
+				};
+			});
+		}
+
+		async function fetchInfo() {
+			const content = document.getElementById('content');
+			let ip = null;
+			let port = 8765;
+
+			// Try API first
+			try {
+				const res = await fetch('/api/info');
+				if (res.ok) {
+					const data = await res.json();
+					if (data.ips && data.ips.length > 0) {
+						ip = data.ips[0];
+						port = data.port ?? 8765;
+						setStatus('http-status', true, 'HTTP server: running');
+						if (data.ips.length > 1) {
+							content.innerHTML = `
+								<div class="ip-label">IP address to enter on Spectacles</div>
+								<div class="ip-address">${ip}</div>
+								<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem">Also: ${data.ips.slice(1).join(', ')}</div>
+							`;
+						} else {
+							content.innerHTML = `
+								<div class="ip-label">IP address to enter on Spectacles</div>
+								<div class="ip-address">${ip}</div>
+								<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem">Port ${port} is used automatically</div>
+							`;
+						}
+					} else {
+						setStatus('http-status', false, 'HTTP server: no network interfaces');
+						ip = window.location.hostname;
+						content.innerHTML = `<div class="ip-label">IP address to enter on Spectacles</div><div class="ip-address">${ip}</div><div style="font-size:0.75rem;color:var(--error);margin-top:0.4rem">Fallback from page URL</div>`;
+					}
+				} else {
+					throw new Error('API error');
+				}
+			} catch (e) {
+				setStatus('http-status', false, 'HTTP server: not reachable');
+				ip = window.location.hostname;
+				content.innerHTML = `<div class="ip-label">IP address to enter on Spectacles</div><div class="ip-address">${ip}</div><div style="font-size:0.75rem;color:var(--error);margin-top:0.4rem">Using host from page URL (API unreachable)</div>`;
+			}
+
+			// Check WebSocket
+			const wsOk = await checkWebSocket();
+			setStatus('ws-status', wsOk, wsOk ? 'WebSocket: ready' : 'WebSocket: not connected');
+		}
+
+		fetchInfo();
+		setInterval(fetchInfo, 10000);
+	</script>
+</body>
 </html>

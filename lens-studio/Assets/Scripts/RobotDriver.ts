@@ -20,6 +20,10 @@ export interface RobotInterface {
     setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void>;
     playAudio(audioTrack: AudioTrackAsset): Promise<void>;
     playTTS?(text: string, voice?: string): Promise<void>;
+    /** Play a named animation on hardware. Pause the update loop for the duration. Optional (simulation has no-op). */
+    playAnimation?(name: string): Promise<{ durationSec: number }>;
+    /** List available animation names. Optional (simulation returns empty). */
+    getAvailableAnimations?(): Promise<string[]>;
 }
 
 // Interface that represents the different animation profiles
@@ -186,7 +190,12 @@ export class RobotDriver extends BaseScriptComponent {
     }
 
     public getHeadWorldPosition(): vec3 {
-        return this.headRoot.getTransform().getWorldPosition();
+        const pos = this.headRoot.getTransform().getWorldPosition();
+        // In hardware mode the scene head is static; use +20 cm Y so look-at matches physical head height
+        if (!this.simulationMode) {
+            return pos.add(new vec3(0, 20, 0));
+        }
+        return pos;
     }
 
     public getBaseRotation(): quat | null {
@@ -204,7 +213,38 @@ export class RobotDriver extends BaseScriptComponent {
         return this.isPaused;
     }
 
+    /**
+     * Play a named animation. In simulation, plays the corresponding audio track if configured.
+     * On hardware, pauses the update loop for the duration, then resumes.
+     */
+    public async playAnimation(name: string): Promise<void> {
+        if (this.simulationMode && this.simulationAdapter) {
+            await this.simulationAdapter.playAnimation(name);
+            return;
+        }
+        if (!this.hardwareAdapter) {
+            throw new Error("Animations are not available (no hardware or simulation adapter)");
+        }
+        this.pause();
+        try {
+            await this.hardwareAdapter.playAnimation(name);
+        } finally {
+            this.resume();
+        }
+    }
 
+    /**
+     * Get the list of available animation names (hardware or simulation).
+     */
+    public async getAvailableAnimations(): Promise<string[]> {
+        if (this.simulationMode && this.simulationAdapter) {
+            return this.simulationAdapter.getAvailableAnimations();
+        }
+        if (this.hardwareAdapter) {
+            return this.hardwareAdapter.getAvailableAnimations();
+        }
+        return [];
+    }
 
     // ----------------------------------------------------------------
     // Update Loop
@@ -463,7 +503,7 @@ export class RobotDriver extends BaseScriptComponent {
     // ----------------------------------------------------------------
     /** Compute yaw/pitch angles from headRoot to a world position. */
     public anglesToTarget(pos: vec3): { yaw: number; pitch: number } {
-        const dir = pos.sub(this.headRoot.getTransform().getWorldPosition());
+        const dir = pos.sub(this.getHeadWorldPosition());
         const hDist = Math.sqrt(dir.x * dir.x + dir.z * dir.z);
         if (hDist < 0.001) {
             return { yaw: this.headYaw, pitch: dir.y > 0 ? this.MAX_PITCH : this.MIN_PITCH };

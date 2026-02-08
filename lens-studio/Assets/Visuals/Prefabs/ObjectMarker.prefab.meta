@@ -1,27 +1,25 @@
-- !<ObjectPrefab/bb47d936-adfb-479d-966f-fc30cdacfa21>
-  PackagePath: ""
-  objects:
-    - !<own> c88c59f9-5706-4a01-8f18-62389a07e42a
-  LazyLoading: false
-  RetainAssets: true
-- !<ScriptComponent/05f31631-5710-4b03-af9f-11255520d622>
-  PrefabRemaps:
+- !<AssetImportMetadata/84d82343-055b-4034-af86-b80bf7f44928>
+  ImportedAssetIds:
+    ObjectPrefab: !<reference> bb47d936-adfb-479d-966f-fc30cdacfa21
+  ImporterName: ObjectPrefabImporter
+  PrimaryAsset: !<reference> bb47d936-adfb-479d-966f-fc30cdacfa21
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    ObjectPrefab: !<own> 0ca1c910-9695-4b9a-90ae-9a56878eec27
+  DependentFiles:
     []
-  Name: ObjectLinkRenderer
-  Enabled: true
-  ScriptAsset: !<reference> 3c034c80-8b5b-43f3-8fb3-9c398daa2b25
-  ScriptInputsDefault:
+  ImporterSettings: !<AssetImporterSettings>
     {}
-  ScriptTypesDefault:
-    {}
-  ScriptInputs:
-    "":
-      endPosition: !<Vec3> {x: 0.000000, y: 0.000000, z: 0.000000}
-      material: !<reference.Material> f25e3adb-5630-4ad9-a459-0f2413e28bc1
-  ScriptTypes:
-    "":
-      {}
-- !<RenderMeshVisual/0e29490c-d976-4dd1-96bd-5fed02685135>
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<ObjectPrefabAssetData/0ca1c910-9695-4b9a-90ae-9a56878eec27>
+  Prototype: !<ObjectOwner/812d81fe-28ad-4d00-b944-36bfe958b7ae>
+    PackagePath: ""
+    objects:
+      - !<own> c88c59f9-5706-4a01-70e7-9dc765f81bd5
+- !<RenderMeshVisual/0e29490c-d976-4dd1-6942-a012fd97aeca>
   PrefabRemaps:
     []
   Name: Render Mesh Visual
@@ -41,7 +39,7 @@
   BlendNormals: false
   BlendShapes:
     {}
-- !<SceneObject/860c7663-afbd-4e7b-9524-63393b7388ed>
+- !<SceneObject/860c7663-afbd-4e7b-6adb-9cc6c48c7712>
   PrefabRemaps:
     []
   Name: ObjectName
@@ -55,8 +53,8 @@
   Children:
     []
   Components:
-    - !<own> fa36e99d-163e-4b9c-90f6-bdb4b962dad6
-- !<LookAtComponent/8d95e95d-5e76-4dbe-b92a-e9c71ac9222b>
+    - !<own> fa36e99d-163e-4b9c-6f09-424b469d2529
+- !<LookAtComponent/8d95e95d-5e76-4dbe-46d5-1638e536ddd4>
   PrefabRemaps:
     []
   Name: Look At
@@ -66,7 +64,7 @@
   WorldUpVector: SceneY
   Target: !<reference> 00000000-0000-0065-0000-000000000064
   OffsetRotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-- !<SceneObject/9952fbd1-0480-4a9f-b983-b03eb28b0094>
+- !<SceneObject/9952fbd1-0480-4a9f-467c-4fc14d74ff6b>
   PrefabRemaps:
     []
   Name: Unit Plane
@@ -75,21 +73,15 @@
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 0.000000, z: -0.500000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 5.000000, y: 5.000000, z: 5.000000}
+    Scale: {x: 3.500000, y: 3.500000, z: 3.500000}
     HasSegmentScaleCompensation: false
   Children:
     []
   Components:
-    - !<own> 0e29490c-d976-4dd1-96bd-5fed02685135
-- !<SceneObject/c88c59f9-5706-4a01-8f18-62389a07e42a>
+    - !<own> 0e29490c-d976-4dd1-6942-a012fd97aeca
+- !<SceneObject/c88c59f9-5706-4a01-70e7-9dc765f81bd5>
   PrefabRemaps:
-    - 05f31631-5710-4b03-af9f-11255520d622: 7e07c966-6acb-4dbe-becf-7f1e24658a13
-    - 0e29490c-d976-4dd1-96bd-5fed02685135: 0e29490c-d976-4dd1-6942-a012fd97aeca
-    - 860c7663-afbd-4e7b-9524-63393b7388ed: 860c7663-afbd-4e7b-6adb-9cc6c48c7712
-    - 8d95e95d-5e76-4dbe-b92a-e9c71ac9222b: 8d95e95d-5e76-4dbe-46d5-1638e536ddd4
-    - 9952fbd1-0480-4a9f-b983-b03eb28b0094: 9952fbd1-0480-4a9f-467c-4fc14d74ff6b
-    - c88c59f9-5706-4a01-8f18-62389a07e42a: c88c59f9-5706-4a01-70e7-9dc765f81bd5
-    - fa36e99d-163e-4b9c-90f6-bdb4b962dad6: fa36e99d-163e-4b9c-6f09-424b469d2529
+    []
   Name: ObjectMarker
   Enabled: true
   Layers: 1
@@ -99,12 +91,11 @@
     Scale: {x: 0.250000, y: 0.250000, z: 0.250000}
     HasSegmentScaleCompensation: false
   Children:
-    - !<own> 9952fbd1-0480-4a9f-b983-b03eb28b0094
-    - !<own> 860c7663-afbd-4e7b-9524-63393b7388ed
+    - !<own> 9952fbd1-0480-4a9f-467c-4fc14d74ff6b
+    - !<own> 860c7663-afbd-4e7b-6adb-9cc6c48c7712
   Components:
-    - !<own> 8d95e95d-5e76-4dbe-b92a-e9c71ac9222b
-    - !<own> 05f31631-5710-4b03-af9f-11255520d622
-- !<Text/fa36e99d-163e-4b9c-90f6-bdb4b962dad6>
+    - !<own> 8d95e95d-5e76-4dbe-46d5-1638e536ddd4
+- !<Text/fa36e99d-163e-4b9c-6f09-424b469d2529>
   PrefabRemaps:
     []
   Name: Text

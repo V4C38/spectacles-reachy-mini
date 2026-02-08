@@ -19,9 +19,7 @@ export class PuppeteerMode extends BaseScriptComponent {
     }
 
     // ----------------------------------------------------------------
-    // Mode lifecycle (called by ReachyMiniManager)
-    // Enter puppeteer mode: reset position, show interactable, configure driver
-    // ----------------------------------------------------------------
+    // Mode lifecycle (called by ReachyMiniManager)----------------------------------------------------------------
     public reset(): void {
         if (this.robotDriver) {
             this.robotDriver.reset();

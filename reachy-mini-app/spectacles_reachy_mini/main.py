@@ -6,18 +6,22 @@ AR glasses to the Reachy Mini robot via the Python SDK.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import socket
 import threading
 from pathlib import Path
 
 import uvicorn
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from reachy_mini import ReachyMini, ReachyMiniApp
 
+from spectacles_reachy_mini.animations import play_animation
 from spectacles_reachy_mini.audio_handler import AudioHandler
+from spectacles_reachy_mini.movement_handler import MovementHandler
 from spectacles_reachy_mini.ws_handler import WebSocketHandler
 
 logger = logging.getLogger(__name__)
@@ -45,7 +49,8 @@ def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
 
     app = FastAPI(title="Reachy Mini Spectacles Bridge")
     audio_handler = AudioHandler(reachy_mini)
-    ws_handler = WebSocketHandler(reachy_mini, audio_handler)
+    movement_handler = MovementHandler(reachy_mini)
+    ws_handler = WebSocketHandler(movement_handler, audio_handler)
 
     # ----------------------------------------------------------------
     # WebSocket endpoint
@@ -54,7 +59,9 @@ def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
     async def websocket_endpoint(websocket: WebSocket) -> None:
         await websocket.accept()
         logger.info("Spectacles client connected")
-        ws_handler.start_apply_loop()
+        movement_handler.start()
+        # Play happy animation when client connects (non-blocking)
+        asyncio.create_task(ws_handler.play_lifecycle_animation("happy"))
         try:
             while not stop_event.is_set():
                 raw = await websocket.receive_text()
@@ -64,6 +71,7 @@ def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
         except Exception as exc:
             logger.error("WebSocket error: %s", exc)
         finally:
+            await ws_handler.play_lifecycle_animation("goodbye")
             ws_handler.cleanup()
 
     # ----------------------------------------------------------------
@@ -120,6 +128,13 @@ class SpectaclesReachyMini(ReachyMiniApp):
             logger.info("Robot audio output initialized")
         except Exception as exc:
             logger.warning("Could not initialize robot audio: %s", exc)
+
+        # Play greeting animation once at startup
+        try:
+            play_animation(reachy_mini, "greeting")
+            logger.info("Startup greeting animation played")
+        except Exception as exc:
+            logger.warning("Startup greeting animation failed: %s", exc)
 
         # Build FastAPI app
         app = create_app(reachy_mini, stop_event)

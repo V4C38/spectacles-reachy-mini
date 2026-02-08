@@ -1,8 +1,10 @@
+import { Switch } from "SpectaclesUIKit.lspkg/Scripts/Components/Switch/Switch";
+
 import { ToolDefinition, LLMService } from "./LLMService";
 import { AssistantMode, AssistantState } from "../AssistantMode";
 import { MLObjectDetector } from "./MLObjectDetector";
 import { RobotDriver } from "../RobotDriver";
-import { createCurvedLine } from "./ObjectLinkRenderer";
+import { getObjectLinkRenderer } from "./ObjectLinkRenderer";
 
 /**
  * Component that provides LLM tools for the AssistantMode.
@@ -22,7 +24,10 @@ export class AssistantTools extends BaseScriptComponent {
     @input
     public objectMarkerPrefab: ObjectPrefab | null = null;
     @input
-    public lineMaterial: Material | null = null;
+    public lineRendererPrefab: ObjectPrefab | null = null;
+
+    @input
+    private switchObjectDetectionTool: Switch | null = null;
 
     // --- State ---
     private isScanning: boolean = false;
@@ -46,12 +51,19 @@ export class AssistantTools extends BaseScriptComponent {
             return;
         }
 
+        llmService.clearTools();
         let registeredCount = 0;
 
         // Register scan_objects tool if dependencies are available
         if (this.mlDetector && this.objectMarkerPrefab && this.assistantMode) {
-            llmService.registerTool(this.createScanObjectsTool());
-            registeredCount++;
+
+            if (this.switchObjectDetectionTool && this.switchObjectDetectionTool.isOn) {
+                llmService.registerTool(this.createScanObjectsTool());
+                registeredCount++;
+            }
+            else {
+                print("AssistantTools: Skipping scan_objects tool (object detection tool is off)");
+            }
         } else {
             print("AssistantTools: Skipping scan_objects tool (missing dependencies)");
         }
@@ -80,9 +92,23 @@ export class AssistantTools extends BaseScriptComponent {
             print("AssistantTools: Skipping look_direction tool (missing dependencies)");
         }
 
-        // Register draw_line tool (requires line material to be usable)
-        llmService.registerTool(this.createDrawLineTool());
-        registeredCount++;
+        // Register play_animation and get_available_animations whenever robot is available (hardware or simulation)
+        if (this.robotDriver) {
+            llmService.registerTool(this.createPlayAnimationTool());
+            llmService.registerTool(this.createGetAvailableAnimationsTool());
+            registeredCount += 2;
+        } else {
+            print("AssistantTools: Skipping play_animation and get_available_animations (missing robotDriver)");
+        }
+
+        // Register draw_line tool (requires line renderer prefab)
+        if (this.lineRendererPrefab) {
+            llmService.registerTool(this.createDrawLineTool());
+            registeredCount++;
+        }
+        else {
+            print("AssistantTools: Skipping draw_line tool (missing lineRendererPrefab or draw line tool is off)");
+        }
 
         print(`AssistantTools: Registered ${registeredCount} tools`);
     }
@@ -94,13 +120,13 @@ export class AssistantTools extends BaseScriptComponent {
     private createScanObjectsTool(): ToolDefinition {
         return {
             name: "scan_objects",
-            description: "Scan the user's surroundings for objects matching a description. Use this when the user asks about objects around them or wants to find something. After receiving results, call look_at_location to gaze at the most relevant object (a line is drawn automatically).",
+            description: "Scan the user's surroundings for objects matching a description. When the user asks to find or locate something (e.g. 'find my phone', 'help me find my glasses'), use ONE scan_objects call; when it returns, call look_at_location with the object's coordinates and draw_line true to point at it, then reply briefly (e.g. 'Yes, I found it! It\'s right there!'). For multiple objects, use one prompt listing all (e.g. 'phone and glasses'). If the user only asked what objects are visible (generic list), do not draw a line.",
             parameters: {
                 type: "object",
                 properties: {
                     prompt: {
                         type: "string",
-                        description: "What kind of objects to look for (e.g. 'all objects', 'cups and bottles', 'electronics')"
+                        description: "What to look for: one or more object types in a single phrase (e.g. 'phone', 'phone and glasses', 'cups and bottles'). For multiple requested objects, include all in one prompt."
                     }
                 },
                 required: ["prompt"]
@@ -157,28 +183,28 @@ export class AssistantTools extends BaseScriptComponent {
     private createLookAtLocationTool(): ToolDefinition {
         return {
             name: "look_at_location",
-            description: "Make Reachy look at a world-space position for a given duration. A visible line is drawn from the robot's head to the target automatically (set draw_line to false to suppress). The robot will hold its gaze on the point for the specified duration before resuming normal behavior.",
+            description: "Make Reachy look at a world-space position for a given duration. By default no line is drawn; set draw_line to true when helping the user find or locate an object (e.g. after scan_objects) so you point at it with a visible line. The robot will hold its gaze for the specified duration before resuming normal behavior.",
             parameters: {
                 type: "object",
                 properties: {
                     x: { type: "number", description: "World X coordinate to look at" },
                     y: { type: "number", description: "World Y coordinate to look at" },
                     z: { type: "number", description: "World Z coordinate to look at" },
-                    duration: { type: "number", description: "How long to look at the location in seconds (default: 3)" },
-                    draw_line: { type: "boolean", description: "Whether to draw a visible line from the robot to the target (default: true)" }
+                    duration: { type: "number", description: "How long to look at the location in seconds (default: 4)" },
+                    draw_line: { type: "boolean", description: "Whether to draw a visible line from the robot to the target (default: false)" }
                 },
                 required: ["x", "y", "z"]
             },
             handler: async (args: { x: number; y: number; z: number; duration?: number; draw_line?: boolean }): Promise<string> => {
-                const dur = args.duration ?? 3;
-                const shouldDrawLine = args.draw_line !== false;
+                const dur = args.duration ?? 4;
+                const shouldDrawLine = args.draw_line === true;
                 const target = new vec3(args.x, args.y, args.z);
 
                 this.assistantMode.lookAtOverrideTarget = target;
                 this.assistantMode.lookAtOverrideEndTime = getTime() + dur;
 
                 // Automatically draw a line from robot head to target
-                if (shouldDrawLine && this.robotDriver && this.lineMaterial) {
+                if (shouldDrawLine && this.robotDriver && this.lineRendererPrefab) {
                     const headPos = this.robotDriver.getHeadWorldPosition();
                     this.showTemporaryLine(headPos, target, dur);
                 }
@@ -256,7 +282,7 @@ export class AssistantTools extends BaseScriptComponent {
                     },
                     duration: {
                         type: "number",
-                        description: "How long to hold the gaze in seconds (default: 3)"
+                        description: "How long to hold the gaze in seconds (default: 4)"
                     }
                 },
                 required: ["direction"]
@@ -267,7 +293,7 @@ export class AssistantTools extends BaseScriptComponent {
                 }
 
                 const dir = args.direction.toLowerCase().trim();
-                const dur = args.duration ?? 3;
+                const dur = args.duration ?? 4;
                 const headPos = this.robotDriver.getHeadWorldPosition();
                 const baseRotation = this.robotDriver.getBaseRotation();
 
@@ -385,45 +411,105 @@ export class AssistantTools extends BaseScriptComponent {
         };
     }
 
-    private createDrawLineTool(): ToolDefinition {
+    private createPlayAnimationTool(): ToolDefinition {
         return {
-            name: "draw_line",
-            description: "Draw a temporary curved line between two 3D positions in world space. The line will appear with an animation, remain visible for the specified duration, then disappear. Useful for pointing at objects or showing spatial relationships.",
+            name: "play_animation",
+            description: "Play a named animation on Reachy Mini. Motion and audio for that animation play in sync. Call this when the user asks you to wave, say hello, say goodbye, nod, look happy/sad/excited, think, sway, or peekaboo — use the matching name so the animation runs as part of your response. Main options: greeting (hello/hi), goodbye (bye), happy, nod, wave, sway, peekaboo, sad, excited, thinking. Use one of these names; call get_available_animations only when the user explicitly asks what animations are available.",
             parameters: {
                 type: "object",
                 properties: {
-                    start_x: { type: "number", description: "Start position X coordinate in world space" },
-                    start_y: { type: "number", description: "Start position Y coordinate in world space" },
-                    start_z: { type: "number", description: "Start position Z coordinate in world space" },
+                    animationName: {
+                        type: "string",
+                        description: "Name of the animation to play (e.g. greeting, goodbye, happy, nod, wave, sway, peekaboo, sad, excited, thinking)"
+                    }
+                },
+                required: ["animationName"]
+            },
+            handler: async (args: { animationName: string }): Promise<string> => {
+                if (!this.robotDriver) {
+                    return JSON.stringify({ error: "RobotDriver not initialized" });
+                }
+                const name = (args.animationName || "").trim();
+                if (!name) {
+                    return JSON.stringify({ error: "animationName is required" });
+                }
+                try {
+                    await this.robotDriver.playAnimation(name);
+                    return JSON.stringify({ success: true, animation: name });
+                } catch (error) {
+                    const msg = error instanceof Error ? error.message : String(error);
+                    return JSON.stringify({ success: false, error: msg });
+                }
+            }
+        };
+    }
+
+    private createGetAvailableAnimationsTool(): ToolDefinition {
+        return {
+            name: "get_available_animations",
+            description: "Get the list of animation names that Reachy Mini can play. Call this when the user asks what animations are available or whether the robot can play a specific animation.",
+            parameters: {
+                type: "object",
+                properties: {},
+                required: []
+            },
+            handler: async (): Promise<string> => {
+                if (!this.robotDriver) {
+                    return JSON.stringify({ error: "RobotDriver not initialized", names: [] });
+                }
+                try {
+                    const names = await this.robotDriver.getAvailableAnimations();
+                    return JSON.stringify({ names });
+                } catch (error) {
+                    const msg = error instanceof Error ? error.message : String(error);
+                    return JSON.stringify({ error: msg, names: [] });
+                }
+            }
+        };
+    }
+
+    private createDrawLineTool(): ToolDefinition {
+        return {
+            name: "draw_line",
+            description: "Draw a temporary curved line. Start defaults to the robot's head position; omit start to draw from the robot. End is required. Duration in seconds (default: 10). Useful for pointing at objects or showing spatial relationships.",
+            parameters: {
+                type: "object",
+                properties: {
+                    start_x: { type: "number", description: "Start position X in world space (omit to use robot head)" },
+                    start_y: { type: "number", description: "Start position Y in world space (omit to use robot head)" },
+                    start_z: { type: "number", description: "Start position Z in world space (omit to use robot head)" },
                     end_x: { type: "number", description: "End position X coordinate in world space" },
                     end_y: { type: "number", description: "End position Y coordinate in world space" },
                     end_z: { type: "number", description: "End position Z coordinate in world space" },
-                    duration: { type: "number", description: "How long to display the line in seconds (default: 3)" }
+                    duration: { type: "number", description: "How long to display the line in seconds (default: 10)" }
                 },
-                required: ["start_x", "start_y", "start_z", "end_x", "end_y", "end_z"]
+                required: ["end_x", "end_y", "end_z"]
             },
-            handler: async (args: { 
-                start_x: number; 
-                start_y: number; 
-                start_z: number; 
-                end_x: number; 
-                end_y: number; 
-                end_z: number; 
+            handler: async (args: {
+                start_x?: number;
+                start_y?: number;
+                start_z?: number;
+                end_x: number;
+                end_y: number;
+                end_z: number;
                 duration?: number;
             }): Promise<string> => {
                 try {
-                    if (!this.lineMaterial) {
-                        return JSON.stringify({ error: "Line material not configured" });
+                    if (!this.lineRendererPrefab) {
+                        return JSON.stringify({ error: "Line renderer prefab not configured" });
                     }
-                    
-                    const start = new vec3(args.start_x, args.start_y, args.start_z);
+                    const hasStart = args.start_x !== undefined && args.start_y !== undefined && args.start_z !== undefined;
+                    const start = hasStart
+                        ? new vec3(args.start_x!, args.start_y!, args.start_z!)
+                        : (this.robotDriver ? this.robotDriver.getHeadWorldPosition() : new vec3(0, 0, 0));
+                    if (!hasStart && !this.robotDriver) {
+                        return JSON.stringify({ error: "draw_line: omit start only when robotDriver is available" });
+                    }
                     const end = new vec3(args.end_x, args.end_y, args.end_z);
-                    const duration = args.duration ?? 3;
-                    
+                    const duration = args.duration ?? 10;
                     this.showTemporaryLine(start, end, duration);
-                    
-                    return JSON.stringify({ 
-                        success: true, 
+                    return JSON.stringify({
+                        success: true,
                         from: { x: start.x, y: start.y, z: start.z },
                         to: { x: end.x, y: end.y, z: end.z },
                         duration: duration
@@ -436,21 +522,29 @@ export class AssistantTools extends BaseScriptComponent {
     }
 
     /**
-     * Show a temporary curved line between two world positions.
-     * The line fades in, stays for the given duration, then fades out and is destroyed.
+     * Show a temporary curved line between two world positions (world-space).
+     * Spawns the line renderer prefab at start, configures and plays appear, then after duration plays disappear and destroys the object.
      */
     private showTemporaryLine(start: vec3, end: vec3, duration: number): void {
-        if (!this.lineMaterial) return;
+        if (!this.lineRendererPrefab) return;
 
-        const handle = createCurvedLine(start, end, this.lineMaterial);
+        const lineObj = this.lineRendererPrefab.instantiate(null);
+        lineObj.getTransform().setWorldPosition(start);
 
-        // Schedule fade-out and cleanup
+        const renderer = getObjectLinkRenderer(lineObj);
+        if (!renderer) {
+            print("AssistantTools: Line prefab has no ObjectLinkRenderer, destroying");
+            lineObj.destroy();
+            return;
+        }
+
+        renderer.setLineAndAppear(start, end);
+
         const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
         delayEvent.bind(() => {
-            handle.disappear();
-            const destroyEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
-            destroyEvent.bind(() => handle.destroy());
-            destroyEvent.reset(0.3);
+            renderer.disappear(() => {
+                lineObj.destroy();
+            });
         });
         delayEvent.reset(duration);
     }

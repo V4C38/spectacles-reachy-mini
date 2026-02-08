@@ -4,7 +4,6 @@
     - !<own> 00000000-0000-0065-0000-000000000064
     - !<own> 0005641c-028d-459a-0000-000000014b4d
     - !<own> 5aa0f98b-e799-448c-a2dc-cae5d04fa2a4
-    - !<own> 267f89d7-97c1-4c40-a03a-fbbcb033f32e
     - !<own> de76f38b-d250-4102-bd75-fc9b3cdb0427
     - !<own> 7bddf6e7-2ff8-418c-ac05-c1cb54b58df8
     - !<own> 33d037d1-44e2-497d-b77a-038f49428ddf
@@ -437,7 +436,7 @@
   MeshShadowMode: None
   ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
   ShadowDensity: 1.000000
-  Text: "Tool: Detect Objects (Gemini)"
+  Text: "Tool: Detect objects (Gemini)"
   Editable: false
   ShowEditingPreview: true
   TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000
@@ -858,11 +857,11 @@
 - !<SceneObject/1f2ad0ac-8a92-4a14-82a6-ce01cba692f3>
   PrefabRemaps:
     []
-  Name: Object 0
+  Name: "Tool: 1"
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 2.500000, z: 0.500000}
+    Position: {x: -1.000000, y: -2.000000, z: 0.500000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -900,24 +899,6 @@
     - !<own> d491b31f-c593-49a0-932a-b8bbe817b1bf
   Components:
     []
-- !<ScriptComponent/20aec83c-5b55-4c11-8b9e-91f31cca9e3e>
-  PrefabRemaps:
-    []
-  Name: RemoteServiceGatewayCredentials
-  Enabled: true
-  ScriptAsset: !<reference> 37976aca-6847-44c8-88d9-5edb6aadbbf2
-  ScriptInputsDefault:
-    {}
-  ScriptTypesDefault:
-    {}
-  ScriptInputs:
-    "":
-      openAIToken: db0ec7ef-28dc-4561-9ccc-dfdd01aa775d
-      googleToken: 77bed942-f94b-4881-b60a-6cc9f161540f
-      snapToken: fa5d61d3-777a-43f8-8810-50ba02bc20e3
-  ScriptTypes:
-    "":
-      {}
 - !<SceneObject/210e408d-9607-4a16-99e4-f7382deff630>
   PrefabRemaps:
     []
@@ -981,21 +962,6 @@
     - !<own> 00fdb93a-85d7-4497-9622-9fad02238fc3
   Components:
     []
-- !<SceneObject/267f89d7-97c1-4c40-a03a-fbbcb033f32e>
-  PrefabRemaps:
-    []
-  Name: RemoteServiceGatewayCredentials
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: -20.000000, z: 0.000000}
-    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> 20aec83c-5b55-4c11-8b9e-91f31cca9e3e
 - !<RenderMeshVisual/269b08f5-3658-41c8-9ade-0d6a7c4de69d>
   PrefabRemaps:
     []
@@ -1373,43 +1339,6 @@
       onFinishedCallbacks:
         []
       _width: !<float> 4.000000
-  ScriptTypes:
-    "":
-      {}
-- !<ScriptComponent/2d4a0613-2ffd-4818-bdf4-fd986b951926>
-  PrefabRemaps:
-    []
-  Name: Switch
-  Enabled: true
-  ScriptAsset: !<reference> a14f4a47-ac92-4d69-b68e-57bb756969dd
-  ScriptInputsDefault:
-    _renderOrder: true
-    _inactive: true
-    hasTrackVisual: true
-    customKnobSize: true
-    _knobSize: true
-    addCallbacks: true
-    onValueChangeCallbacks: true
-    onFinishedCallbacks: true
-    _defaultValue: true
-  ScriptTypesDefault:
-    {}
-  ScriptInputs:
-    "":
-      _renderOrder: 0
-      _size: !<Vec3> {x: 7.000000, y: 3.000000, z: 1.000000}
-      _inactive: false
-      _playAudio: true
-      snapToTriggerPosition: true
-      hasTrackVisual: true
-      customKnobSize: false
-      _knobSize: !<Vec2> {x: 3.000000, y: 3.000000}
-      addCallbacks: false
-      onValueChangeCallbacks:
-        []
-      onFinishedCallbacks:
-        []
-      _defaultValue: 0
   ScriptTypes:
     "":
       {}
@@ -2026,7 +1955,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 15.000000, y: 2.500000, z: 0.500000}
+    Position: {x: 15.000000, y: -2.000000, z: 0.500000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -4202,21 +4131,6 @@
     []
   Components:
     []
-- !<SceneObject/9aea5e21-0b35-4b97-b8fd-040a63015bd4>
-  PrefabRemaps:
-    []
-  Name: Switch_EnableObjectDetection
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 15.000000, y: -2.000000, z: 0.500000}
-    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> 2d4a0613-2ffd-4818-bdf4-fd986b951926
 - !<SceneObject/9af8065b-1a3d-4d34-af19-8760322b886b>
   PrefabRemaps:
     []
@@ -4419,10 +4333,9 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
+    - !<own> b866ad69-3651-400e-92f8-6b260a09a43a
     - !<own> 1f2ad0ac-8a92-4a14-82a6-ce01cba692f3
     - !<own> 3de39e43-db93-4b35-aace-9012d7bdcab6
-    - !<own> b866ad69-3651-400e-92f8-6b260a09a43a
-    - !<own> 9aea5e21-0b35-4b97-b8fd-040a63015bd4
     - !<own> bc5b3b34-7747-43c3-a964-c0c58dc55515
   Components:
     []
@@ -4860,6 +4773,16 @@
       leftAntennaSceneObject: !<reference.SceneObject> e4050029-2330-48a2-a897-7c0e4442b5eb
       rightAntennaSceneObject: !<reference.SceneObject> b254aa04-847c-4728-a1e1-cf805d1904e0
       audioComponent: !<reference.AudioComponent> 0fe74073-4f29-4e6b-8f78-f6a339d7427e
+      audioGreeting: !<reference.AudioTrackAsset> c510c9bb-6b1e-4895-93c4-b8dac22e6b14
+      audioGoodbye: !<reference.AudioTrackAsset> 4ceeb93c-4349-47db-bf37-81d83eaaa712
+      audioHappy: !<reference.AudioTrackAsset> eb4e8223-9ab1-42c3-92f6-1f023a5e86ef
+      audioNod: !<reference.AudioTrackAsset> ee17df3f-81ba-4545-8b51-587d9961110b
+      audioWave: !<reference.AudioTrackAsset> 664e5787-7944-4d56-915e-360075243df4
+      audioSway: !<reference.AudioTrackAsset> 3f8c4fa1-ad5b-437b-a208-42b3dc11ec21
+      audioPeekaboo: !<reference.AudioTrackAsset> 3067e8bd-d6aa-4830-b481-1c6c96a3863e
+      audioSad: !<reference.AudioTrackAsset> 1dbf60ac-a109-434e-9cec-4f4790511d1f
+      audioExcited: !<reference.AudioTrackAsset> c476f2f9-9583-4f88-a749-c837f8a797e4
+      audioThinking: !<reference.AudioTrackAsset> 6a7b9a6e-e8a2-4970-b373-d77ab2be10fc
   ScriptTypes:
     "":
       {}
@@ -5086,7 +5009,7 @@
   MeshShadowMode: None
   ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
   ShadowDensity: 1.000000
-  Text: "Tool: Generate 3D models (Snap)"
+  Text: "Spatially aware agent with access to tools: Look at, detect objects, draw 3D lines, play animations ..."
   Editable: false
   ShowEditingPreview: true
   TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000
@@ -5405,11 +5328,11 @@
 - !<SceneObject/b866ad69-3651-400e-92f8-6b260a09a43a>
   PrefabRemaps:
     []
-  Name: Object 0
+  Name: Description
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: -2.000000, z: 0.500000}
+    Position: {x: -1.000000, y: 2.500000, z: 0.500000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -5872,7 +5795,7 @@
   OverflowHorizontal: Overflow
   Fill: !<TextFill>
     Mode: Solid
-    Color: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+    Color: {x: 1.000000, y: 1.000000, z: 1.000000, w: 0.000000}
     Texture: !<reference> 00000000-0000-0000-0000-000000000000
     ColorTint: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
     TileCount: 5.000000
@@ -6135,7 +6058,8 @@
       mlDetector: !<MappingBased.AssignableType_1> 8bdebf7d-5c44-4fc7-ba22-3f1ff1029ac7
       robotDriver: !<MappingBased.AssignableType_2> 7cb7a6c3-924e-4765-9a29-0ae41e8228d2
       objectMarkerPrefab: !<reference.ObjectPrefab> bb47d936-adfb-479d-966f-fc30cdacfa21
-      lineMaterial: !<reference.Material> f25e3adb-5630-4ad9-a459-0f2413e28bc1
+      lineRendererPrefab: !<reference.ObjectPrefab> f7a443b8-4645-45ff-8273-c1e6355e722c
+      switchObjectDetectionTool: !<MappingBased.AssignableType_3> d9fe0031-f47b-413e-8bf5-ff205fd3b677
       textDebugInfo: !<reference.Text> c33211ac-033b-498e-97df-7eebb431d0ca
   ScriptTypes:
     "":

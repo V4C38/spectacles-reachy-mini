@@ -14,7 +14,49 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     @input
     private audioComponent: AudioComponent | null = null;
 
+    // Animation audio tracks (same names as backend animations)
+    @input
+    private audioGreeting: AudioTrackAsset | null = null;
+    @input
+    private audioGoodbye: AudioTrackAsset | null = null;
+    @input
+    private audioHappy: AudioTrackAsset | null = null;
+    @input
+    private audioNod: AudioTrackAsset | null = null;
+    @input
+    private audioWave: AudioTrackAsset | null = null;
+    @input
+    private audioSway: AudioTrackAsset | null = null;
+    @input
+    private audioPeekaboo: AudioTrackAsset | null = null;
+    @input
+    private audioSad: AudioTrackAsset | null = null;
+    @input
+    private audioExcited: AudioTrackAsset | null = null;
+    @input
+    private audioThinking: AudioTrackAsset | null = null;
+
+    private static readonly AVAILABLE_ANIMATIONS = [
+        "greeting", "goodbye", "happy", "nod", "wave",
+        "sway", "peekaboo", "sad", "excited", "thinking"
+    ];
+
     private headRestPosition: vec3 | null = null;
+
+    // --- Smoothing (matches Python-side LERP behaviour) ---
+    // SMOOTHING_SPEED ≈ 4.0 gives alpha ≈ 0.12 per tick at 30 fps,
+    // matching the MovementHandler POSE_ALPHA = 0.12 at 30 Hz.
+    private static readonly SMOOTHING_SPEED = 4.0;
+
+    // Target -- set by setTarget(), can jump
+    private targetPose: XYZRPYPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
+    private targetBodyYaw: number = 0;
+    private targetAntennas: [number, number] = [0, 0];
+
+    // Displayed -- lerped toward target each frame; what the scene objects show
+    private displayedPose: XYZRPYPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
+    private displayedBodyYaw: number = 0;
+    private displayedAntennas: [number, number] = [0, 0];
 
     // --- Goto interpolation state ---
     private gotoStartPose: XYZRPYPose | null = null;
@@ -32,43 +74,68 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     private currentBodyYaw: number = 0;
 
     onAwake() {
+        this.createEvent("UpdateEvent").bind(() => {
+            this.smoothingTick();
+        });
     }
 
-    // Set target pose immediately by applying transforms to scene objects
+    // Store target pose. The smoothing tick lerps toward it each frame.
     public async setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void> {
+        this.targetPose = { ...headPose };
+        if (bodyYaw !== undefined) this.targetBodyYaw = bodyYaw;
+        if (antennas) this.targetAntennas = [antennas[0], antennas[1]];
 
-        // Track current pose for goto interpolation
+        // Keep current pose in sync for goto start-capture
         this.currentPose = { ...headPose };
         if (bodyYaw !== undefined) this.currentBodyYaw = bodyYaw;
+    }
 
-        // Update body rotation
-        if (bodyYaw !== undefined && this.bodySceneObject) {
+    // --- Smoothing loop (runs every frame) ---
+    private smoothingTick(): void {
+        const dt = getDeltaTime();
+        if (dt <= 0) return;
+
+        // Frame-rate-independent alpha: at 30fps this ≈ 0.12
+        const alpha = 1 - Math.exp(-SimulationAdapter.SMOOTHING_SPEED * dt);
+
+        this.displayedPose.x     += alpha * (this.targetPose.x     - this.displayedPose.x);
+        this.displayedPose.y     += alpha * (this.targetPose.y     - this.displayedPose.y);
+        this.displayedPose.z     += alpha * (this.targetPose.z     - this.displayedPose.z);
+        this.displayedPose.roll  += alpha * (this.targetPose.roll  - this.displayedPose.roll);
+        this.displayedPose.pitch += alpha * (this.targetPose.pitch - this.displayedPose.pitch);
+        this.displayedPose.yaw   += alpha * (this.targetPose.yaw   - this.displayedPose.yaw);
+
+        this.displayedBodyYaw += alpha * (this.targetBodyYaw - this.displayedBodyYaw);
+        this.displayedAntennas[0] += alpha * (this.targetAntennas[0] - this.displayedAntennas[0]);
+        this.displayedAntennas[1] += alpha * (this.targetAntennas[1] - this.displayedAntennas[1]);
+
+        this.applyToScene(this.displayedPose, this.displayedBodyYaw, this.displayedAntennas);
+    }
+
+    // --- Apply pose to scene objects ---
+    private applyToScene(pose: XYZRPYPose, bodyYaw: number, antennas: [number, number]): void {
+        if (this.bodySceneObject) {
             const bodyRotation = quat.fromEulerAngles(0, bodyYaw, 0);
             this.bodySceneObject.getTransform().setLocalRotation(bodyRotation);
         }
 
-        // Update head position + rotation
         // Reachy Mini head frame: x=forward, y=left, z=up  (meters)
         // Lens Studio scene:      x=right,   y=up,   z=forward (centimeters)
-        // Mapping: robot z (up) -> scene y, robot y (left) -> scene -x, robot x (fwd) -> scene z
-        // Scale: meters -> centimeters (×100)
         if (this.headSceneObject) {
-            // Capture rest position once so we can offset from it
             if (!this.headRestPosition) {
                 this.headRestPosition = this.headSceneObject.getTransform().getLocalPosition();
             }
             const M2CM = 100;
             this.headSceneObject.getTransform().setLocalPosition(new vec3(
-                this.headRestPosition.x - headPose.y * M2CM,
-                this.headRestPosition.y + headPose.z * M2CM,
-                this.headRestPosition.z + headPose.x * M2CM
+                this.headRestPosition.x - pose.y * M2CM,
+                this.headRestPosition.y + pose.z * M2CM,
+                this.headRestPosition.z + pose.x * M2CM
             ));
-            const headRotation = quat.fromEulerAngles(headPose.pitch, headPose.yaw, headPose.roll);
+            const headRotation = quat.fromEulerAngles(pose.pitch, pose.yaw, pose.roll);
             this.headSceneObject.getTransform().setLocalRotation(headRotation);
         }
 
-        // Update antenna rotations (relative to head orientation, not world)
-        if (this.leftAntennaSceneObject && this.rightAntennaSceneObject && antennas) {
+        if (this.leftAntennaSceneObject && this.rightAntennaSceneObject) {
             const headWorldRot = this.headSceneObject
                 ? this.headSceneObject.getTransform().getWorldRotation()
                 : quat.quatIdentity();
@@ -211,5 +278,41 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
 
     private lerp(a: number, b: number, t: number): number {
         return a + (b - a) * t;
+    }
+
+    private getAudioTrackForAnimation(name: string): AudioTrackAsset | null {
+        const key = name.trim().toLowerCase();
+        switch (key) {
+            case "greeting": return this.audioGreeting;
+            case "goodbye": return this.audioGoodbye;
+            case "happy": return this.audioHappy;
+            case "nod": return this.audioNod;
+            case "wave": return this.audioWave;
+            case "sway": return this.audioSway;
+            case "peekaboo": return this.audioPeekaboo;
+            case "sad": return this.audioSad;
+            case "excited": return this.audioExcited;
+            case "thinking": return this.audioThinking;
+            default: return null;
+        }
+    }
+
+    public playAnimation(name: string): Promise<{ durationSec: number }> {
+        const key = name.trim().toLowerCase();
+        if (SimulationAdapter.AVAILABLE_ANIMATIONS.indexOf(key) < 0) {
+            return Promise.resolve({ durationSec: 0 });
+        }
+        const track = this.getAudioTrackForAnimation(key);
+        if (!track || !this.audioComponent) {
+            return Promise.resolve({ durationSec: 0 });
+        }
+        // Duration is on AudioComponent (or track.control), not on AudioTrackAsset
+        this.audioComponent.audioTrack = track;
+        const durationSec = this.audioComponent.duration;
+        return this.playAudio(track).then(() => ({ durationSec }));
+    }
+
+    public getAvailableAnimations(): Promise<string[]> {
+        return Promise.resolve([...SimulationAdapter.AVAILABLE_ANIMATIONS]);
     }
 }

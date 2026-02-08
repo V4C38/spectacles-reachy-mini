@@ -26,6 +26,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    autoAppearOnAwake: false
     endPosition: false
     material: false
   ScriptTypesHidden:
@@ -39,9 +40,11 @@
   DefaultScriptInputs:
     - endPosition: !<Vec3> {x: 0.000000, y: 0.000000, z: 0.100000}
       material: !<reference.Material> 00000000-0000-0000-0000-000000000000
+      autoAppearOnAwake: false
   ScriptTypes:
     -
       {}
   InputLines:
     - "// @input vec3 endPosition = {0,0,0.1}"
     - // @input Asset.Material material
+    - // @input bool autoAppearOnAwake

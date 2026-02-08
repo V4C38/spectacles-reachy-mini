@@ -52,7 +52,7 @@ export class SetupWizard extends BaseScriptComponent {
 
     private stepDescriptions: string[] = [
         " \n \n In the Reachy Mini Desktop application, start the app: \n 'Spectacles AR controller' ",
-        " \n Enter the IP address shown \n on the app page.",
+        " \n Enter the IP address shown on the app page.",
         " \n \n Position Reachy Mini in the desired location  \n You can adjust this later in the settings.",
         ""
     ];
@@ -252,7 +252,7 @@ export class SetupWizard extends BaseScriptComponent {
                 this.animateSceneObjectState(this.uiSetupContainer, false);
                 if (this.uiManager) {
                     this.uiManager.setUIState(2);
-                    this.uiManager.setMode(1);
+                    this.uiManager.setMode(2);
                 }
                 break;
         }

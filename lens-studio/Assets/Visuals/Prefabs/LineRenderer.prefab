@@ -1,0 +1,40 @@
+- !<ObjectPrefab/f7a443b8-4645-45ff-8273-c1e6355e722c>
+  PackagePath: ""
+  objects:
+    - !<own> 32e27638-32ed-49ef-833e-1312d29d4ea4
+  LazyLoading: false
+  RetainAssets: true
+- !<ScriptComponent/05513fcf-a743-4e46-a76a-27790b9098e3>
+  PrefabRemaps:
+    []
+  Name: ObjectLinkRenderer
+  Enabled: true
+  ScriptAsset: !<reference> 3c034c80-8b5b-43f3-8fb3-9c398daa2b25
+  ScriptInputsDefault:
+    autoAppearOnAwake: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      endPosition: !<Vec3> {x: 0.000000, y: 0.000000, z: 0.000000}
+      material: !<reference.Material> f25e3adb-5630-4ad9-a459-0f2413e28bc1
+      autoAppearOnAwake: false
+  ScriptTypes:
+    "":
+      {}
+- !<SceneObject/32e27638-32ed-49ef-833e-1312d29d4ea4>
+  PrefabRemaps:
+    - 05513fcf-a743-4e46-a76a-27790b9098e3: a544f7bf-9fb8-41f2-aee7-72fdb25cc3f5
+    - 32e27638-32ed-49ef-833e-1312d29d4ea4: 36ae08b5-ac5f-4abc-9918-fb85e6cfdb7c
+  Name: ObjectMarker
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 0.250000, y: 0.250000, z: 0.250000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 05513fcf-a743-4e46-a76a-27790b9098e3
