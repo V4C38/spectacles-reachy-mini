@@ -6190,8 +6190,7 @@
   Enabled: true
   ScriptAsset: !<reference> 543f8c6e-ec04-4709-bc24-d4db9c86a8c8
   ScriptInputsDefault:
-    camera: true
-    hardwareAdapter: true
+    {}
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -6201,8 +6200,8 @@
       robotDriver: !<MappingBased.AssignableType_2> 7cb7a6c3-924e-4765-9a29-0ae41e8228d2
       objectMarkerPrefab: !<reference.ObjectPrefab> bb47d936-adfb-479d-966f-fc30cdacfa21
       lineRendererPrefab: !<reference.ObjectPrefab> f7a443b8-4645-45ff-8273-c1e6355e722c
-      camera: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      hardwareAdapter: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      camera: !<reference.SceneObject> 00000000-0000-0065-0000-000000000064
+      hardwareAdapter: !<MappingBased.AssignableType_3> 37423103-2105-48f1-86aa-18e72b387397
       switchObjectDetectionTool: !<MappingBased.AssignableType_4> d9fe0031-f47b-413e-8bf5-ff205fd3b677
       textDebugInfo: !<reference.Text> c33211ac-033b-498e-97df-7eebb431d0ca
   ScriptTypes:
