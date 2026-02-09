@@ -381,32 +381,19 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
         }
     }
 
-    // ================================================================
-    // Animations
-    // ================================================================
-
     /**
-     * Play a named animation on the robot. Blocks until the animation completes.
-     * The caller (RobotDriver) should pause the update loop for the duration.
+     * Capture a frame from the Reachy Mini onboard camera and return as base64 JPEG.
      */
-    public async playAnimation(name: string): Promise<{ durationSec: number }> {
-        const result = await this.sendAndWait({ type: "play_animation", name: name }, 60);
+    public async getRobotCameraFrame(): Promise<string> {
+        const result = await this.sendAndWait({ type: "get_robot_camera_frame" }, 15);
         if (!result || result.type === "error") {
-            throw new Error(`playAnimation failed: ${(result as any)?.message || "unknown error"}`);
+            throw new Error(`getRobotCameraFrame failed: ${(result as any)?.message || "unknown error"}`);
         }
-        const durationSec = (result as any).duration_sec ?? 0;
-        return { durationSec };
+        const base64 = (result as any).image_base64;
+        if (typeof base64 !== "string") {
+            throw new Error("getRobotCameraFrame: missing or invalid image_base64 in response");
+        }
+        return base64;
     }
 
-    /**
-     * Get the list of available animation names from the Python bridge.
-     */
-    public async getAvailableAnimations(): Promise<string[]> {
-        const result = await this.sendAndWait({ type: "get_available_animations" }, 5);
-        if (!result || result.type === "error") {
-            throw new Error(`getAvailableAnimations failed: ${(result as any)?.message || "unknown error"}`);
-        }
-        const names = (result as any).names;
-        return Array.isArray(names) ? names : [];
-    }
 }

@@ -2,9 +2,12 @@ import { Switch } from "SpectaclesUIKit.lspkg/Scripts/Components/Switch/Switch";
 
 import { ToolDefinition, LLMService } from "./LLMService";
 import { AssistantMode, AssistantState } from "../AssistantMode";
+import { HardwareAdapter } from "../HardwareAdapter";
 import { MLObjectDetector } from "./MLObjectDetector";
 import { RobotDriver } from "../RobotDriver";
 import { getObjectLinkRenderer } from "./ObjectLinkRenderer";
+
+const CameraModule = require("LensStudio:CameraModule");
 
 /**
  * Component that provides LLM tools for the AssistantMode.
@@ -25,6 +28,10 @@ export class AssistantTools extends BaseScriptComponent {
     public objectMarkerPrefab: ObjectPrefab | null = null;
     @input
     public lineRendererPrefab: ObjectPrefab | null = null;
+    @input
+    private camera: SceneObject | null = null;
+    @input
+    private hardwareAdapter: HardwareAdapter | null = null;
 
     @input
     private switchObjectDetectionTool: Switch | null = null;
@@ -110,6 +117,22 @@ export class AssistantTools extends BaseScriptComponent {
             print("AssistantTools: Skipping draw_line tool (missing lineRendererPrefab or draw line tool is off)");
         }
 
+        // Register take_picture_userview when assistantMode and camera are available
+        if (this.assistantMode && this.camera) {
+            llmService.registerTool(this.createTakePictureUserViewTool());
+            registeredCount++;
+        } else {
+            print("AssistantTools: Skipping take_picture_userview (missing assistantMode or camera)");
+        }
+
+        // Register take_picture_robotview when robotDriver and hardwareAdapter are available
+        if (this.robotDriver && this.hardwareAdapter && this.assistantMode) {
+            llmService.registerTool(this.createTakePictureRobotViewTool());
+            registeredCount++;
+        } else {
+            print("AssistantTools: Skipping take_picture_robotview (missing robotDriver, hardwareAdapter, or assistantMode)");
+        }
+
         print(`AssistantTools: Registered ${registeredCount} tools`);
     }
 
@@ -117,6 +140,11 @@ export class AssistantTools extends BaseScriptComponent {
     // Tool Definitions
     // ================================================================
 
+
+    /* ----------------------------------------------------------------
+     * Scan the user's surroundings for objects matching a description.
+     * ----------------------------------------------------------------
+    */
     private createScanObjectsTool(): ToolDefinition {
         return {
             name: "scan_objects",
@@ -180,6 +208,11 @@ export class AssistantTools extends BaseScriptComponent {
         return this.mlDetector ? this.mlDetector.getTrackedObjectNames().length : 0;
     }
 
+
+    /* ----------------------------------------------------------------
+     * Look at a specific location in the world.
+     * ----------------------------------------------------------------
+    */
     private createLookAtLocationTool(): ToolDefinition {
         return {
             name: "look_at_location",
@@ -209,17 +242,16 @@ export class AssistantTools extends BaseScriptComponent {
                     this.showTemporaryLine(headPos, target, dur);
                 }
 
-                await new Promise<void>((resolve) => {
-                    const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
-                    delayEvent.bind(() => resolve());
-                    delayEvent.reset(dur);
-                });
-
                 return JSON.stringify({ success: true, looked_at: { x: args.x, y: args.y, z: args.z }, duration: dur, line_drawn: shouldDrawLine });
             }
         };
     }
 
+
+    /* ----------------------------------------------------------------
+     * Get the robot's current world position and orientation.
+     * ----------------------------------------------------------------
+    */
     private createGetStateTool(): ToolDefinition {
         return {
             name: "get_state",
@@ -265,6 +297,11 @@ export class AssistantTools extends BaseScriptComponent {
         };
     }
 
+
+    /* ----------------------------------------------------------------
+     * Look in a direction relative to the robot's current orientation.
+     * ----------------------------------------------------------------
+    */
     private createLookDirectionTool(): ToolDefinition {
         return {
             name: "look_direction",
@@ -395,12 +432,6 @@ export class AssistantTools extends BaseScriptComponent {
                 this.assistantMode.lookAtOverrideTarget = target;
                 this.assistantMode.lookAtOverrideEndTime = getTime() + dur;
 
-                await new Promise<void>((resolve) => {
-                    const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
-                    delayEvent.bind(() => resolve());
-                    delayEvent.reset(dur);
-                });
-
                 return JSON.stringify({
                     success: true,
                     direction: dir,
@@ -411,16 +442,20 @@ export class AssistantTools extends BaseScriptComponent {
         };
     }
 
+    /* ----------------------------------------------------------------
+     * Play a named animation on Reachy Mini (fire-and-forget).
+     * ----------------------------------------------------------------
+    */
     private createPlayAnimationTool(): ToolDefinition {
         return {
             name: "play_animation",
-            description: "Play a named animation on Reachy Mini. Motion and audio for that animation play in sync. Call this when the user asks you to wave, say hello, say goodbye, nod, look happy/sad/excited, think, sway, or peekaboo — use the matching name so the animation runs as part of your response. Main options: greeting (hello/hi), goodbye (bye), happy, nod, wave, sway, peekaboo, sad, excited, thinking. Use one of these names; call get_available_animations only when the user explicitly asks what animations are available.",
+            description: "Play a named animation on Reachy Mini (fire-and-forget). Motion and audio play in sync; the animation runs in the background so you can respond with speech at the same time. Use this whenever it fits the conversation—when the user says hello (greeting), goodbye (goodbye), asks you to wave, nod, look happy/sad/excited, think, sway, peekaboo, or dance. Main options: greeting, goodbye, happy, nod, wave, sway, peekaboo, sad, excited, thinking, dance. Call get_available_animations only when the user explicitly asks what animations are available.",
             parameters: {
                 type: "object",
                 properties: {
                     animationName: {
                         type: "string",
-                        description: "Name of the animation to play (e.g. greeting, goodbye, happy, nod, wave, sway, peekaboo, sad, excited, thinking)"
+                        description: "Name of the animation to play (e.g. greeting, goodbye, happy, nod, wave, sway, peekaboo, sad, excited, thinking, dance)"
                     }
                 },
                 required: ["animationName"]
@@ -433,17 +468,19 @@ export class AssistantTools extends BaseScriptComponent {
                 if (!name) {
                     return JSON.stringify({ error: "animationName is required" });
                 }
-                try {
-                    await this.robotDriver.playAnimation(name);
-                    return JSON.stringify({ success: true, animation: name });
-                } catch (error) {
-                    const msg = error instanceof Error ? error.message : String(error);
-                    return JSON.stringify({ success: false, error: msg });
-                }
+                this.robotDriver.playAnimation(name).catch((error) => {
+                    print(`AssistantTools: play_animation failed: ${error}`);
+                    this.logDebug(`Agent - Error: play_animation failed: ${error}`);
+                });
+                return JSON.stringify({ success: true, animation: name });
             }
         };
     }
 
+    /* ----------------------------------------------------------------
+     * Get the list of animation names that Reachy Mini can play.
+     * ----------------------------------------------------------------
+    */
     private createGetAvailableAnimationsTool(): ToolDefinition {
         return {
             name: "get_available_animations",
@@ -468,6 +505,11 @@ export class AssistantTools extends BaseScriptComponent {
         };
     }
 
+
+    /* ----------------------------------------------------------------
+     * Draw a temporary curved line.
+     * ----------------------------------------------------------------
+    */
     private createDrawLineTool(): ToolDefinition {
         return {
             name: "draw_line",
@@ -521,10 +563,135 @@ export class AssistantTools extends BaseScriptComponent {
         };
     }
 
-    /**
+    /* ----------------------------------------------------------------
+     * Take picture from Spectacles camera (user's view).
+     * ----------------------------------------------------------------
+    */
+    private createTakePictureUserViewTool(): ToolDefinition {
+        return {
+            name: "take_picture_userview",
+            description: "Capture an image from the Spectacles camera (the user's first-person view). Use this when the user asks what you see, to take a picture of the scene, or to analyze what is in front of them. The image will be analyzed by the vision model. Returns camera position and look direction so you know where the shot was taken from.",
+            parameters: { type: "object", properties: {}, required: [] },
+            handler: async (): Promise<string> => {
+                if (!this.camera) {
+                    return JSON.stringify({ success: false, error: "Camera not configured" });
+                }
+                try {
+                    const imageBase64 = await this.captureSpectaclesFrame();
+                    if (!imageBase64) {
+                        return JSON.stringify({ success: false, error: "Failed to capture frame" });
+                    }
+                    const pos = this.camera.getTransform().getWorldPosition();
+                    const rot = this.camera.getTransform().getWorldRotation();
+                    const forward = rot.multiplyVec3(new vec3(0, 0, 1));
+                    const hDist = Math.sqrt(forward.x * forward.x + forward.z * forward.z);
+                    const yaw = Math.atan2(forward.x, forward.z);
+                    const pitch = hDist > 0.001 ? -Math.atan2(forward.y, hDist) : 0;
+                    return JSON.stringify({
+                        success: true,
+                        image_base64: imageBase64,
+                        mime: "image/jpeg",
+                        source: "spectacles_camera",
+                        camera_position: { x: pos.x, y: pos.y, z: pos.z },
+                        look_direction: { yaw, pitch },
+                    });
+                } catch (error) {
+                    const msg = error instanceof Error ? error.message : String(error);
+                    return JSON.stringify({ success: false, error: msg });
+                }
+            },
+        };
+    }
+
+    /* ----------------------------------------------------------------
+     * Take picture from robot's onboard camera.
+     * ----------------------------------------------------------------
+    */
+    private createTakePictureRobotViewTool(): ToolDefinition {
+        return {
+            name: "take_picture_robotview",
+            description: "Capture an image from Reachy Mini's onboard camera (the robot's perspective). Use when the user wants to see what the robot sees or to aim the robot's head at a location before taking a picture. Optionally provide aim_at_x, aim_at_y, aim_at_z (world coordinates) to point the robot's head at a location first; the capture happens after a short settle delay. Returns camera position, look direction, and aimed_at (if used) so you know where the shot was taken from and what it was looking at.",
+            parameters: {
+                type: "object",
+                properties: {
+                    aim_at_x: { type: "number", description: "World X to look at before capture (optional)" },
+                    aim_at_y: { type: "number", description: "World Y to look at before capture (optional)" },
+                    aim_at_z: { type: "number", description: "World Z to look at before capture (optional)" },
+                },
+                required: [],
+            },
+            handler: async (args: { aim_at_x?: number; aim_at_y?: number; aim_at_z?: number }): Promise<string> => {
+                if (!this.hardwareAdapter || !this.robotDriver || !this.assistantMode) {
+                    return JSON.stringify({ success: false, error: "Robot or hardware adapter not configured" });
+                }
+                const hasAim = args.aim_at_x !== undefined && args.aim_at_y !== undefined && args.aim_at_z !== undefined;
+                let aimedAt: { x: number; y: number; z: number } | undefined;
+                if (hasAim) {
+                    const target = new vec3(args.aim_at_x!, args.aim_at_y!, args.aim_at_z!);
+                    this.assistantMode.lookAtOverrideTarget = target;
+                    this.assistantMode.lookAtOverrideEndTime = getTime() + 1.0;
+                    aimedAt = { x: target.x, y: target.y, z: target.z };
+                    await new Promise<void>((resolve) => {
+                        const ev = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
+                        ev.bind(() => resolve());
+                        ev.reset(0.9);
+                    });
+                }
+                try {
+                    const imageBase64 = await this.hardwareAdapter.getRobotCameraFrame();
+                    const headPos = this.robotDriver.getHeadWorldPosition();
+                    const headAngles = this.robotDriver.getHeadAngles();
+                    const result: Record<string, any> = {
+                        success: true,
+                        image_base64: imageBase64,
+                        mime: "image/jpeg",
+                        source: "robot_camera",
+                        camera_position: { x: headPos.x, y: headPos.y, z: headPos.z },
+                        look_direction: { yaw: headAngles.yaw, pitch: headAngles.pitch },
+                    };
+                    if (aimedAt) result.aimed_at = aimedAt;
+                    return JSON.stringify(result);
+                } catch (error) {
+                    const msg = error instanceof Error ? error.message : String(error);
+                    return JSON.stringify({ success: false, error: msg });
+                }
+            },
+        };
+    }
+
+    /** Capture a frame from Spectacles Left_Color camera, return base64 JPEG or null. */
+    private captureSpectaclesFrame(): Promise<string | null> {
+        return new Promise((resolve) => {
+            try {
+                const cameraRequest = CameraModule.createCameraRequest();
+                cameraRequest.cameraId = CameraModule.CameraId.Left_Color;
+                const cameraTexture = CameraModule.requestCamera(cameraRequest);
+                const textureProvider = cameraTexture.control as CameraTextureProvider;
+                const onNewFrame = textureProvider.onNewFrame;
+                const registration1 = onNewFrame.add(() => {
+                    onNewFrame.remove(registration1);
+                    const registration2 = onNewFrame.add(() => {
+                        onNewFrame.remove(registration2);
+                        Base64.encodeTextureAsync(
+                            cameraTexture,
+                            (base64String: string) => resolve(base64String),
+                            () => resolve(null),
+                            CompressionQuality.HighQuality,
+                            EncodingType.Jpg
+                        );
+                    });
+                });
+            } catch (error) {
+                resolve(null);
+            }
+        });
+    }
+
+    /* ----------------------------------------------------------------
      * Show a temporary curved line between two world positions (world-space).
-     * Spawns the line renderer prefab at start, configures and plays appear, then after duration plays disappear and destroys the object.
-     */
+     * Spawns the line, shows it, then after duration destroys it.
+     * ----------------------------------------------------------------
+    */
     private showTemporaryLine(start: vec3, end: vec3, duration: number): void {
         if (!this.lineRendererPrefab) return;
 
@@ -542,15 +709,8 @@ export class AssistantTools extends BaseScriptComponent {
 
         const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
         delayEvent.bind(() => {
-            renderer.disappear(() => {
-                lineObj.destroy();
-            });
+            renderer.destroy();
         });
         delayEvent.reset(duration);
     }
-
-    // ================================================================
-    // Helper Methods
-    // ================================================================
-
 }

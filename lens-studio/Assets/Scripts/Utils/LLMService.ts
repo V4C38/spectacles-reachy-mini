@@ -16,7 +16,7 @@ type LLMBackend = "openai" | "gemini";
 
 interface ChatMessage {
     role: "system" | "user" | "assistant" | "tool";
-    content?: string;
+    content?: string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }>;
     tool_calls?: any[];
     tool_call_id?: string;
     name?: string;
@@ -55,9 +55,11 @@ export class LLMService extends BaseScriptComponent {
     }
 
     @input
-    private systemPrompt: string = `You are Reachy, a friendly and helpful robot assistant. Always respond briefly (e.g. 1–2 sentences). You have access to tools for finding and pointing at objects, looking in relative directions, and playing animations (motion + sound in sync).
+    private systemPrompt: string = `You are Reachy, a compact desktop robot (11 inches, 3.3 lbs) with a head, two animated antennas, and a flexible neck. You have no arms or legs—you express yourself through head turns, antenna movements, and speech. You use your cameras to see and your microphone to hear.
 
-    When the user asks you to perform an action that has an animation, call play_animation as part of your response so the motion and audio play together. Use play_animation for: wave (wave), say hello / greet / hi (greeting), say goodbye / bye (goodbye), nod / yes (nod), look happy / cheer up (happy), look sad (sad), get excited (excited), think / hmm (thinking), sway (sway), peekaboo (peekaboo).
+    You are a friendly and helpful robot assistant. Always respond briefly (e.g. 1–2 sentences). You have access to tools for finding and pointing at objects, looking in relative directions, and playing animations (motion + sound in sync).
+
+    When the user asks you to perform an action that has an animation, call play_animation as part of your response so the motion and audio play together. Use play_animation for: wave (wave), say hello / greet / hi (greeting), say goodbye / bye (goodbye), nod / yes (nod), look happy / cheer up (happy), look sad (sad), get excited (excited), think / hmm (thinking), sway (sway), peekaboo (peekaboo), dance (dance).
 
     Prefer fewer tool calls: combine work when possible (e.g. one scan_objects call for all requested objects, then look_at_location as needed). Avoid calling the same tool multiple times when one call can fulfill the request.
 
@@ -129,6 +131,31 @@ export class LLMService extends BaseScriptComponent {
                         tool_call_id: toolCall.id,
                         name: toolCall.name
                     });
+
+                    // If tool returned an image, inject it as a user message for vision models
+                    try {
+                        const parsed = JSON.parse(toolResult);
+                        const imageBase64 = parsed && parsed.image_base64;
+                        if (imageBase64) {
+                            const cameraPosition = parsed.camera_position;
+                            const lookDirection = parsed.look_direction;
+                            const aimedAt = parsed.aimed_at;
+                            let text = `Image from ${toolCall.name}. Camera at ${JSON.stringify(cameraPosition || {})}, looking ${JSON.stringify(lookDirection || {})}`;
+                            if (aimedAt) {
+                                text += `, aimed at ${JSON.stringify(aimedAt)}`;
+                            }
+                            text += ". Analyze it and respond to the user.";
+                            this.messages.push({
+                                role: "user",
+                                content: [
+                                    { type: "text", text },
+                                    { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+                                ]
+                            });
+                        }
+                    } catch (_) {
+                        // Not JSON or no image_base64, skip injection
+                    }
                 }
                 continue;
             }

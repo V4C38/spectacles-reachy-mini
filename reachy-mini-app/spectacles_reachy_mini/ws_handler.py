@@ -15,15 +15,16 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from spectacles_reachy_mini.animations import get_available_animations, play_animation
+from spectacles_reachy_mini.animations import play_animation
 from spectacles_reachy_mini.audio_handler import AudioHandler
+from spectacles_reachy_mini.camera_handler import CameraHandler
 from spectacles_reachy_mini.movement_handler import MovementHandler
 
 logger = logging.getLogger(__name__)
 
 # Message types that are slow (blocking) and must run as background tasks
 # so the receive loop is never stalled.
-_SLOW_TYPES = frozenset({"play_tts", "play_audio", "play_animation"})
+_SLOW_TYPES = frozenset({"play_tts", "play_audio", "get_robot_camera_frame"})
 
 
 class WebSocketHandler:
@@ -33,9 +34,11 @@ class WebSocketHandler:
         self,
         movement: MovementHandler,
         audio: AudioHandler,
+        camera: CameraHandler,
     ) -> None:
         self.movement = movement
         self.audio = audio
+        self.camera = camera
         self._background_tasks: set[asyncio.Task[None]] = set()
 
     async def handle_message(self, websocket: WebSocket, raw: str) -> None:
@@ -56,8 +59,7 @@ class WebSocketHandler:
             "play_tts": self._handle_play_tts,
             "play_audio": self._handle_play_audio,
             "status": self._handle_status,
-            "get_available_animations": self._handle_get_available_animations,
-            "play_animation": self._handle_play_animation,
+            "get_robot_camera_frame": self._handle_get_robot_camera_frame,
         }.get(msg_type)
 
         if handler is None:
@@ -168,26 +170,10 @@ class WebSocketHandler:
     async def _handle_status(self, _msg: dict[str, Any]) -> dict[str, Any]:
         return {"type": "status_result", "connected": True}
 
-    async def _handle_get_available_animations(self, _msg: dict[str, Any]) -> dict[str, Any]:
-        names = get_available_animations()
-        return {"type": "get_available_animations_result", "names": names}
-
-    async def _handle_play_animation(self, msg: dict[str, Any]) -> dict[str, Any]:
-        name = (msg.get("name") or "").strip()
-        if not name:
-            raise ValueError("play_animation requires a non-empty 'name'")
+    async def _handle_get_robot_camera_frame(self, _msg: dict[str, Any]) -> dict[str, Any]:
         loop = asyncio.get_running_loop()
-        # Run animation and audio in parallel
-        anim_task = loop.run_in_executor(
-            None,
-            lambda: play_animation(self.movement.mini, name),
-        )
-        audio_task = loop.run_in_executor(
-            None,
-            lambda: self.audio.play_animation_audio(name),
-        )
-        duration_sec, _ = await asyncio.gather(anim_task, audio_task)
-        return {"type": "play_animation_result", "duration_sec": duration_sec, "success": True}
+        image_base64 = await loop.run_in_executor(None, self.camera.get_frame)
+        return {"type": "get_robot_camera_frame_result", "image_base64": image_base64}
 
     # ------------------------------------------------------------------
     # Helpers

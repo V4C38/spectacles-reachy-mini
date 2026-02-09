@@ -48,12 +48,11 @@ export class MLObjectDetector extends BaseScriptComponent {
     private isProcessing: boolean = false;
         
     // --- Configuration ---
-    private readonly CONFIDENCE_THRESHOLD = 0.3;
+    private readonly CONFIDENCE_THRESHOLD = 0.35;
     private readonly REACHY_EXCLUSION_RADIUS_M = 0.15; 
 
     // --- World-mesh animation state ---
     private worldMeshVisible: boolean = false;
-    private worldMeshPulsing: boolean = false;
     private currentOpacity: number = 0;
     private readonly WM_FADE_IN_DURATION = 1.8;
     private readonly WM_FADE_OUT_DURATION = 1.2;
@@ -282,7 +281,6 @@ export class MLObjectDetector extends BaseScriptComponent {
         }
     }
 
-
     private isWithinReachyExclusionZone(worldPos: vec3): boolean {
         if (!this.worldMeshRoot) {
             return false;
@@ -377,7 +375,6 @@ export class MLObjectDetector extends BaseScriptComponent {
         }
 
         this.worldMeshVisible = true;
-        this.worldMeshPulsing = false;
 
         const material = this.worldMeshRenderer.mainMaterial;
 
@@ -396,14 +393,9 @@ export class MLObjectDetector extends BaseScriptComponent {
                 material.mainPass.Opacity = this.currentOpacity;
             },
             ended: () => {
-                if (this.worldMeshVisible) {
-                    this.worldMeshPulsing = true;
-                    this.pulseWorldMesh();
-                }
             }
         });
     }
-
 
     public hideWorldMesh(): void {
         if (!this.worldMeshRenderer || !this.worldMeshRenderer.mainMaterial) {
@@ -414,7 +406,6 @@ export class MLObjectDetector extends BaseScriptComponent {
         }
 
         this.worldMeshVisible = false;
-        this.worldMeshPulsing = false;
 
         const material = this.worldMeshRenderer.mainMaterial;
         const startOpacity = this.currentOpacity;
@@ -429,40 +420,4 @@ export class MLObjectDetector extends BaseScriptComponent {
         });
     }
 
-    private pulseWorldMesh(): void {
-        if (!this.worldMeshPulsing || !this.worldMeshRenderer?.mainMaterial) {
-            return;
-        }
-
-        const material = this.worldMeshRenderer.mainMaterial;
-        const high = 1;
-        const low = this.WM_PULSE_MIN_OPACITY;
-
-        // 0.5 → 1
-        animate({
-            duration: this.WM_PULSE_DURATION / 2,
-            easing: "ease-in-out-quad",
-            update: (t: number) => {
-                if (!this.worldMeshPulsing) return;
-                this.currentOpacity = low + (high - low) * t;
-                material.mainPass.Opacity = this.currentOpacity;
-            },
-            ended: () => {
-                if (!this.worldMeshPulsing) return;
-                // 1 → 0.5
-                animate({
-                    duration: this.WM_PULSE_DURATION / 2,
-                    easing: "ease-in-out-quad",
-                    update: (t: number) => {
-                        if (!this.worldMeshPulsing) return;
-                        this.currentOpacity = high + (low - high) * t;
-                        material.mainPass.Opacity = this.currentOpacity;
-                    },
-                    ended: () => {
-                        this.pulseWorldMesh();
-                    }
-                });
-            }
-        });
-    }
 }

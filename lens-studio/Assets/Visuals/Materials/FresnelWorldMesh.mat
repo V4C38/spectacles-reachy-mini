@@ -151,6 +151,9 @@
     - Tweak_N11:
         typeIdx: 1
         value: 1.000000
+    - Tweak_N13:
+        typeIdx: 4
+        value: {x: 1.000000, y: 1.000000, z: 1.000000}
     - Tweak_N6:
         typeIdx: 4
         value: {x: 1.000000, y: 1.000000, z: 1.000000}
@@ -201,7 +204,4 @@
     PreviewEnabled:
       typeIdx: 0
       value: 0
-    Tweak_N13:
-      typeIdx: 4
-      value: {x: 1.000000, y: 1.000000, z: 1.000000}
   Pass: !<reference> e3a0f2d3-4321-409f-beb0-42d1b190da66

@@ -40,13 +40,14 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     private audioExcited: AudioTrackAsset | null = null;
     @input
     private audioThinking: AudioTrackAsset | null = null;
-
-    private static readonly AVAILABLE_ANIMATIONS = [
-        "greeting", "goodbye", "happy", "nod", "wave",
-        "sway", "peekaboo", "sad", "excited", "thinking"
-    ];
+    @input
+    private audioDance: AudioTrackAsset | null = null;
 
     private headRestPosition: vec3 | null = null;
+
+    // --- Antenna base angles (scene has antennas pre-angled in Y) ---
+    private static readonly ANTENNA_LEFT_BASE_Y_DEG = 30;
+    private static readonly ANTENNA_RIGHT_BASE_Y_DEG = -30;
 
     // --- Smoothing (matches Python-side LERP behaviour) ---
     // SMOOTHING_SPEED ≈ 4.0 gives alpha ≈ 0.12 per tick at 30 fps,
@@ -145,11 +146,17 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
                 ? this.headSceneObject.getTransform().getWorldRotation()
                 : quat.quatIdentity();
 
+            // Antennas are pre-angled Y +30° (left) / -30° (right) in the scene; apply base then pitch.
+            const leftBaseY = quat.fromEulerAngles(0, SimulationAdapter.ANTENNA_LEFT_BASE_Y_DEG, 0);
+            const rightBaseY = quat.fromEulerAngles(0, SimulationAdapter.ANTENNA_RIGHT_BASE_Y_DEG, 0);
+            const leftPitch = quat.fromEulerAngles(antennas[0], 0, 0);
+            const rightPitch = quat.fromEulerAngles(antennas[1], 0, 0);
+
             this.leftAntennaSceneObject.getTransform().setWorldRotation(
-                headWorldRot.multiply(quat.fromEulerAngles(antennas[0], 0, 0))
+                headWorldRot.multiply(leftBaseY.multiply(leftPitch))
             );
             this.rightAntennaSceneObject.getTransform().setWorldRotation(
-                headWorldRot.multiply(quat.fromEulerAngles(antennas[1], 0, 0))
+                headWorldRot.multiply(rightBaseY.multiply(rightPitch))
             );
         }
     }
@@ -328,7 +335,7 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
         return a + (b - a) * t;
     }
 
-    private getAudioTrackForAnimation(name: string): AudioTrackAsset | null {
+    public getAudioTrackForAnimation(name: string): AudioTrackAsset | null {
         const key = name.trim().toLowerCase();
         switch (key) {
             case "greeting": return this.audioGreeting;
@@ -341,26 +348,9 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
             case "sad": return this.audioSad;
             case "excited": return this.audioExcited;
             case "thinking": return this.audioThinking;
+            case "dance": return this.audioDance;
             default: return null;
         }
     }
 
-    public playAnimation(name: string): Promise<{ durationSec: number }> {
-        const key = name.trim().toLowerCase();
-        if (SimulationAdapter.AVAILABLE_ANIMATIONS.indexOf(key) < 0) {
-            return Promise.resolve({ durationSec: 0 });
-        }
-        const track = this.getAudioTrackForAnimation(key);
-        if (!track || !this.audioComponent) {
-            return Promise.resolve({ durationSec: 0 });
-        }
-        // Duration is on AudioComponent (or track.control), not on AudioTrackAsset
-        this.audioComponent.audioTrack = track;
-        const durationSec = this.audioComponent.duration;
-        return this.playAudio(track).then(() => ({ durationSec }));
-    }
-
-    public getAvailableAnimations(): Promise<string[]> {
-        return Promise.resolve([...SimulationAdapter.AVAILABLE_ANIMATIONS]);
-    }
 }

@@ -1,7 +1,4 @@
-import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
-
-
-// This is some vibecoded slop because the LensStudio line renderer needs some material and doesn't work
+// This is some vibecoded slop because the LensStudio line renderer needs some material I don´t know how to setup and thus doesn't work
 
 
 // ================================================================
@@ -12,8 +9,6 @@ const LINE_WIDTH_START = 0.25;
 const LINE_WIDTH_MID = 1.5;
 const CURVE_HEIGHT_RATIO = 0.1;
 const CURVE_SEGMENTS = 15;
-const APPEAR_DURATION = 1;
-const DISAPPEAR_DURATION = 1;
 const DEFAULT_COLOR = new vec4(1, 1, 1, 1);
 
 // ================================================================
@@ -143,14 +138,6 @@ function setMeshAlpha(meshVisual: RenderMeshVisual, alpha: number): void {
     pass.baseColor = new vec4(DEFAULT_COLOR.x, DEFAULT_COLOR.y, DEFAULT_COLOR.z, alpha);
 }
 
-function getMeshAlpha(meshVisual: RenderMeshVisual): number {
-    const pass = meshVisual.mainPass;
-    if (pass.baseColor === undefined) {
-        return 0;
-    }
-    return pass.baseColor.w;
-}
-
 // ================================================================
 // Factory function for runtime line creation
 // ================================================================
@@ -159,16 +146,13 @@ function getMeshAlpha(meshVisual: RenderMeshVisual): number {
  * Handle returned by createCurvedLine for controlling the line's lifecycle.
  */
 export interface CurvedLineHandle {
-    /** Fade the line out. */
-    disappear: () => void;
-    /** Immediately destroy the scene object. */
+    /** Destroy the line and remove it from the scene. */
     destroy: () => void;
 }
 
 /**
  * Create a curved line between two world-space positions at runtime.
- * The line fades in automatically. Call handle.disappear() to fade out,
- * then handle.destroy() to remove the scene object.
+ * The line is shown immediately. Call handle.destroy() to remove it.
  */
 export function createCurvedLine(
     start: vec3,
@@ -199,55 +183,14 @@ export function createCurvedLine(
         print("createCurvedLine: Mesh validation failed");
     }
 
-    // Start transparent, then fade in
-    setMeshAlpha(meshVisual, 0);
+    setMeshAlpha(meshVisual, 1);
 
-    let currentAnimation: any = null;
-    let isAnimating = false;
     let isDestroyed = false;
 
-    // Fade in
-    currentAnimation = animate({
-        duration: APPEAR_DURATION,
-        easing: "ease-in-out-quad",
-        update: (t: number) => {
-            if (!isDestroyed) setMeshAlpha(meshVisual, t);
-        },
-        ended: () => {
-            isAnimating = false;
-            currentAnimation = null;
-        }
-    });
-    isAnimating = true;
-
     const handle: CurvedLineHandle = {
-        disappear: () => {
-            if (isDestroyed) return;
-            if (isAnimating && currentAnimation) {
-                currentAnimation.cancel();
-                currentAnimation = null;
-            }
-            isAnimating = true;
-            const startAlpha = getMeshAlpha(meshVisual);
-            currentAnimation = animate({
-                duration: DISAPPEAR_DURATION,
-                easing: "ease-in-out-quad",
-                update: (t: number) => {
-                    if (!isDestroyed) setMeshAlpha(meshVisual, startAlpha * (1 - t));
-                },
-                ended: () => {
-                    isAnimating = false;
-                    currentAnimation = null;
-                }
-            });
-        },
         destroy: () => {
             if (isDestroyed) return;
             isDestroyed = true;
-            if (isAnimating && currentAnimation) {
-                currentAnimation.cancel();
-                currentAnimation = null;
-            }
             obj.destroy();
         }
     };
@@ -282,31 +225,29 @@ export function getObjectLinkRenderer(sceneObject: SceneObject): ObjectLinkRende
 
 /**
  * Component that renders a curved line from this scene object to a target position.
- * The line appears with an animation when the component is added to the scene.
- * 
+ * The line is shown immediately when appear() is called (or on setLineAndAppear).
+ *
  * For runtime creation without a component, use createCurvedLine() instead.
  */
 @component
 export class ObjectLinkRenderer extends BaseScriptComponent {
-    
+
     @input
     public endPosition: vec3 = new vec3(0, 0, 0.1);
-    
+
     @input
     public material: Material | null = null;
-    
+
     /** If true, call appear() in onAwake (for designer-placed prefabs). Set false on prefabs used for runtime spawn so setLineAndAppear controls when the line shows. */
     @input
     public autoAppearOnAwake: boolean = false;
-    
+
     // --- Private State ---
     /** Child scene object that holds the line mesh. The component's scene object is only the start-position holder. */
     private meshChild: SceneObject | null = null;
     private meshVisual: RenderMeshVisual | null = null;
     private meshBuilder: MeshBuilder | null = null;
     private isVisible: boolean = false;
-    private isAnimating: boolean = false;
-    private currentAnimation: any = null;
     
     onAwake() {
         if (!this.material) {
@@ -333,53 +274,16 @@ export class ObjectLinkRenderer extends BaseScriptComponent {
     
     public appear(): void {
         if (!this.meshVisual) return;
-        if (this.isAnimating && this.currentAnimation) {
-            this.currentAnimation.cancel();
-        }
-        
-        this.isAnimating = true;
         this.isVisible = true;
-        
-        const startAlpha = getMeshAlpha(this.meshVisual);
-        const mv = this.meshVisual;
-        this.currentAnimation = animate({
-            duration: APPEAR_DURATION,
-            easing: "ease-in-out-quad",
-            update: (t: number) => {
-                setMeshAlpha(mv, startAlpha + (1 - startAlpha) * t);
-            },
-            ended: () => {
-                this.isAnimating = false;
-                this.currentAnimation = null;
-            }
-        });
+        this.meshVisual.enabled = true;
+        setMeshAlpha(this.meshVisual, 1);
     }
-    
-    public disappear(onComplete?: () => void): void {
-        if (!this.meshVisual) return;
-        if (this.isAnimating && this.currentAnimation) {
-            this.currentAnimation.cancel();
-        }
-        
-        this.isAnimating = true;
-        
-        const startAlpha = getMeshAlpha(this.meshVisual);
-        const mv = this.meshVisual;
-        this.currentAnimation = animate({
-            duration: DISAPPEAR_DURATION,
-            easing: "ease-in-out-quad",
-            update: (t: number) => {
-                setMeshAlpha(mv, startAlpha * (1 - t));
-            },
-            ended: () => {
-                this.isVisible = false;
-                this.isAnimating = false;
-                this.currentAnimation = null;
-                onComplete?.();
-            }
-        });
+
+    /** Destroy the line (removes this scene object from the scene). */
+    public destroy(): void {
+        this.getSceneObject().destroy();
     }
-    
+
     public updateEndPosition(end: vec3): void {
         this.endPosition = end;
         this.rebuildLine();

@@ -1,7 +1,8 @@
 import { MLObjectDetector } from "./Utils/MLObjectDetector";
 import { DepthCache } from "./Utils/DepthCache";
 import { LLMService } from "./Utils/LLMService";
-import { RobotDriver, PROFILES } from "./RobotDriver";
+import { RobotDriver } from "./RobotDriver";
+import { PRESETS } from "./RobotAnimationConfig";
 import { AssistantTools } from "./Utils/AssistantTools";
 
 export enum AssistantState {
@@ -35,6 +36,7 @@ export class AssistantMode extends BaseScriptComponent {
     // --- ASR / Speech to Text ---
     public asrModule: AsrModule = require("LensStudio:AsrModule");
     public onSessionChanged: ((active: boolean) => void)[] = [];
+    public onErrorOccurred: ((message: string) => void)[] = [];
     private currentTranscription: string = "";
 
     // --- State ---
@@ -49,9 +51,18 @@ export class AssistantMode extends BaseScriptComponent {
     // --- Configuration ---
     private readonly WAKE_WORDS = ["reachy", "richie", "richy", "reach", "reachie", "ritchie", "richi", "reechy", "reechi", "reachi"];
     private readonly GREETING_PROMPT = "[The user just called your name to get your attention. Respond in a friendly and slightly funny way as if you have just woken up. One short sentence.]";
-    private readonly IDLE_TIMEOUT_SEC = 30.0;
+    private readonly IDLE_TIMEOUT_SEC = 45.0;
     private readonly WAKE_SILENCE_MS = 1500;
     private readonly CONVO_SILENCE_MS = 2000;
+
+    // --- Idle wander ---
+    private idleTarget: vec3 | null = null;
+    private nextIdleTargetTime: number = 0;
+    private readonly IDLE_LOOK_DISTANCE = 200;
+
+    // --- Nod (applied by varying gaze target Y) ---
+    private readonly NOD_LISTENING = { freq: 1.5, amp: 5 };
+    private readonly NOD_SPEAKING  = { freq: 2.5, amp: 8 };
 
     // --- Searching ---
     private searchTarget: vec3 | null = null;
@@ -94,39 +105,112 @@ export class AssistantMode extends BaseScriptComponent {
             }
         }
 
+        // --- Look-at override takes priority over state-based gaze ---
+        if (this.lookAtOverrideTarget) {
+            if (now < this.lookAtOverrideEndTime) {
+                this.robotDriver.setGazeTarget(this.lookAtOverrideTarget);
+                // Exact tracking during override (no gaze variation)
+                this.robotDriver.setParams({ gazeVariation: 0 });
+                this.robotDriver.updateFrame();
+                return;
+            } else {
+                // Override expired -- restore state params
+                this.lookAtOverrideTarget = null;
+                this.applyStateParams();
+            }
+        }
+
         // --- Set gaze target based on state ---
+        const cameraPos = this.camera.getTransform().getWorldPosition();
+
         switch (this.currentState) {
             case AssistantState.Sleeping:
-                this.robotDriver.setSleepPose();
+                this.robotDriver.setGazeTarget(null);
                 break;
+
             case AssistantState.Idle:
-            case AssistantState.Listening:
-            case AssistantState.Speaking:
-                this.robotDriver.lookAtCamera(this.camera);
+                this.updateIdleWander(now, cameraPos);
                 break;
+
+            case AssistantState.Listening:
+                this.robotDriver.setGazeTarget(
+                    cameraPos.add(new vec3(0, Math.sin(now * this.NOD_LISTENING.freq) * this.NOD_LISTENING.amp, 0))
+                );
+                break;
+
+            case AssistantState.Speaking:
+                this.robotDriver.setGazeTarget(
+                    cameraPos.add(new vec3(0, Math.sin(now * this.NOD_SPEAKING.freq) * this.NOD_SPEAKING.amp, 0))
+                );
+                break;
+
             case AssistantState.Searching:
                 this.updateSearchSweep(now);
                 break;
         }
 
-        // --- Look-at override takes priority ---
-        if (this.lookAtOverrideTarget) {
-            if (now < this.lookAtOverrideEndTime) {
-                this.robotDriver.lookAt(this.lookAtOverrideTarget);
-            } else {
-                this.lookAtOverrideTarget = null;
-            }
-        }
         this.robotDriver.updateFrame();
     }
 
+    // ----------------------------------------------------------------
+    // Idle: look around slowly, occasionally at camera
+    // ----------------------------------------------------------------
+    private updateIdleWander(now: number, cameraPos: vec3): void {
+        if (!this.robotDriver) return;
+
+        if (now > this.nextIdleTargetTime || !this.idleTarget) {
+            if (Math.random() < 0.3) {
+                // 30% chance: look at user
+                this.idleTarget = cameraPos;
+            } else {
+                // 70% chance: look somewhere around the room
+                this.idleTarget = this.randomLookTarget();
+            }
+            this.nextIdleTargetTime = now + this.randomRange(3, 6);
+        }
+
+        this.robotDriver.setGazeTarget(this.idleTarget);
+    }
+
+    private randomLookTarget(): vec3 {
+        const headPos = this.robotDriver!.getHeadWorldPosition();
+        const baseRot = this.robotDriver!.getBaseRotation() || quat.quatIdentity();
+
+        // Robot forward and right in world space
+        const forward = baseRot.multiplyVec3(new vec3(0, 0, 1));
+        const right = baseRot.multiplyVec3(new vec3(1, 0, 0));
+
+        // Random point in a wide cone around robot forward
+        const rightAmount = this.randomRange(-150, 150);
+        const upAmount = this.randomRange(-30, 60);
+
+        return headPos
+            .add(forward.uniformScale(this.IDLE_LOOK_DISTANCE))
+            .add(right.uniformScale(rightAmount))
+            .add(new vec3(0, upAmount, 0));
+    }
+
+    // ----------------------------------------------------------------
+    // Searching: sweep around the search target
+    // ----------------------------------------------------------------
     private updateSearchSweep(now: number): void {
         if (!this.searchTarget || !this.robotDriver) return;
         const elapsed = now - this.searchStartTime;
-        const base = this.robotDriver.anglesToTarget(this.searchTarget);
-        this.robotDriver.lookAtAngles(
-            base.yaw + Math.sin(elapsed * this.SEARCH_SWEEP_SPEED) * this.SEARCH_YAW_AMP,
-            base.pitch + Math.sin(elapsed * this.SEARCH_SWEEP_SPEED * 1.7) * this.SEARCH_PITCH_AMP
+        const headPos = this.robotDriver.getHeadWorldPosition();
+        const toTarget = this.searchTarget.sub(headPos);
+        const dist = toTarget.length;
+
+        // Build perpendicular axes from the direction to target
+        const forward = toTarget.normalize();
+        const right = forward.cross(new vec3(0, 1, 0)).normalize();
+        const up = new vec3(0, 1, 0);
+
+        // Oscillating offset
+        const yawOffset = Math.sin(elapsed * this.SEARCH_SWEEP_SPEED) * dist * Math.tan(this.SEARCH_YAW_AMP);
+        const pitchOffset = Math.sin(elapsed * this.SEARCH_SWEEP_SPEED * 1.7) * dist * Math.tan(this.SEARCH_PITCH_AMP);
+
+        this.robotDriver.setGazeTarget(
+            this.searchTarget.add(right.uniformScale(yawOffset)).add(up.uniformScale(pitchOffset))
         );
     }
 
@@ -195,50 +279,46 @@ export class AssistantMode extends BaseScriptComponent {
         return this.currentState;
     }
 
+    /** Apply the correct preset for the current state. */
+    private applyStateParams(): void {
+        if (!this.robotDriver) return;
+        switch (this.currentState) {
+            case AssistantState.Sleeping:  this.robotDriver.setParams(PRESETS.sleeping);  break;
+            case AssistantState.Idle:      this.robotDriver.setParams(PRESETS.idle);      break;
+            case AssistantState.Listening: this.robotDriver.setParams(PRESETS.listening); break;
+            case AssistantState.Speaking:  this.robotDriver.setParams(PRESETS.speaking);  break;
+            case AssistantState.Searching: this.robotDriver.setParams(PRESETS.searching); break;
+        }
+    }
+
     private enterSleeping(): void {
         this.closeSession();
         if (this.robotDriver) {
-            this.robotDriver.setSleepPose();
-            this.robotDriver.setProfile(PROFILES.sleeping);
+            this.robotDriver.setParams(PRESETS.sleeping);
+            this.robotDriver.setGazeTarget(null);
         }
     }
 
     private enterIdle(): void {
         this.lastActivityTime = getTime();
+        this.idleTarget = null;
+        this.nextIdleTargetTime = 0;
         if (this.robotDriver) {
-            this.robotDriver.setProfile(PROFILES.idle);
-            this.robotDriver.clearNod();
-            this.robotDriver.setGlanceBehavior({
-                lookMinSec: 0.5, lookMaxSec: 1.5,
-                glanceMinSec: 1.5, glanceMaxSec: 4.0,
-                yawOffsetDeg: 40, pitchOffsetDeg: 22
-            });
+            this.robotDriver.setParams(PRESETS.idle);
         }
     }
 
     private enterListening(): void {
         this.lastActivityTime = getTime();
         if (this.robotDriver) {
-            this.robotDriver.setProfile(PROFILES.listening);
-            this.robotDriver.setNod(1.5, 2);
-            this.robotDriver.setGlanceBehavior({
-                lookMinSec: 2.0, lookMaxSec: 5.0,
-                glanceMinSec: 0.3, glanceMaxSec: 0.8,
-                yawOffsetDeg: 8, pitchOffsetDeg: 5
-            });
+            this.robotDriver.setParams(PRESETS.listening);
         }
     }
 
     private enterSpeaking(): void {
         this.lastActivityTime = getTime();
         if (this.robotDriver) {
-            this.robotDriver.setProfile(PROFILES.speaking);
-            this.robotDriver.setNod(2.5, 3);
-            this.robotDriver.setGlanceBehavior({
-                lookMinSec: 1.5, lookMaxSec: 3.5,
-                glanceMinSec: 0.6, glanceMaxSec: 1.5,
-                yawOffsetDeg: 14, pitchOffsetDeg: 8
-            });
+            this.robotDriver.setParams(PRESETS.speaking);
         }
     }
 
@@ -253,9 +333,7 @@ export class AssistantMode extends BaseScriptComponent {
             this.searchTarget = cam.getWorldPosition().add(cam.forward.uniformScale(200));
         }
         if (this.robotDriver) {
-            this.robotDriver.setProfile(PROFILES.searching);
-            this.robotDriver.clearNod();
-            this.robotDriver.setGlanceBehavior(null);
+            this.robotDriver.setParams(PRESETS.searching);
         }
     }
 
@@ -322,13 +400,14 @@ export class AssistantMode extends BaseScriptComponent {
 
         if (this.isPaused) return;
 
+        if (this.currentState === AssistantState.Idle) {
+            this.setState(AssistantState.Listening);
+        }
+        
         if (!isFinal) {
             this.currentTranscription = text;
             print(`AssistantMode: ASR partial: "${text}"`);
             this.logDebug(`ASR: ${text}`);
-            if (this.currentState === AssistantState.Idle) {
-                this.setState(AssistantState.Listening);
-            }
             return;
         }
 
@@ -346,8 +425,10 @@ export class AssistantMode extends BaseScriptComponent {
     }
 
     private onTranscriptionError(errorCode: AsrModule.AsrStatusCode): void {
-        print(`AssistantMode: ASR error: ${errorCode} state: ${AssistantState[this.currentState]})`);
-        this.logDebug(`ASR error: ${errorCode}`);
+        const message = `ASR error: ${errorCode}`;
+        print(`AssistantMode: ${message} state: ${AssistantState[this.currentState]})`);
+        this.logDebug(message);
+        this.onErrorOccurred.forEach(cb => cb(message));
         print("AssistantMode: Restarting ASR after error...");
         this.startASR();
     }
@@ -391,7 +472,7 @@ export class AssistantMode extends BaseScriptComponent {
         }
 
         try {
-            this.robotDriver.lookAt(this.camera.getTransform().getWorldPosition());
+            this.robotDriver.setGazeTarget(this.camera.getTransform().getWorldPosition());
             const response = await this.llmInterface.sendMessage(text);
 
             this.setState(AssistantState.Speaking);
@@ -404,8 +485,10 @@ export class AssistantMode extends BaseScriptComponent {
             this.setState(AssistantState.Idle);
 
         } catch (error) {
-            print(`AssistantMode: processUserSpeech failed: ${error}`);
-            this.logDebug(`Agent - Error: processUserSpeech failed: ${error}`);
+            const message = `processUserSpeech failed: ${error}`;
+            print(`AssistantMode: ${message}`);
+            this.logDebug(`Agent - Error: ${message}`);
+            this.onErrorOccurred.forEach(cb => cb(message));
             this.setState(AssistantState.Idle);
         }
     }
@@ -418,7 +501,7 @@ export class AssistantMode extends BaseScriptComponent {
         }
 
         try {
-            this.robotDriver.lookAt(this.camera.getTransform().getWorldPosition());
+            this.robotDriver.setGazeTarget(this.camera.getTransform().getWorldPosition());
             const response = await this.llmInterface.sendMessage(this.GREETING_PROMPT);
 
             this.setState(AssistantState.Speaking);
@@ -428,8 +511,10 @@ export class AssistantMode extends BaseScriptComponent {
             this.lastActivityTime = getTime();
             this.setState(AssistantState.Listening);
         } catch (error) {
-            print(`AssistantMode: playGreeting failed: ${error}`);
-            this.logDebug(`Agent - Error: playGreeting failed: ${error}`);
+            const message = `playGreeting failed: ${error}`;
+            print(`AssistantMode: ${message}`);
+            this.logDebug(`Agent - Error: ${message}`);
+            this.onErrorOccurred.forEach(cb => cb(message));
             this.setState(AssistantState.Listening);
         }
     }
@@ -442,5 +527,12 @@ export class AssistantMode extends BaseScriptComponent {
         if (this.llmInterface && this.assistantTools) {
             this.assistantTools.registerTools(this.llmInterface);
         }
+    }
+
+    // ----------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------
+    private randomRange(min: number, max: number): number {
+        return min + Math.random() * (max - min);
     }
 }

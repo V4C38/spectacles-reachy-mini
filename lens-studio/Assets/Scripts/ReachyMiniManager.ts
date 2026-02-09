@@ -40,6 +40,7 @@ export class ReachyMiniManager extends BaseScriptComponent {
     // --- Facade: assistant callback arrays ---
     public onAssistantStateChanged: ((state: AssistantState) => void)[] = [];
     public onSessionChanged: ((active: boolean) => void)[] = [];
+    public onDebugForceShow: (() => void)[] = [];
 
     // Logger
     @input
@@ -60,6 +61,10 @@ export class ReachyMiniManager extends BaseScriptComponent {
                 });
                 this.assistantMode.onSessionChanged.push((active: boolean) => {
                     this.onSessionChanged.forEach(cb => cb(active));
+                });
+                this.assistantMode.onErrorOccurred.push((msg: string) => {
+                    this.logDebug(msg);
+                    this.onDebugForceShow.forEach(cb => cb());
                 });
             }
 
@@ -270,7 +275,7 @@ export class ReachyMiniManager extends BaseScriptComponent {
     // ----------------------------------------------------------------
     public showReachyMiniMesh(enabled: boolean) {
         if (this.positioningHologram) {
-            this.animateSceneObjectState(this.positioningHologram, enabled);
+            this.animateRobotBody(this.positioningHologram, enabled);
         }
     }
 
@@ -288,7 +293,7 @@ export class ReachyMiniManager extends BaseScriptComponent {
         }
     }
 
-    private animateSceneObjectState(sceneObject: SceneObject, state: boolean, duration: number = 0.5, scale: vec3 = new vec3(1, 1, 1)): Promise<void> {
+    private animateRobotBody(sceneObject: SceneObject, state: boolean, duration: number = 0.5, scale: vec3 = new vec3(1, 1, 1)): Promise<void> {
         if (state) {
             sceneObject.enabled = true;
         }
@@ -307,6 +312,7 @@ export class ReachyMiniManager extends BaseScriptComponent {
                 ended: () => {
                     if (!state) {
                         sceneObject.enabled = false;
+                        sceneObject.getTransform().setLocalScale(new vec3(1, 1, 1));
                     }
                     resolve();
                 },

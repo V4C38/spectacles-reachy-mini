@@ -26,6 +26,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    audioPlayerBackground: false
     buttonAllowRepositioning: false
     buttonEnable: false
     buttonEnableVFX: false
@@ -61,6 +62,7 @@
       buttonMode1: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
       buttonMode2: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
       buttonAllowRepositioning: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
+      audioPlayerBackground: !<reference.AudioComponent> 00000000-0000-0000-0000-000000000000
       buttonShowDebugInfo: !<MappingBased.AssignableType_5> 00000000-0000-0000-0000-000000000000
       textDebugInfo: !<reference.Text> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
@@ -79,5 +81,6 @@
     - // @input AssignableType_2 buttonMode1
     - // @input AssignableType_3 buttonMode2
     - // @input AssignableType_4 buttonAllowRepositioning
+    - // @input Component.AudioComponent audioPlayerBackground
     - // @input AssignableType_5 buttonShowDebugInfo
     - // @input Component.Text textDebugInfo

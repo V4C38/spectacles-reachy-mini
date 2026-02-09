@@ -19,8 +19,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from reachy_mini import ReachyMini, ReachyMiniApp
 
-from spectacles_reachy_mini.animations import play_animation
 from spectacles_reachy_mini.audio_handler import AudioHandler
+from spectacles_reachy_mini.camera_handler import CameraHandler
 from spectacles_reachy_mini.movement_handler import MovementHandler
 from spectacles_reachy_mini.ws_handler import WebSocketHandler
 
@@ -50,7 +50,8 @@ def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
     app = FastAPI(title="Reachy Mini Spectacles Bridge")
     audio_handler = AudioHandler(reachy_mini)
     movement_handler = MovementHandler(reachy_mini)
-    ws_handler = WebSocketHandler(movement_handler, audio_handler)
+    camera_handler = CameraHandler(reachy_mini)
+    ws_handler = WebSocketHandler(movement_handler, audio_handler, camera_handler)
 
     # ----------------------------------------------------------------
     # WebSocket endpoint
@@ -128,13 +129,6 @@ class SpectaclesReachyMini(ReachyMiniApp):
             logger.info("Robot audio output initialized")
         except Exception as exc:
             logger.warning("Could not initialize robot audio: %s", exc)
-
-        # Play greeting animation once at startup
-        try:
-            play_animation(reachy_mini, "greeting")
-            logger.info("Startup greeting animation played")
-        except Exception as exc:
-            logger.warning("Startup greeting animation failed: %s", exc)
 
         # Build FastAPI app
         app = create_app(reachy_mini, stop_event)

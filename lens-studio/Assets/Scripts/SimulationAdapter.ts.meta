@@ -27,6 +27,7 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     audioComponent: false
+    audioDance: false
     audioExcited: false
     audioGoodbye: false
     audioGreeting: false
@@ -70,6 +71,7 @@
       audioSad: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
       audioExcited: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
       audioThinking: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
+      audioDance: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -91,3 +93,4 @@
     - // @input Asset.AudioTrackAsset audioSad
     - // @input Asset.AudioTrackAsset audioExcited
     - // @input Asset.AudioTrackAsset audioThinking
+    - // @input Asset.AudioTrackAsset audioDance

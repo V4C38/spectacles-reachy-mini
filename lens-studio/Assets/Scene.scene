@@ -437,8 +437,8 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: 180.000000, y: 90.000000, z: 0.000000}
+    Position: {x: -0.100000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 180.000000, y: -20.000000, z: 0.000000}
     Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
     HasSegmentScaleCompensation: false
   Children:
@@ -551,13 +551,13 @@
   Volume: 1.000000
   EnableMixToSnap: false
   RecordVolume: 1.000000
-  EnableSpatialAudio: false
-  EnableDistanceEffect: false
+  EnableSpatialAudio: true
+  EnableDistanceEffect: true
   CurveType: Logarithm
   MinDistance: 0.000000
-  MaxDistance: 100.000000
-  EnableDirectivityEffect: false
-  EnablePositionEffect: false
+  MaxDistance: 1000.000000
+  EnableDirectivityEffect: true
+  EnablePositionEffect: true
 - !<SceneObject/1036d690-6737-4314-a693-b98c84acb3d3>
   PrefabRemaps:
     []
@@ -1333,7 +1333,7 @@
   Layers: 1
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: 180.000000, y: 90.000000, z: 0.000000}
+    Rotation: {x: 180.000000, y: 200.000000, z: 0.000000}
     Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
     HasSegmentScaleCompensation: false
   Children:
@@ -1783,6 +1783,21 @@
     CapitalizationOverride: None
   DepthTest: false
   TwoSided: false
+- !<SceneObject/363bd34a-c1d7-4f77-b7f9-4a96f1657444>
+  PrefabRemaps:
+    []
+  Name: loop_uibackground
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 90ef01f0-b566-4217-9c04-57b2c2385cfc
 - !<ScriptComponent/37423103-2105-48f1-86aa-18e72b387397>
   PrefabRemaps:
     []
@@ -2491,6 +2506,7 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
+    - !<own> 363bd34a-c1d7-4f77-b7f9-4a96f1657444
     - !<own> 425c0a8d-1ed8-49ee-8fca-b325ff8dd8cf
   Components:
     - !<own> fac33dc6-f823-452b-a368-49f7036cf3fe
@@ -4114,6 +4130,23 @@
     - !<own> bd9d9184-e03d-4bd5-81f4-507d77a9d55f
   Components:
     []
+- !<AudioComponent/90ef01f0-b566-4217-9c04-57b2c2385cfc>
+  PrefabRemaps:
+    []
+  Name: Audio
+  Enabled: true
+  AudioTrack: !<reference> 30446b84-af93-4a8a-ab09-43d80e3a4848
+  EnableAutoplayLoop: false
+  Volume: 0.650000
+  EnableMixToSnap: false
+  RecordVolume: 1.000000
+  EnableSpatialAudio: true
+  EnableDistanceEffect: true
+  CurveType: Logarithm
+  MinDistance: 0.000000
+  MaxDistance: 250.000000
+  EnableDirectivityEffect: true
+  EnablePositionEffect: true
 - !<SceneObject/91191875-22ce-4150-892c-d780508fa8e5>
   PrefabRemaps:
     []
@@ -4890,6 +4923,7 @@
       audioSad: !<reference.AudioTrackAsset> 1dbf60ac-a109-434e-9cec-4f4790511d1f
       audioExcited: !<reference.AudioTrackAsset> c476f2f9-9583-4f88-a749-c837f8a797e4
       audioThinking: !<reference.AudioTrackAsset> 6a7b9a6e-e8a2-4970-b373-d77ab2be10fc
+      audioDance: !<reference.AudioTrackAsset> c476f2f9-9583-4f88-a749-c837f8a797e4
   ScriptTypes:
     "":
       {}
@@ -6156,7 +6190,8 @@
   Enabled: true
   ScriptAsset: !<reference> 543f8c6e-ec04-4709-bc24-d4db9c86a8c8
   ScriptInputsDefault:
-    {}
+    camera: true
+    hardwareAdapter: true
   ScriptTypesDefault:
     {}
   ScriptInputs:
@@ -6166,7 +6201,9 @@
       robotDriver: !<MappingBased.AssignableType_2> 7cb7a6c3-924e-4765-9a29-0ae41e8228d2
       objectMarkerPrefab: !<reference.ObjectPrefab> bb47d936-adfb-479d-966f-fc30cdacfa21
       lineRendererPrefab: !<reference.ObjectPrefab> f7a443b8-4645-45ff-8273-c1e6355e722c
-      switchObjectDetectionTool: !<MappingBased.AssignableType_3> d9fe0031-f47b-413e-8bf5-ff205fd3b677
+      camera: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      hardwareAdapter: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      switchObjectDetectionTool: !<MappingBased.AssignableType_4> d9fe0031-f47b-413e-8bf5-ff205fd3b677
       textDebugInfo: !<reference.Text> c33211ac-033b-498e-97df-7eebb431d0ca
   ScriptTypes:
     "":
@@ -7141,6 +7178,7 @@
       buttonMode1: !<MappingBased.AssignableType_2> 1c5465be-0442-49da-b64f-e2784f35a545
       buttonMode2: !<MappingBased.AssignableType_3> 4c285579-f218-4cf5-b281-5d35c4793522
       buttonAllowRepositioning: !<MappingBased.AssignableType_4> e646a13a-0e6f-4f3d-aeda-9bf855740699
+      audioPlayerBackground: !<reference.AudioComponent> 90ef01f0-b566-4217-9c04-57b2c2385cfc
       buttonShowDebugInfo: !<MappingBased.AssignableType_5> 8417db3a-777e-4563-8e91-8726bd535c3a
       textDebugInfo: !<reference.Text> c33211ac-033b-498e-97df-7eebb431d0ca
   ScriptTypes:

@@ -87,18 +87,6 @@ class AudioHandler:
         self._push_and_wait(samples, target_rate)
         logger.info("Raw audio playback complete (%d samples)", len(samples))
 
-    def play_animation_audio(self, animation_name: str) -> None:
-        """Play the WAV file for a named animation, if it exists. No-op if file missing."""
-        name = animation_name.strip().lower()
-        path = _AUDIO_DIR / f"{name}.wav"
-        if not path.is_file():
-            logger.debug("No animation audio for %s at %s", name, path)
-            return
-        try:
-            self._play_wav_file(path)
-        except Exception as exc:
-            logger.warning("Animation audio %s failed: %s", path.name, exc)
-
     def _play_wav_file(self, path: Path) -> None:
         """Load a WAV file and play on the robot speaker. Mono or stereo, 8/16/24/32 bit."""
         with wave.open(str(path), "rb") as wav:

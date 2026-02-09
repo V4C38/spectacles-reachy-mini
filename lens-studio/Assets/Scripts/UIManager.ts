@@ -37,10 +37,15 @@ export class UIManager extends BaseScriptComponent {
     @input
     private buttonAllowRepositioning: RectangleButton | null = null;
 
+
+    @input
+    private audioPlayerBackground: AudioComponent | null = null;
+
     @input
     private buttonShowDebugInfo: RectangleButton | null = null;
     @input
     private textDebugInfo: Text | null = null;
+
 
 
     onAwake() {
@@ -86,8 +91,23 @@ export class UIManager extends BaseScriptComponent {
                     if (!this.textStateInidcator || this.reachyMiniManager.controlMode !== 2) return;
                     this.textStateInidcator.text = active ? "Reachy" : "Say 'Reachy' to wake up";
                 });
+                this.reachyMiniManager.onDebugForceShow.push(() => this.forceShowDebugPanel());
             }
         });
+    }
+
+    // ------------------------------------------------------------
+    // Debug Panel
+    // ------------------------------------------------------------
+    public forceShowDebugPanel(): void {
+        if (this.textDebugInfo) {
+            this.textDebugInfo.sceneObject.enabled = true;
+        }
+        if (this.buttonShowDebugInfo && (this.buttonShowDebugInfo as any).toggle) {
+            (this.buttonShowDebugInfo as any).toggle(true);
+        } else if (this.buttonShowDebugInfo && (this.buttonShowDebugInfo as any).isOn !== undefined) {
+            (this.buttonShowDebugInfo as any).isOn = true;
+        }
     }
 
     // ------------------------------------------------------------
@@ -138,11 +158,13 @@ export class UIManager extends BaseScriptComponent {
                 if (this.buttonEnable) {
                     this.buttonEnable.sceneObject.enabled = false;
                 }
+                if (this.audioPlayerBackground) {
+                    this.audioPlayerBackground.stop(true);
+                }
                 break;
             case 1:
                 if (this.uiContainer) {
                     this.uiContainer.enabled = false;
-                    
                 }
                 if (this.buttonEnable && this.buttonEnableVFX) {
                     this.buttonEnable.sceneObject.enabled = true;
@@ -166,6 +188,9 @@ export class UIManager extends BaseScriptComponent {
                 if (this.reachyMiniManager) {
                     this.reachyMiniManager.setIsActive(true);
                 }
+                if (this.audioPlayerBackground) {
+                    this.audioPlayerBackground.stop(true);
+                }
                 break;
             case 2:
                 if (this.uiContainer) {
@@ -182,7 +207,9 @@ export class UIManager extends BaseScriptComponent {
                 if (this.reachyMiniManager) {
                     this.reachyMiniManager.setIsActive(false);
                 }
-
+                if (this.audioPlayerBackground) {
+                    this.audioPlayerBackground.play(999);
+                }
                 // Update connection status via facade
                 if (this.reachyMiniManager) {
                     if (this.reachyMiniManager.isSimulationMode) {

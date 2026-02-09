@@ -1,6 +1,7 @@
 import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
-import { RobotDriver, PROFILES } from "./RobotDriver";
+import { RobotDriver } from "./RobotDriver";
+import { PRESETS } from "./RobotAnimationConfig";
 import { getObjectLinkRenderer, ObjectLinkRenderer } from "./Utils/ObjectLinkRenderer";
 
 //Puppeteer control mode: makes the robot look at a draggable target scene object.
@@ -21,7 +22,10 @@ export class PuppeteerMode extends BaseScriptComponent {
     private lineObj: SceneObject | null = null;
     private lineRenderer: ObjectLinkRenderer | null = null;
     @input
-    private lineRendererRoot : SceneObject | null = null;
+    private lineRendererRoot: SceneObject | null = null;
+
+    /** Current scale animation per object; only the animation for the same object is cancelled when starting a new one. */
+    private sceneObjectStateAnimations: Map<SceneObject, ReturnType<typeof animate>> = new Map();
 
     onAwake() {
     }
@@ -31,7 +35,7 @@ export class PuppeteerMode extends BaseScriptComponent {
     public reset(): void {
         if (this.robotDriver) {
             this.robotDriver.reset();
-            this.robotDriver.setProfile(PROFILES.puppeteer);
+            this.robotDriver.setParams(PRESETS.puppeteer);
         }
     }
 
@@ -43,10 +47,9 @@ export class PuppeteerMode extends BaseScriptComponent {
             this.interactableRoot.getTransform().getWorldPosition()
         );
 
-
         this.animateSceneObjectState(this.interactable.sceneObject, true, 0.75, new vec3(0.35, 0.35, 0.35));
         this.robotDriver.reset();
-        this.robotDriver.setProfile(PROFILES.puppeteer);
+        this.robotDriver.setParams(PRESETS.puppeteer);
 
         this.startHeadToInteractableLine();
     }
@@ -61,6 +64,7 @@ export class PuppeteerMode extends BaseScriptComponent {
 
     public pause(): void {
         if (this.robotDriver) this.robotDriver.pause();
+
         if (this.interactableVFX) {
             this.interactableVFX.mainPass["Saturation"] = 0;
         }
@@ -68,6 +72,7 @@ export class PuppeteerMode extends BaseScriptComponent {
 
     public resume(): void {
         if (this.robotDriver) this.robotDriver.resume();
+
         if (this.interactableVFX) {
             this.interactableVFX.mainPass["Saturation"] = 1;
         }
@@ -77,7 +82,7 @@ export class PuppeteerMode extends BaseScriptComponent {
     // ----------------------------------------------------------------
     public update(): void {
         if (!this.robotDriver || !this.interactable) return;
-        this.robotDriver.lookAt(this.interactable.sceneObject.getTransform().getWorldPosition());
+        this.robotDriver.setGazeTarget(this.interactable.sceneObject.getTransform().getWorldPosition());
         this.robotDriver.updateFrame();
         this.updateHeadToInteractableLine();
     }
@@ -110,27 +115,29 @@ export class PuppeteerMode extends BaseScriptComponent {
     }
 
     private stopHeadToInteractableLine(): void {
-        if (!this.lineRenderer || !this.lineObj) return;
-        const obj = this.lineObj;
+        if (!this.lineRenderer) return;
         const renderer = this.lineRenderer;
         this.lineObj = null;
         this.lineRenderer = null;
-        renderer.disappear(() => {
-            obj.destroy();
-        });
+        renderer.destroy();
     }
 
     // ----------------------------------------------------------------
     // Helpers
     // ----------------------------------------------------------------
     private animateSceneObjectState(sceneObject: SceneObject, state: boolean, duration: number = 0.5, scale: vec3 = new vec3(1, 1, 1)): Promise<void> {
+        const existing = this.sceneObjectStateAnimations.get(sceneObject);
+        if (existing) {
+            existing();
+            this.sceneObjectStateAnimations.delete(sceneObject);
+        }
         if (state) {
             sceneObject.enabled = true;
         }
         const startScale = state ? new vec3(0, 0, 0) : scale;
         const targetScale = state ? scale : new vec3(0, 0, 0);
         return new Promise<void>((resolve) => {
-            animate({
+            const anim = animate({
                 duration: duration,
                 easing: "ease-in-out-quad",
                 update: (t: number) => {
@@ -140,12 +147,14 @@ export class PuppeteerMode extends BaseScriptComponent {
                     sceneObject.getTransform().setLocalScale(new vec3(x, y, z));
                 },
                 ended: () => {
+                    this.sceneObjectStateAnimations.delete(sceneObject);
                     if (!state) {
                         sceneObject.enabled = false;
                     }
                     resolve();
                 },
             });
+            this.sceneObjectStateAnimations.set(sceneObject, anim);
         });
     }
 }
