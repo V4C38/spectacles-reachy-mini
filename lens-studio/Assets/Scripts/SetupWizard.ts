@@ -52,7 +52,7 @@ export class SetupWizard extends BaseScriptComponent {
 
     private stepDescriptions: string[] = [
         " \n \n In the Reachy Mini Desktop application, start the app: \n \n 😎 spectacles_reachy_mini ",
-        " \n Enter the IP address shown on the app page.",
+        " \n Enter the IP address of your PC",
         " \n \n Position Reachy Mini in the desired location  \n You can adjust this later in the settings.",
         ""
     ];

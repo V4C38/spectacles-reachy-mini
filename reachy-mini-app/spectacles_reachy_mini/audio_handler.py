@@ -1,6 +1,9 @@
 """
-Audio handling: base64 PCM decode, OpenAI TTS generation, WAV file playback,
-and robot speaker playback.
+Audio playback on the Reachy Mini robot: raw PCM and WAV files.
+
+Handles play_audio (base64 float32 PCM decode and push to robot) and WAV file
+playback for animation audio. Uses the robot’s media API; sample rate and
+format are fixed for the hardware.
 """
 
 from __future__ import annotations
@@ -28,41 +31,6 @@ class AudioHandler:
 
     def __init__(self, reachy_mini: ReachyMini) -> None:
         self.mini = reachy_mini
-
-    def play_tts(self, text: str, voice: str = "alloy") -> None:
-        """Generate TTS via OpenAI and play on the robot speaker."""
-        try:
-            from openai import OpenAI
-        except ImportError:
-            raise RuntimeError("openai package is required for play_tts. Install with: pip install openai")
-
-        client = OpenAI()
-
-        logger.info("Generating TTS for: %.60s...", text)
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice=voice,
-            input=text,
-            response_format="pcm",  # Raw PCM s16le at 24kHz
-        )
-
-        # OpenAI PCM output is signed 16-bit little-endian at 24kHz mono
-        pcm_bytes = response.content
-        samples_s16 = np.frombuffer(pcm_bytes, dtype=np.int16)
-        samples_f32 = samples_s16.astype(np.float32) / 32768.0
-
-        # Resample from 24kHz to robot's rate (16kHz)
-        source_rate = 24000
-        target_rate = self._get_output_sample_rate()
-        if source_rate != target_rate:
-            samples_f32 = self._resample(samples_f32, source_rate, target_rate)
-
-        # Reshape to (samples, 1) for mono
-        if samples_f32.ndim == 1:
-            samples_f32 = samples_f32.reshape(-1, 1)
-
-        self._push_and_wait(samples_f32, target_rate)
-        logger.info("TTS playback complete")
 
     def play_raw_audio(self, data_b64: str, sample_rate: int = 16000, channels: int = 1) -> None:
         """Decode base64 PCM float32 audio and play on the robot speaker."""
@@ -139,10 +107,10 @@ class AudioHandler:
         time.sleep(duration)
 
     def _get_output_sample_rate(self) -> int:
-        """Get the robot's output sample rate, defaulting to 16kHz."""
+        """Get the robot's output sample rate, defaulting to 16 kHz."""
         try:
             return self.mini.media.get_output_audio_samplerate()
-        except Exception:
+        except (AttributeError, TypeError):
             return ROBOT_SAMPLE_RATE
 
     @staticmethod

@@ -7,8 +7,6 @@ import { MLObjectDetector } from "./MLObjectDetector";
 import { RobotDriver } from "../RobotDriver";
 import { getObjectLinkRenderer } from "./ObjectLinkRenderer";
 
-const CameraModule = require("LensStudio:CameraModule");
-
 /**
  * Component that provides LLM tools for the AssistantMode.
  * Add this component to a scene object and configure the required inputs.
@@ -28,8 +26,6 @@ export class AssistantTools extends BaseScriptComponent {
     public objectMarkerPrefab: ObjectPrefab | null = null;
     @input
     public lineRendererPrefab: ObjectPrefab | null = null;
-    @input
-    private camera: SceneObject | null = null;
     @input
     private hardwareAdapter: HardwareAdapter | null = null;
 
@@ -117,18 +113,12 @@ export class AssistantTools extends BaseScriptComponent {
             print("AssistantTools: Skipping draw_line tool (missing lineRendererPrefab or draw line tool is off)");
         }
 
-        // Register take_picture_userview when assistantMode and camera are available
-        if (this.assistantMode && this.camera) {
-            llmService.registerTool(this.createTakePictureUserViewTool());
-            registeredCount++;
-        } else {
-            print("AssistantTools: Skipping take_picture_userview (missing assistantMode or camera)");
-        }
-
-        // Register take_picture_robotview when robotDriver and hardwareAdapter are available
-        if (this.robotDriver && this.hardwareAdapter && this.assistantMode) {
+        // Register take_picture_robotview only when not in simulation mode (robot has real camera)
+        if (this.robotDriver && this.hardwareAdapter && this.assistantMode && !this.robotDriver.getIsSimulationMode()) {
             llmService.registerTool(this.createTakePictureRobotViewTool());
             registeredCount++;
+        } else if (this.robotDriver && this.robotDriver.getIsSimulationMode()) {
+            print("AssistantTools: Skipping take_picture_robotview (simulation mode is on)");
         } else {
             print("AssistantTools: Skipping take_picture_robotview (missing robotDriver, hardwareAdapter, or assistantMode)");
         }
@@ -564,46 +554,6 @@ export class AssistantTools extends BaseScriptComponent {
     }
 
     /* ----------------------------------------------------------------
-     * Take picture from Spectacles camera (user's view).
-     * ----------------------------------------------------------------
-    */
-    private createTakePictureUserViewTool(): ToolDefinition {
-        return {
-            name: "take_picture_userview",
-            description: "Capture an image from the Spectacles camera (the user's first-person view). Use this when the user asks what you see, to take a picture of the scene, or to analyze what is in front of them. The image will be analyzed by the vision model. Returns camera position and look direction so you know where the shot was taken from.",
-            parameters: { type: "object", properties: {}, required: [] },
-            handler: async (): Promise<string> => {
-                if (!this.camera) {
-                    return JSON.stringify({ success: false, error: "Camera not configured" });
-                }
-                try {
-                    const imageBase64 = await this.captureSpectaclesFrame();
-                    if (!imageBase64) {
-                        return JSON.stringify({ success: false, error: "Failed to capture frame" });
-                    }
-                    const pos = this.camera.getTransform().getWorldPosition();
-                    const rot = this.camera.getTransform().getWorldRotation();
-                    const forward = rot.multiplyVec3(new vec3(0, 0, 1));
-                    const hDist = Math.sqrt(forward.x * forward.x + forward.z * forward.z);
-                    const yaw = Math.atan2(forward.x, forward.z);
-                    const pitch = hDist > 0.001 ? -Math.atan2(forward.y, hDist) : 0;
-                    return JSON.stringify({
-                        success: true,
-                        image_base64: imageBase64,
-                        mime: "image/jpeg",
-                        source: "spectacles_camera",
-                        camera_position: { x: pos.x, y: pos.y, z: pos.z },
-                        look_direction: { yaw, pitch },
-                    });
-                } catch (error) {
-                    const msg = error instanceof Error ? error.message : String(error);
-                    return JSON.stringify({ success: false, error: msg });
-                }
-            },
-        };
-    }
-
-    /* ----------------------------------------------------------------
      * Take picture from robot's onboard camera.
      * ----------------------------------------------------------------
     */
@@ -657,34 +607,6 @@ export class AssistantTools extends BaseScriptComponent {
                 }
             },
         };
-    }
-
-    /** Capture a frame from Spectacles Left_Color camera, return base64 JPEG or null. */
-    private captureSpectaclesFrame(): Promise<string | null> {
-        return new Promise((resolve) => {
-            try {
-                const cameraRequest = CameraModule.createCameraRequest();
-                cameraRequest.cameraId = CameraModule.CameraId.Left_Color;
-                const cameraTexture = CameraModule.requestCamera(cameraRequest);
-                const textureProvider = cameraTexture.control as CameraTextureProvider;
-                const onNewFrame = textureProvider.onNewFrame;
-                const registration1 = onNewFrame.add(() => {
-                    onNewFrame.remove(registration1);
-                    const registration2 = onNewFrame.add(() => {
-                        onNewFrame.remove(registration2);
-                        Base64.encodeTextureAsync(
-                            cameraTexture,
-                            (base64String: string) => resolve(base64String),
-                            () => resolve(null),
-                            CompressionQuality.HighQuality,
-                            EncodingType.Jpg
-                        );
-                    });
-                });
-            } catch (error) {
-                resolve(null);
-            }
-        });
     }
 
     /* ----------------------------------------------------------------

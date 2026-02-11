@@ -33,13 +33,13 @@ export const PRESETS: Record<string, AnimationParams> = {
         maxHeadDeltaMul:    0.3,
         rollAmplitudeMul:   0.2,
         yBobAmplitudeMul:   0.2,
-        headYPosMul:       -0.3,
+        headYPosMul:       -0.55,   // head lowered more (more noticeable sleep)
         antennaAmplitudeMul:0.15,
         antennaSpeedMul:    0.5,
         gazeVariation:      0,
         bodyFollowMul:      0.3,
         pitchSmoothingMul:  0.3,
-        neutralPitchWhenNull: 0.35,   // head tilted down (positive = look down)
+        neutralPitchWhenNull: 0.6,   // head tilted down further (radians; positive = look down)
     },
     idle: {
         headMoveSpeedMul:   0.6,

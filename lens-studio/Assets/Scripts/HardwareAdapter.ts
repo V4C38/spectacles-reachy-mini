@@ -33,8 +33,8 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     private pendingRequests: Map<number, PendingRequest> = new Map();
     private isConnecting: boolean = false;
 
-    // --- set_target throttling (reduces jitter from network flooding) ---
-    private static readonly SET_TARGET_MIN_INTERVAL_SEC = 0.066; // ~15Hz max
+    // --- set_target throttling (aligns with Python 20 Hz send rate) ---
+    private static readonly SET_TARGET_MIN_INTERVAL_SEC = 0.05; // 20 Hz max
     private lastSetTargetTime: number = 0;
 
     onAwake() {
@@ -289,7 +289,7 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     public async setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void> {
         const now = getTime();
         if (now - this.lastSetTargetTime < HardwareAdapter.SET_TARGET_MIN_INTERVAL_SEC) {
-            return; // Throttle to ~15Hz; Python-side LERP at 30Hz fills the gaps
+            return; // Throttle to 20 Hz; Python-side LERP at 30 Hz fills the gaps
         }
         this.lastSetTargetTime = now;
 
@@ -367,18 +367,6 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
             throw new Error(`playAudio failed: ${(result as any)?.message || "unknown error"}`);
         }
         print(`HardwareAdapter: Played ${readTotal} samples (${durationSec.toFixed(2)}s) on Reachy Mini speaker`);
-    }
-
-    /**
-     * Send text to the Python bridge for server-side TTS and robot speaker playback.
-     * @param text The text to speak
-     * @param voice OpenAI TTS voice (default: "alloy")
-     */
-    public async playTTS(text: string, voice: string = "alloy"): Promise<void> {
-        const result = await this.sendAndWait({ type: "play_tts", text: text, voice: voice }, 30);
-        if (!result || result.type === "error") {
-            throw new Error(`playTTS failed: ${result?.message || "unknown error"}`);
-        }
     }
 
     /**

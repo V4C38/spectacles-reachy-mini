@@ -46,10 +46,6 @@ pip install -e .
 4. In the Reachy dashboard / desktop app, start **Spectacles AR controller**.
 5. Open `http://<robot-ip>:8765/` and enter the shown IP in the Spectacles setup wizard. The Lens connects to `ws://<robot-ip>:8765/ws`.
 
-## Audio (optional): OpenAI TTS
-
-This app supports a `play_tts` WebSocket message that uses the OpenAI API. If you use that feature, make sure your environment is configured with an OpenAI API key (e.g. `OPENAI_API_KEY`).
-
 ## Publishing to Hugging Face (so it shows up in the app store)
 
 Reachy Mini apps are shared as **Hugging Face Spaces** (this Space is `sdk: static` so the page is lightweight; the robot installs/runs the Python code locally).

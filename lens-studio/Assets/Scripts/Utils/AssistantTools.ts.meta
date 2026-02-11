@@ -27,7 +27,6 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     assistantMode: false
-    camera: false
     hardwareAdapter: false
     lineRendererPrefab: false
     mlDetector: false
@@ -49,7 +48,6 @@
       robotDriver: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
       objectMarkerPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
       lineRendererPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
-      camera: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       hardwareAdapter: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
       switchObjectDetectionTool: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
       textDebugInfo: !<reference.Text> 00000000-0000-0000-0000-000000000000
@@ -62,7 +60,6 @@
     - // @input AssignableType_2 robotDriver
     - // @input Asset.ObjectPrefab objectMarkerPrefab
     - // @input Asset.ObjectPrefab lineRendererPrefab
-    - // @input SceneObject camera
     - // @input AssignableType_3 hardwareAdapter
     - // @input AssignableType_4 switchObjectDetectionTool
     - // @input Component.Text textDebugInfo

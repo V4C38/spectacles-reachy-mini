@@ -15,9 +15,10 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     private audioComponent: AudioComponent | null = null;
 
     @input
-    private materialsDefault: Material[] | null = null;
-    @input
     private hologramMaterial: Material | null = null;
+
+    /** Cached at awake: per-RenderMeshVisual materials to restore in applyDefaultMaterials(). */
+    private defaultMaterialsCache: { visual: RenderMeshVisual; materials: Material[] }[] = [];
 
     // Animation audio tracks (same names as backend animations)
     @input
@@ -80,9 +81,37 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     private currentBodyYaw: number = 0;
 
     onAwake() {
+        this.cacheDefaultMaterials();
         this.createEvent("UpdateEvent").bind(() => {
             this.smoothingTick();
         });
+    }
+
+    private cacheDefaultMaterials(): void {
+        const containers = [
+            this.bodySceneObject,
+            this.headSceneObject,
+            this.leftAntennaSceneObject,
+            this.rightAntennaSceneObject,
+        ].filter((o): o is SceneObject => o !== null);
+        for (const container of containers) {
+            const childCount = container.getChildrenCount();
+            for (let c = 0; c < childCount; c++) {
+                const visual = container.getChild(c).getComponent("Component.RenderMeshVisual") as RenderMeshVisual;
+                if (!visual) continue;
+                const meshSlotCount = visual.getMaterialsCount();
+                const materials: Material[] = [];
+                if (meshSlotCount > 0) {
+                    materials.push(visual.mainMaterial);
+                    for (let i = 1; i < meshSlotCount; i++) {
+                        materials.push(visual.materials[i]);
+                    }
+                }
+                if (materials.length > 0) {
+                    this.defaultMaterialsCache.push({ visual, materials });
+                }
+            }
+        }
     }
 
     // Store target pose. The smoothing tick lerps toward it each frame.
@@ -281,15 +310,12 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     }
 
     public applyDefaultMaterials(): void {
-        if (!this.materialsDefault || this.materialsDefault.length === 0) return;
-        const containers = [
-            this.bodySceneObject,
-            this.headSceneObject,
-            this.leftAntennaSceneObject,
-            this.rightAntennaSceneObject,
-        ].filter((o): o is SceneObject => o !== null);
-        for (const container of containers) {
-            this.applyMaterialsToSubobjects(container, this.materialsDefault);
+        for (const { visual, materials } of this.defaultMaterialsCache) {
+            if (materials.length === 0) continue;
+            visual.mainMaterial = materials[0];
+            for (let i = 1; i < materials.length; i++) {
+                visual.materials[i] = materials[i];
+            }
         }
     }
 

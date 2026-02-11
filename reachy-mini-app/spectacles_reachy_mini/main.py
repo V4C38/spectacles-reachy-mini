@@ -1,13 +1,15 @@
 """
-Reachy Mini Spectacles App
-Exposes a WebSocket server on port 8765 that bridges Snap Spectacles
-AR glasses to the Reachy Mini robot via the Python SDK.
+App entry point and FastAPI setup for the Spectacles–Reachy Mini bridge.
+
+Defines the ReachyMiniApp subclass that runs a WebSocket server on port 8765,
+wires handlers (movement, audio, camera), and serves the info/status and static
+info page. Send rate for movement is read from REACHY_SPECTACLES_SEND_RATE_HZ.
 """
 
 from __future__ import annotations
 
-import asyncio
 import logging
+import os
 import socket
 import threading
 from pathlib import Path
@@ -29,6 +31,30 @@ logger = logging.getLogger(__name__)
 WS_PORT = 8765
 STATIC_DIR = Path(__file__).parent / "static"
 
+# Movement send rate (Hz): how often we send set_target to the daemon. Configurable via env.
+ENV_SEND_RATE_HZ = "REACHY_SPECTACLES_SEND_RATE_HZ"
+DEFAULT_SEND_RATE_HZ = 20.0
+SEND_RATE_HZ_MIN = 5.0
+SEND_RATE_HZ_MAX = 50.0
+
+
+def _get_send_rate_hz() -> float:
+    """Read send rate from env, clamped to valid range. Default 20 Hz."""
+    raw = os.environ.get(ENV_SEND_RATE_HZ)
+    if raw is None or raw.strip() == "":
+        return DEFAULT_SEND_RATE_HZ
+    try:
+        value = float(raw.strip())
+        return max(SEND_RATE_HZ_MIN, min(SEND_RATE_HZ_MAX, value))
+    except ValueError:
+        logger.warning(
+            "Invalid %s=%r, using default %.1f Hz",
+            ENV_SEND_RATE_HZ,
+            raw,
+            DEFAULT_SEND_RATE_HZ,
+        )
+        return DEFAULT_SEND_RATE_HZ
+
 
 def get_local_ips() -> list[str]:
     """Return all non-loopback IPv4 addresses of this machine."""
@@ -38,9 +64,8 @@ def get_local_ips() -> list[str]:
             addr = info[4][0]
             if not addr.startswith("127."):
                 ips.append(addr)
-    except Exception:
-        pass
-    # Deduplicate while preserving order
+    except (socket.gaierror, OSError) as e:
+        logger.debug("Could not resolve local IPs: %s", e)
     return list(dict.fromkeys(ips))
 
 
@@ -49,7 +74,8 @@ def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
 
     app = FastAPI(title="Reachy Mini Spectacles Bridge")
     audio_handler = AudioHandler(reachy_mini)
-    movement_handler = MovementHandler(reachy_mini)
+    send_rate_hz = _get_send_rate_hz()
+    movement_handler = MovementHandler(reachy_mini, send_rate_hz=send_rate_hz)
     camera_handler = CameraHandler(reachy_mini)
     ws_handler = WebSocketHandler(movement_handler, audio_handler, camera_handler)
 
@@ -61,8 +87,6 @@ def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
         await websocket.accept()
         logger.info("Spectacles client connected")
         movement_handler.start()
-        # Play happy animation when client connects (non-blocking)
-        asyncio.create_task(ws_handler.play_lifecycle_animation("happy"))
         try:
             while not stop_event.is_set():
                 raw = await websocket.receive_text()
@@ -72,7 +96,6 @@ def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
         except Exception as exc:
             logger.error("WebSocket error: %s", exc)
         finally:
-            await ws_handler.play_lifecycle_animation("goodbye")
             ws_handler.cleanup()
 
     # ----------------------------------------------------------------

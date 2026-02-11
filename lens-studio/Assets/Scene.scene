@@ -234,26 +234,6 @@
   ScriptTypes:
     "":
       {}
-- !<RenderMeshVisual/02820cdc-b808-422c-b68b-a9072cf73ac7>
-  PrefabRemaps:
-    []
-  Name: body_foot_3dprint
-  Enabled: true
-  RenderOrder: 0
-  StretchMode: Stretch
-  VerticalAlignment: Center
-  HorizontalAlignment: Center
-  MeshShadowMode: None
-  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
-  ShadowDensity: 1.000000
-  Materials:
-    - !<reference> 4e9ca73a-eb1f-4d7b-8511-ac0214cb723e
-  Mesh: !<reference> 87d58dbd-e2b0-47de-8997-b5264db56616
-  Skin: !<reference> 00000000-0000-0000-0000-000000000000
-  BlendShapesEnabled: true
-  BlendNormals: false
-  BlendShapes:
-    {}
 - !<SceneObject/031abae4-7029-4da6-89ec-08d2369c519f>
   PrefabRemaps:
     []
@@ -299,6 +279,26 @@
     - !<own> c89d7e48-75a6-414e-a253-874f80bfe792
   Components:
     []
+- !<RenderMeshVisual/0762ef22-57e5-4923-9b8a-823f473e0592>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> c220a21b-ad5d-4ade-b075-b0313748ebba
+  Mesh: !<reference> df972855-f01b-4f81-8ce3-eef5ae969db5
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<RenderMeshVisual/096d81f9-c082-44ca-9798-97755812994a>
   PrefabRemaps:
     []
@@ -430,21 +430,6 @@
     []
   Components:
     - !<own> 0a785969-2fbd-4dd8-807b-2058a04a20e1
-- !<SceneObject/0d124d20-be7c-46a2-8e8c-00ba5d68f850>
-  PrefabRemaps:
-    []
-  Name: antenna
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: -0.100000, y: 0.000000, z: 0.000000}
-    Rotation: {x: 180.000000, y: -20.000000, z: 0.000000}
-    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> ad2e1485-4529-42ae-9a90-3359c388f5e2
 - !<Text/0f666cd7-e79e-45d7-afd8-5baa2aab9a22>
   PrefabRemaps:
     []
@@ -541,6 +526,26 @@
     - !<own> 5073a1e9-5105-46dd-8050-79de03e5fb39
   Components:
     []
+- !<RenderMeshVisual/0fd5e8f9-4c54-406a-9527-10b386452b60>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 9f42074e-0291-4ed2-a48f-e44de19c5b48
+  Mesh: !<reference> 33a047bd-6db7-461f-a705-f273f212b187
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<AudioComponent/0fe74073-4f29-4e6b-8f78-f6a339d7427e>
   PrefabRemaps:
     []
@@ -854,6 +859,26 @@
     - !<own> 298f274e-575f-40f7-a4f3-e4eaeaaecd67
   Components:
     []
+- !<RenderMeshVisual/1c320ef2-9c09-4fc3-9a14-8e991a404ea0>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 54105f88-e215-4807-95e7-6246d3073a23
+  Mesh: !<reference> a77268ce-47d7-4c3b-9f8c-c71f2738f691
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<ScriptComponent/1c5465be-0442-49da-b64f-e2784f35a545>
   PrefabRemaps:
     []
@@ -1003,6 +1028,21 @@
     - !<own> 0b0ebcd0-5812-4e50-a8be-f540e26b28e0
   Components:
     []
+- !<SceneObject/24563592-866c-487b-a01c-46a55fa54139>
+  PrefabRemaps:
+    []
+  Name: reachy_antenna_lowres
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: -0.112301, y: 5.691628, z: -0.000001}
+    Rotation: {x: -0.000012, y: -68.320580, z: -180.000000}
+    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 933393ba-e5c5-48f1-a834-d4ba0328df55
 - !<SceneObject/25a5160c-dd09-4e72-9e5d-156e2f82f869>
   PrefabRemaps:
     []
@@ -1217,7 +1257,9 @@
     - !<own> 61a99ce0-463f-4074-b832-b9644b1ea9c7
     - !<own> e4050029-2330-48a2-a897-7c0e4442b5eb
     - !<own> b254aa04-847c-4728-a1e1-cf805d1904e0
-    - !<own> 7d2236a1-8a42-4c1a-b007-f2ac12ad6e1d
+    - !<own> 5e0cc054-38b5-4ebb-84df-614f966b9eaa
+    - !<own> 6b7719b2-9d29-4cf2-ae06-3d37f6392191
+    - !<own> d8e41540-d2d2-4939-9c34-03c9541d52a3
   Components:
     []
 - !<SceneObject/298f274e-575f-40f7-a4f3-e4eaeaaecd67>
@@ -1325,21 +1367,6 @@
     - !<own> 7747c579-b049-4c0d-bd9b-db409ed1a845
   Components:
     []
-- !<SceneObject/2be0153a-3782-4b13-8d92-20a020f3b839>
-  PrefabRemaps:
-    []
-  Name: antenna
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: 180.000000, y: 200.000000, z: 0.000000}
-    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> 2c7b88ea-fb1f-495f-a9b9-f91ca88980f5
 - !<SceneObject/2bea4673-7f91-4fc5-beb1-e82a05150ca9>
   PrefabRemaps:
     []
@@ -1355,26 +1382,6 @@
     - !<own> 1fe1071f-e06a-40b7-aaaa-8f669d48c544
   Components:
     []
-- !<RenderMeshVisual/2c7b88ea-fb1f-495f-a9b9-f91ca88980f5>
-  PrefabRemaps:
-    []
-  Name: component_1
-  Enabled: true
-  RenderOrder: 0
-  StretchMode: Stretch
-  VerticalAlignment: Center
-  HorizontalAlignment: Center
-  MeshShadowMode: None
-  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
-  ShadowDensity: 1.000000
-  Materials:
-    - !<reference> 4e9ca73a-eb1f-4d7b-8511-ac0214cb723e
-  Mesh: !<reference> aabc5136-c05c-40ea-8721-6b685dc9cb78
-  Skin: !<reference> 00000000-0000-0000-0000-000000000000
-  BlendShapesEnabled: true
-  BlendNormals: false
-  BlendShapes:
-    {}
 - !<ScriptComponent/2c7cf82e-fa4d-4fbf-9f14-919518571b42>
   PrefabRemaps:
     []
@@ -1667,26 +1674,6 @@
   ScriptTypes:
     "":
       {}
-- !<RenderMeshVisual/3338328d-7806-4fe6-810b-1a37eebdcd3e>
-  PrefabRemaps:
-    []
-  Name: body_down_3dprint
-  Enabled: true
-  RenderOrder: 0
-  StretchMode: Stretch
-  VerticalAlignment: Center
-  HorizontalAlignment: Center
-  MeshShadowMode: None
-  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
-  ShadowDensity: 1.000000
-  Materials:
-    - !<reference> 4e9ca73a-eb1f-4d7b-8511-ac0214cb723e
-  Mesh: !<reference> 5593e5e3-87cd-4f89-93a9-dd73bdbcf7d0
-  Skin: !<reference> 00000000-0000-0000-0000-000000000000
-  BlendShapesEnabled: true
-  BlendNormals: false
-  BlendShapes:
-    {}
 - !<SceneObject/33d037d1-44e2-497d-b77a-038f49428ddf>
   PrefabRemaps:
     []
@@ -2005,6 +1992,21 @@
   ScriptTypes:
     "":
       {}
+- !<SceneObject/3c23f194-a56c-4eb4-986d-6e4c43332bfa>
+  PrefabRemaps:
+    []
+  Name: reachy_body_lowres
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> b8806628-7081-4e35-b8a8-3012e90d011b
 - !<SceneObject/3d7828ee-2891-4454-9f06-7d3aa618c06b>
   PrefabRemaps:
     []
@@ -2051,6 +2053,26 @@
     []
   Components:
     - !<own> d9fe0031-f47b-413e-8bf5-ff205fd3b677
+- !<RenderMeshVisual/3e738d0a-fe3b-4bc0-8bd0-97e2ea069065>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> c220a21b-ad5d-4ade-b075-b0313748ebba
+  Mesh: !<reference> 08c9354a-b106-4577-b91d-3fb1070b23b3
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<SceneObject/3edde0ea-8cd6-43be-9a1e-265dcd328ee6>
   PrefabRemaps:
     []
@@ -2494,6 +2516,21 @@
     - !<own> 974e2072-cd2a-4664-8d91-d71bbcd60d54
   Components:
     []
+- !<SceneObject/5295cdde-b287-4b1a-aaee-01832e68d014>
+  PrefabRemaps:
+    []
+  Name: reachy_body_lowres1
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 16.428499, z: 0.000000}
+    Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 3e738d0a-fe3b-4bc0-8bd0-97e2ea069065
 - !<SceneObject/531c6baf-437d-46c9-8546-81e65b6e24a0>
   PrefabRemaps:
     []
@@ -3100,6 +3137,21 @@
     - !<own> c2a3f250-ea25-4d54-a533-abe839f9bceb
   Components:
     []
+- !<SceneObject/5e0cc054-38b5-4ebb-84df-614f966b9eaa>
+  PrefabRemaps:
+    []
+  Name: reachy_head_1_lowres2
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 1.046387, z: 0.000000}
+    Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 1c320ef2-9c09-4fc3-9a14-8e991a404ea0
 - !<SceneObject/5f215b9b-1dc8-480b-8c60-2959f254ec70>
   PrefabRemaps:
     []
@@ -3225,6 +3277,21 @@
     - !<own> 47ee51e8-578c-4aed-b016-70c64837d806
   Components:
     - !<own> 2e5af6d8-3159-4ece-9ed4-840619624ba6
+- !<SceneObject/6b7719b2-9d29-4cf2-ae06-3d37f6392191>
+  PrefabRemaps:
+    []
+  Name: reachy_head_1_lowres1
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 1.046387, z: 0.000000}
+    Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 0762ef22-57e5-4923-9b8a-823f473e0592
 - !<SceneObject/6bf04e34-6299-4f27-8f48-259345a32666>
   PrefabRemaps:
     []
@@ -3577,6 +3644,7 @@
     - !<own> 9af8065b-1a3d-4d34-af19-8760322b886b
     - !<own> 297d11c3-4b21-472d-b768-6ea74f2f1615
     - !<own> 81291b62-667e-4a10-9809-6939ae5f3db4
+    - !<own> 5295cdde-b287-4b1a-aaee-01832e68d014
   Components:
     []
 - !<ScriptComponent/7cb7a6c3-924e-4765-9a29-0ae41e8228d2>
@@ -3627,21 +3695,6 @@
   ForceCompound: false
   Intangible: false
   ShowCollider: false
-- !<SceneObject/7d2236a1-8a42-4c1a-b007-f2ac12ad6e1d>
-  PrefabRemaps:
-    []
-  Name: big_lens_d40.001
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: -22.000000, z: 0.000000}
-    Rotation: {x: -90.000000, y: 180.000000, z: 0.000000}
-    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> 882f7b57-fca2-4246-8af7-3e82e543658c
 - !<SceneObject/7db11996-f25b-413e-b374-c4db27bbfc7e>
   PrefabRemaps:
     []
@@ -3762,9 +3815,7 @@
     Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
     HasSegmentScaleCompensation: false
   Children:
-    - !<own> 9be257e4-3749-4903-a1c6-22bc119f2006
-    - !<own> f04d2549-6476-415d-b7a1-32ec14cb564e
-    - !<own> eebd630b-35d7-4d2f-95c0-c451feec2c6b
+    - !<own> 3c23f194-a56c-4eb4-986d-6e4c43332bfa
   Components:
     []
 - !<ScriptComponent/8417db3a-777e-4563-8e91-8726bd535c3a>
@@ -3932,26 +3983,6 @@
     []
   Components:
     - !<own> 30915b2e-3148-4413-9ca1-8e8eb10ed91b
-- !<RenderMeshVisual/882f7b57-fca2-4246-8af7-3e82e543658c>
-  PrefabRemaps:
-    []
-  Name: component_0
-  Enabled: true
-  RenderOrder: 0
-  StretchMode: Stretch
-  VerticalAlignment: Center
-  HorizontalAlignment: Center
-  MeshShadowMode: None
-  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
-  ShadowDensity: 1.000000
-  Materials:
-    - !<reference> 4e9ca73a-eb1f-4d7b-8511-ac0214cb723e
-  Mesh: !<reference> 3ab9e77a-9160-4499-a03d-6dbc6183769c
-  Skin: !<reference> 00000000-0000-0000-0000-000000000000
-  BlendShapesEnabled: true
-  BlendNormals: false
-  BlendShapes:
-    {}
 - !<SceneObject/8b1597e7-0f83-4295-a17b-d12cd299f954>
   PrefabRemaps:
     []
@@ -4192,6 +4223,26 @@
     - !<own> a4be667c-356e-4cf4-81ef-21e3e55cb1c2
   Components:
     []
+- !<RenderMeshVisual/933393ba-e5c5-48f1-a834-d4ba0328df55>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 9f42074e-0291-4ed2-a48f-e44de19c5b48
+  Mesh: !<reference> 33a047bd-6db7-461f-a705-f273f212b187
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<SceneObject/948aeef1-0353-4837-a8cd-46f45d25710f>
   PrefabRemaps:
     []
@@ -4299,21 +4350,6 @@
     []
   Components:
     - !<own> 096d81f9-c082-44ca-9798-97755812994a
-- !<SceneObject/9be257e4-3749-4903-a1c6-22bc119f2006>
-  PrefabRemaps:
-    []
-  Name: body_top_3dprint
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> c10e48be-e046-47dd-b417-3d687adb912c
 - !<SceneObject/9c6bdaf8-6f75-4c15-8f87-51a47efb49e9>
   PrefabRemaps:
     []
@@ -4397,6 +4433,41 @@
   ScriptTypes:
     "":
       {}
+- !<SceneObject/9ede5928-ab90-44f8-a6a8-edcfec906f21>
+  PrefabRemaps:
+    []
+  Name: reachy_antenna_lowres
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 5.716574, z: -0.000000}
+    Rotation: {x: 0.000014, y: 70.151527, z: -179.999985}
+    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 0fd5e8f9-4c54-406a-9527-10b386452b60
+- !<RenderMeshVisual/9eed3b88-143a-4ca0-ad68-f6b0877a4672>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> c220a21b-ad5d-4ade-b075-b0313748ebba
+  Mesh: !<reference> 381fd98a-0c93-42ee-8c9b-a437033cc168
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<SceneObject/a01c3848-ea38-4831-97ba-caa36c234944>
   PrefabRemaps:
     []
@@ -4692,26 +4763,21 @@
     - !<own> 68e5ae90-e07d-4d93-afb4-213c6c364a27
   Components:
     - !<own> 4ed3d66f-a4b3-4172-b4cb-af157da78bb9
-- !<RenderMeshVisual/ad2e1485-4529-42ae-9a90-3359c388f5e2>
+- !<SceneObject/ac280033-102e-4b15-8457-39a64bf45536>
   PrefabRemaps:
     []
-  Name: component_1
+  Name: reachy_antenna_lowres1
   Enabled: true
-  RenderOrder: 0
-  StretchMode: Stretch
-  VerticalAlignment: Center
-  HorizontalAlignment: Center
-  MeshShadowMode: None
-  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
-  ShadowDensity: 1.000000
-  Materials:
-    - !<reference> 4e9ca73a-eb1f-4d7b-8511-ac0214cb723e
-  Mesh: !<reference> aabc5136-c05c-40ea-8721-6b685dc9cb78
-  Skin: !<reference> 00000000-0000-0000-0000-000000000000
-  BlendShapesEnabled: true
-  BlendNormals: false
-  BlendShapes:
-    {}
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: -0.112301, y: 5.691626, z: -0.000000}
+    Rotation: {x: -0.000028, y: -68.320580, z: 180.000000}
+    Scale: {x: 100.000061, y: 100.000076, z: 100.000038}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 9eed3b88-143a-4ca0-ad68-f6b0877a4672
 - !<SceneObject/ad3c9546-a70f-4fbf-a926-9ee59d8b00a1>
   PrefabRemaps:
     - 0020fe18-eb5e-4a48-b1ff-51e7f78fe1a7: 233032a8-ab05-46b5-4a45-b483f4577735
@@ -4909,9 +4975,6 @@
       leftAntennaSceneObject: !<reference.SceneObject> e4050029-2330-48a2-a897-7c0e4442b5eb
       rightAntennaSceneObject: !<reference.SceneObject> b254aa04-847c-4728-a1e1-cf805d1904e0
       audioComponent: !<reference.AudioComponent> 0fe74073-4f29-4e6b-8f78-f6a339d7427e
-      materialsDefault: !<reference.Material[]>
-        - !<reference> 9f42074e-0291-4ed2-a48f-e44de19c5b48
-        - !<reference> c220a21b-ad5d-4ade-b075-b0313748ebba
       hologramMaterial: !<reference.Material> 4e9ca73a-eb1f-4d7b-8511-ac0214cb723e
       audioGreeting: !<reference.AudioTrackAsset> c510c9bb-6b1e-4895-93c4-b8dac22e6b14
       audioGoodbye: !<reference.AudioTrackAsset> 4ceeb93c-4349-47db-bf37-81d83eaaa712
@@ -5262,7 +5325,8 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
-    - !<own> 0d124d20-be7c-46a2-8e8c-00ba5d68f850
+    - !<own> ac280033-102e-4b15-8457-39a64bf45536
+    - !<own> 24563592-866c-487b-a01c-46a55fa54139
   Components:
     []
 - !<SceneObject/b2896e0c-5e75-43a7-945d-34141a077bcf>
@@ -5501,6 +5565,26 @@
   BlendNormals: false
   BlendShapes:
     {}
+- !<RenderMeshVisual/b8806628-7081-4e35-b8a8-3012e90d011b>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 9f42074e-0291-4ed2-a48f-e44de19c5b48
+  Mesh: !<reference> a6092600-edf1-4c1b-8109-db2559e060d1
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<SceneObject/b9209fec-b989-4422-a397-b0b560812e8e>
   PrefabRemaps:
     []
@@ -5531,6 +5615,26 @@
     - !<own> ed7074f4-802d-4336-9588-237c5c48f33e
   Components:
     []
+- !<RenderMeshVisual/bad67218-0c9e-4bd2-b2f3-2292d27635cc>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> 9f42074e-0291-4ed2-a48f-e44de19c5b48
+  Mesh: !<reference> 2b466061-498f-494d-b5d6-73c81797fb5a
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<SceneObject/bc5b3b34-7747-43c3-a964-c0c58dc55515>
   PrefabRemaps:
     []
@@ -5591,26 +5695,6 @@
     []
   Components:
     - !<own> fa515d0d-8695-46d0-8eba-55cc23c14bce
-- !<RenderMeshVisual/c10e48be-e046-47dd-b417-3d687adb912c>
-  PrefabRemaps:
-    []
-  Name: body_top_3dprint
-  Enabled: true
-  RenderOrder: 0
-  StretchMode: Stretch
-  VerticalAlignment: Center
-  HorizontalAlignment: Center
-  MeshShadowMode: None
-  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
-  ShadowDensity: 1.000000
-  Materials:
-    - !<reference> 4e9ca73a-eb1f-4d7b-8511-ac0214cb723e
-  Mesh: !<reference> dfe0589f-2e6b-40bc-a3a5-53ddf8f27325
-  Skin: !<reference> 00000000-0000-0000-0000-000000000000
-  BlendShapesEnabled: true
-  BlendNormals: false
-  BlendShapes:
-    {}
 - !<SceneObject/c1e4cdd6-40ff-4bbf-94e2-490af58b9b1d>
   PrefabRemaps:
     []
@@ -6200,7 +6284,6 @@
       robotDriver: !<MappingBased.AssignableType_2> 7cb7a6c3-924e-4765-9a29-0ae41e8228d2
       objectMarkerPrefab: !<reference.ObjectPrefab> bb47d936-adfb-479d-966f-fc30cdacfa21
       lineRendererPrefab: !<reference.ObjectPrefab> f7a443b8-4645-45ff-8273-c1e6355e722c
-      camera: !<reference.SceneObject> 00000000-0000-0065-0000-000000000064
       hardwareAdapter: !<MappingBased.AssignableType_3> 37423103-2105-48f1-86aa-18e72b387397
       switchObjectDetectionTool: !<MappingBased.AssignableType_4> d9fe0031-f47b-413e-8bf5-ff205fd3b677
       textDebugInfo: !<reference.Text> c33211ac-033b-498e-97df-7eebb431d0ca
@@ -6282,6 +6365,21 @@
     []
   Components:
     - !<own> 55ac6ced-0afb-4f36-991f-e2874f5d0c0f
+- !<SceneObject/d8e41540-d2d2-4939-9c34-03c9541d52a3>
+  PrefabRemaps:
+    []
+  Name: reachy_head_1_lowres
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 1.046387, z: 0.000000}
+    Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> bad67218-0c9e-4bd2-b2f3-2292d27635cc
 - !<Skin/d8e487e7-f06e-4df8-9d20-3d85a408de2b>
   PrefabRemaps:
     []
@@ -6663,6 +6761,21 @@
     CapitalizationOverride: None
   DepthTest: false
   TwoSided: false
+- !<SceneObject/e376dddc-9184-4af6-a078-6e1e77ec7861>
+  PrefabRemaps:
+    []
+  Name: reachy_antenna_lowres1
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000001, y: 5.716572, z: -0.000000}
+    Rotation: {x: 0.000037, y: 70.151527, z: -179.999985}
+    Scale: {x: 100.000069, y: 100.000092, z: 100.000023}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> fdd5bf3c-f6a8-4318-9f4b-01dadd3fc41d
 - !<SceneObject/e4050029-2330-48a2-a897-7c0e4442b5eb>
   PrefabRemaps:
     []
@@ -6675,7 +6788,8 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
-    - !<own> 2be0153a-3782-4b13-8d92-20a020f3b839
+    - !<own> e376dddc-9184-4af6-a078-6e1e77ec7861
+    - !<own> 9ede5928-ab90-44f8-a6a8-edcfec906f21
   Components:
     []
 - !<DeviceTracking/e5553c8a-0b7e-4ef4-92d9-3e1318fb82c1>
@@ -6916,21 +7030,6 @@
     - !<own> 80613e75-e919-4a7a-aab7-96b9fdd0568f
   Components:
     []
-- !<SceneObject/eebd630b-35d7-4d2f-95c0-c451feec2c6b>
-  PrefabRemaps:
-    []
-  Name: body_down_3dprint
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> 3338328d-7806-4fe6-810b-1a37eebdcd3e
 - !<ColliderComponent/eeccd939-29f3-48c7-b097-809f42ed85f1>
   PrefabRemaps:
     []
@@ -6979,21 +7078,6 @@
     - !<own> adc75353-1cbe-476e-a85f-d1f14ed9eeed
   Components:
     []
-- !<SceneObject/f04d2549-6476-415d-b7a1-32ec14cb564e>
-  PrefabRemaps:
-    []
-  Name: body_foot_3dprint
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> 02820cdc-b808-422c-b68b-a9072cf73ac7
 - !<SceneObject/f0e33766-c981-4f7a-b17b-a50e70c8b6bc>
   PrefabRemaps:
     []
@@ -7236,6 +7320,26 @@
     - !<own> 85b990fe-4a77-4e85-b87e-28981b812dd8
   Components:
     []
+- !<RenderMeshVisual/fdd5bf3c-f6a8-4318-9f4b-01dadd3fc41d>
+  PrefabRemaps:
+    []
+  Name: Render Mesh Visual
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Materials:
+    - !<reference> c220a21b-ad5d-4ade-b075-b0313748ebba
+  Mesh: !<reference> 381fd98a-0c93-42ee-8c9b-a437033cc168
+  Skin: !<reference> 00000000-0000-0000-0000-000000000000
+  BlendShapesEnabled: true
+  BlendNormals: false
+  BlendShapes:
+    {}
 - !<SceneObject/fe66bb72-6c90-42c5-bc72-2915d91b4804>
   PrefabRemaps:
     []

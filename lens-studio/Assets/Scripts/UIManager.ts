@@ -12,6 +12,8 @@ export class UIManager extends BaseScriptComponent {
     private reachyMiniManager: ReachyMiniManager | null = null;
 
     private currentMode: number = 0;
+    /** 0=hidden, 1=active (listening), 2=paused (UI open). Used so assistant callbacks don't overwrite "- Paused -". */
+    private currentUIState: number = 0;
     @input
     private textStateInidcator: Text | null = null;
     @input
@@ -81,14 +83,14 @@ export class UIManager extends BaseScriptComponent {
             // Subscribe to assistant state & session changes via facade
             if (this.reachyMiniManager) {
                 this.reachyMiniManager.onAssistantStateChanged.push((newState: AssistantState) => {
-                    if (!this.textStateInidcator || this.reachyMiniManager.controlMode !== 2) return;
+                    if (!this.textStateInidcator || this.reachyMiniManager.controlMode !== 2 || this.currentUIState !== 1) return;
                     if (newState === AssistantState.Sleeping) {
                         this.textStateInidcator.text = "Say 'Reachy' to wake up";
                     }
                 });
 
                 this.reachyMiniManager.onSessionChanged.push((active: boolean) => {
-                    if (!this.textStateInidcator || this.reachyMiniManager.controlMode !== 2) return;
+                    if (!this.textStateInidcator || this.reachyMiniManager.controlMode !== 2 || this.currentUIState !== 1) return;
                     this.textStateInidcator.text = active ? "Reachy" : "Say 'Reachy' to wake up";
                 });
                 this.reachyMiniManager.onDebugForceShow.push(() => this.forceShowDebugPanel());
@@ -149,7 +151,7 @@ export class UIManager extends BaseScriptComponent {
     // Show / Hide UI & Pause / Resume Interaction
     // ------------------------------------------------------------
     public setUIState(state: number) {
-
+        this.currentUIState = state;
         switch (state) {
             case 0:
                 if (this.uiContainer) {

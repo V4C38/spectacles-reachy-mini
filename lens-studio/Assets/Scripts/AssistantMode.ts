@@ -40,13 +40,15 @@ export class AssistantMode extends BaseScriptComponent {
     private currentTranscription: string = "";
 
     // --- State ---
-    public currentState: AssistantState = AssistantState.Sleeping;
+    public currentState: AssistantState = AssistantState.Idle;
     public onStateChanged: ((newState: AssistantState) => void)[] = [];
     private isPaused: boolean = false;
 
     // --- Timers ---
     private debounceTimer: number = 0;
     private lastActivityTime: number = 0;
+    private postSpeakListeningEndTime: number = 0;
+    private isProcessingSpeech: boolean = false;
 
     // --- Configuration ---
     private readonly WAKE_WORDS = ["reachy", "richie", "richy", "reach", "reachie", "ritchie", "richi", "reechy", "reechi", "reachi"];
@@ -54,6 +56,7 @@ export class AssistantMode extends BaseScriptComponent {
     private readonly IDLE_TIMEOUT_SEC = 45.0;
     private readonly WAKE_SILENCE_MS = 1500;
     private readonly CONVO_SILENCE_MS = 2000;
+    private readonly POST_SPEAK_LISTENING_SEC = 4.0;
 
     // --- Idle wander ---
     private idleTarget: vec3 | null = null;
@@ -102,6 +105,13 @@ export class AssistantMode extends BaseScriptComponent {
         if (this.currentState === AssistantState.Idle) {
             if (now - this.lastActivityTime >= this.IDLE_TIMEOUT_SEC) {
                 this.setState(AssistantState.Sleeping);
+            }
+        }
+        
+        if (this.currentState === AssistantState.Listening && this.postSpeakListeningEndTime > 0) {
+            if (now >= this.postSpeakListeningEndTime) {
+                this.postSpeakListeningEndTime = 0;
+                this.setState(AssistantState.Idle);
             }
         }
 
@@ -293,7 +303,9 @@ export class AssistantMode extends BaseScriptComponent {
 
     private enterSleeping(): void {
         this.closeSession();
+        this.postSpeakListeningEndTime = 0;
         if (this.robotDriver) {
+            this.robotDriver.clearLocalAnimation();
             this.robotDriver.setParams(PRESETS.sleeping);
             this.robotDriver.setGazeTarget(null);
         }
@@ -301,6 +313,7 @@ export class AssistantMode extends BaseScriptComponent {
 
     private enterIdle(): void {
         this.lastActivityTime = getTime();
+        this.postSpeakListeningEndTime = 0;
         this.idleTarget = null;
         this.nextIdleTargetTime = 0;
         if (this.robotDriver) {
@@ -317,6 +330,7 @@ export class AssistantMode extends BaseScriptComponent {
 
     private enterSpeaking(): void {
         this.lastActivityTime = getTime();
+        this.postSpeakListeningEndTime = 0;
         if (this.robotDriver) {
             this.robotDriver.setParams(PRESETS.speaking);
         }
@@ -324,6 +338,7 @@ export class AssistantMode extends BaseScriptComponent {
 
     private enterSearching(): void {
         this.searchStartTime = getTime();
+        this.postSpeakListeningEndTime = 0;
         this.searchTarget = null;
         if (this.depthCacheHelper) {
             this.searchTarget = this.depthCacheHelper.getForwardIntersection();
@@ -419,6 +434,10 @@ export class AssistantMode extends BaseScriptComponent {
             this.handleWakeWordDetection(text);
         } else {
             if (text.trim().length > 0) {
+                if (this.currentState === AssistantState.Speaking) {
+                    return;
+                }
+                this.postSpeakListeningEndTime = 0;
                 this.processUserSpeech(text);
             }
         }
@@ -470,6 +489,10 @@ export class AssistantMode extends BaseScriptComponent {
             print("AssistantMode: LLMService or RobotDriver not initialized");
             return;
         }
+        if (this.isProcessingSpeech) {
+            return;
+        }
+        this.isProcessingSpeech = true;
 
         try {
             this.robotDriver.setGazeTarget(this.camera.getTransform().getWorldPosition());
@@ -479,17 +502,19 @@ export class AssistantMode extends BaseScriptComponent {
             this.stopASR();
             await this.robotDriver.playAudio(response.audioTrack);
             this.startASR();
+            this.setState(AssistantState.Listening);
+            this.postSpeakListeningEndTime = getTime() + this.POST_SPEAK_LISTENING_SEC;
 
             this.debounceTimer = getTime();
             this.lastActivityTime = getTime();
-            this.setState(AssistantState.Idle);
-
         } catch (error) {
             const message = `processUserSpeech failed: ${error}`;
             print(`AssistantMode: ${message}`);
             this.logDebug(`Agent - Error: ${message}`);
             this.onErrorOccurred.forEach(cb => cb(message));
             this.setState(AssistantState.Idle);
+        } finally {
+            this.isProcessingSpeech = false;
         }
     }
 
@@ -505,11 +530,14 @@ export class AssistantMode extends BaseScriptComponent {
             const response = await this.llmInterface.sendMessage(this.GREETING_PROMPT);
 
             this.setState(AssistantState.Speaking);
+            this.stopASR();
             await this.robotDriver.playAudio(response.audioTrack);
+            this.startASR();
 
             this.debounceTimer = getTime();
             this.lastActivityTime = getTime();
             this.setState(AssistantState.Listening);
+            this.postSpeakListeningEndTime = getTime() + this.POST_SPEAK_LISTENING_SEC;
         } catch (error) {
             const message = `playGreeting failed: ${error}`;
             print(`AssistantMode: ${message}`);

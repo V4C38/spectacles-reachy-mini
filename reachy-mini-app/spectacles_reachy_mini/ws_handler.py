@@ -1,9 +1,12 @@
 """
-WebSocket message router.
+WebSocket message router: parse JSON, dispatch by type, correlate request/response.
 
-Thin layer that parses JSON, routes commands to MovementHandler or
-AudioHandler, and manages request/response correlation.  Contains no
-movement state or smoothing logic.
+Receives text frames from the Spectacles client, parses JSON, and routes
+set_target, goto, stop_move, play_audio, status, and get_robot_camera_frame.
+Animations are handled on the Lens side (RobotDriver / RobotAnimationConfig).
+to the appropriate handler (movement, audio, camera). Slow handlers run in
+background tasks so the receive loop is never blocked. Sends JSON responses
+back with _id for request correlation.
 """
 
 from __future__ import annotations
@@ -15,7 +18,6 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from spectacles_reachy_mini.animations import play_animation
 from spectacles_reachy_mini.audio_handler import AudioHandler
 from spectacles_reachy_mini.camera_handler import CameraHandler
 from spectacles_reachy_mini.movement_handler import MovementHandler
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 # Message types that are slow (blocking) and must run as background tasks
 # so the receive loop is never stalled.
-_SLOW_TYPES = frozenset({"play_tts", "play_audio", "get_robot_camera_frame"})
+_SLOW_TYPES = frozenset({"play_audio", "get_robot_camera_frame"})
 
 
 class WebSocketHandler:
@@ -56,7 +58,6 @@ class WebSocketHandler:
             "set_target": self._handle_set_target,
             "goto": self._handle_goto,
             "stop_move": self._handle_stop_move,
-            "play_tts": self._handle_play_tts,
             "play_audio": self._handle_play_audio,
             "status": self._handle_status,
             "get_robot_camera_frame": self._handle_get_robot_camera_frame,
@@ -94,23 +95,6 @@ class WebSocketHandler:
         response["_id"] = request_id
         await websocket.send_json(response)
 
-    async def play_lifecycle_animation(self, name: str) -> None:
-        """
-        Run a named animation for lifecycle events (connect/disconnect).
-        Stops the movement loop, plays the animation, then restarts the loop.
-        """
-        self.movement.stop()
-        try:
-            loop = asyncio.get_running_loop()
-            await loop.run_in_executor(
-                None,
-                lambda: play_animation(self.movement.mini, name),
-            )
-        except ValueError as exc:
-            logger.warning("Lifecycle animation %s failed: %s", name, exc)
-        finally:
-            self.movement.start()
-
     def cleanup(self) -> None:
         """Stop movement loop and cancel background tasks."""
         self.movement.stop()
@@ -145,15 +129,6 @@ class WebSocketHandler:
         if not found:
             result["message"] = "Move not found"
         return result
-
-    async def _handle_play_tts(self, msg: dict[str, Any]) -> dict[str, Any]:
-        text = msg.get("text", "")
-        voice = msg.get("voice", "alloy")
-        if not text.strip():
-            return {"type": "play_tts_result", "success": False, "message": "Empty text"}
-        loop = asyncio.get_running_loop()
-        await loop.run_in_executor(None, lambda: self.audio.play_tts(text, voice))
-        return {"type": "play_tts_result", "success": True}
 
     async def _handle_play_audio(self, msg: dict[str, Any]) -> dict[str, Any]:
         data_b64 = msg.get("data", "")

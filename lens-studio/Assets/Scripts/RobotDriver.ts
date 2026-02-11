@@ -21,7 +21,6 @@ export interface RobotInterface {
     goto(headPose: XYZRPYPose, bodyYaw?: number, duration?: number, interpolation?: string): Promise<string>;
     setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void>;
     playAudio(audioTrack: AudioTrackAsset): Promise<void>;
-    playTTS?(text: string, voice?: string): Promise<void>;
 }
 
 // ----------------------------------------------------------------
@@ -65,12 +64,13 @@ export class RobotDriver extends BaseScriptComponent {
     @input
     public antennaAmplitude: number = 15.0;
 
-    // --- Mechanical limits (fixed) ---
+    // --- Mechanical limits: match Reachy Mini daemon / IK safety; ±30° roll/pitch for Stewart workspace ---
     private readonly MIN_PITCH = -30 * Math.PI / 180;
-    private readonly MAX_PITCH = 20 * Math.PI / 180;
-    private readonly MAX_HEAD_YAW = 35 * Math.PI / 180;
+    private readonly MAX_PITCH = 30 * Math.PI / 180;
+    private readonly MAX_HEAD_YAW = 65 * Math.PI / 180;   // max head–body yaw delta
     private readonly MAX_BODY_YAW = 160 * Math.PI / 180;
-    private readonly MAX_ROLL = 15 * Math.PI / 180;
+    private readonly MAX_ROLL = 30 * Math.PI / 180;
+    private readonly MAX_HEAD_YAW_ABSOLUTE = 180 * Math.PI / 180;  // total head yaw ±180°
     private readonly ROLL_YAW_COUPLING = 0.12;
 
     // --- Tracked axes (internal state driven by the loop) ---
@@ -143,6 +143,11 @@ export class RobotDriver extends BaseScriptComponent {
     /** Get the current gaze target (may be null). */
     public getGazeTarget(): vec3 | null {
         return this.gazeTarget;
+    }
+
+    /** Cancel any active named-animation overlay so base params and gaze apply immediately (e.g. when entering sleep). */
+    public clearLocalAnimation(): void {
+        this.localAnimation = null;
     }
 
     // ================================================================
@@ -278,12 +283,6 @@ export class RobotDriver extends BaseScriptComponent {
         return iface.playAudio(track);
     }
 
-    public async playTTS(text: string, voice?: string): Promise<void> {
-        const iface = this.getActiveInterface();
-        if (!iface?.playTTS) throw new Error("RobotDriver: playTTS not available on active interface");
-        return iface.playTTS(text, voice);
-    }
-
     // ================================================================
     // Update Loop
     // ================================================================
@@ -380,7 +379,8 @@ export class RobotDriver extends BaseScriptComponent {
             this.bodyYaw += relYaw * followStrength;
         }
         this.bodyYaw = this.clamp(this.bodyYaw, -this.MAX_BODY_YAW, this.MAX_BODY_YAW);
-        this.headYaw = this.clamp(this.headYaw, -(this.MAX_BODY_YAW + this.MAX_HEAD_YAW), this.MAX_BODY_YAW + this.MAX_HEAD_YAW);
+        const maxHeadYawRange = Math.min(this.MAX_BODY_YAW + this.MAX_HEAD_YAW, this.MAX_HEAD_YAW_ABSOLUTE);
+        this.headYaw = this.clamp(this.headYaw, -maxHeadYawRange, maxHeadYawRange);
 
         // --- 5. Roll: yaw-velocity coupling + ambient sway ---
         const yawVel = this.headYaw - this.prevHeadYaw;
@@ -474,14 +474,25 @@ export class RobotDriver extends BaseScriptComponent {
     // Geometry helpers
     // ================================================================
 
-    /** Compute yaw/pitch angles from headRoot to a world position. */
+    /**
+     * Compute yaw/pitch angles from head to a world position.
+     * Expresses the direction in the base (parent of head/body) frame so that
+     * look-at remains correct after the root is repositioned (move/rotate).
+     */
     public anglesToTarget(pos: vec3): { yaw: number; pitch: number } {
         const dir = pos.sub(this.getHeadWorldPosition());
-        const hDist = Math.sqrt(dir.x * dir.x + dir.z * dir.z);
+        const baseRot = this.getBaseRotation();
+        const dirInBase = baseRot
+            ? baseRot.invert().multiplyVec3(dir)
+            : dir;
+        const hDist = Math.sqrt(dirInBase.x * dirInBase.x + dirInBase.z * dirInBase.z);
         if (hDist < 0.001) {
-            return { yaw: this.headYaw, pitch: dir.y > 0 ? this.MAX_PITCH : this.MIN_PITCH };
+            return { yaw: this.headYaw, pitch: dirInBase.y > 0 ? this.MAX_PITCH : this.MIN_PITCH };
         }
-        return { yaw: Math.atan2(dir.x, dir.z), pitch: -Math.atan2(dir.y, hDist) };
+        return {
+            yaw: Math.atan2(dirInBase.x, dirInBase.z),
+            pitch: -Math.atan2(dirInBase.y, hDist),
+        };
     }
 
     // ================================================================

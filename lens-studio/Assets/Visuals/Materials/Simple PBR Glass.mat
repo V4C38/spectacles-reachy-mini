@@ -1,8 +1,8 @@
-- !<Material/c220a21b-ad5d-4ade-b075-b0313748ebba>
+- !<Material/54105f88-e215-4807-95e7-6246d3073a23>
   PackagePath: ""
   PassesInfo:
-    - !<own> b035879a-4e5c-428d-969a-bf77f8a8c57b
-- !<PassInfo/b035879a-4e5c-428d-969a-bf77f8a8c57b>
+    - !<own> d59a9d09-0b92-4721-8c9f-3e5cacec4426
+- !<PassInfo/d59a9d09-0b92-4721-8c9f-3e5cacec4426>
   CachedProperties:
     []
   DepthWrite: true
@@ -17,7 +17,7 @@
   InstanceCount: 1
   Defines:
     - ENABLE_BASE_TEX
-  BlendMode: Disabled
+  BlendMode: PremultipliedAlphaAuto
   Properties:
     Port_AO_N006:
       typeIdx: 4
@@ -33,7 +33,7 @@
       value: 0
     baseColor:
       typeIdx: 5
-      value: {x: 0.617395, y: 0.617395, z: 0.617395, w: 1.000000}
+      value: {x: 1.000000, y: 1.000000, z: 1.000000, w: 0.820005}
     baseTex:
       typeIdx: 9
       value:
@@ -48,8 +48,8 @@
         type: Texture2D
     metallic:
       typeIdx: 1
-      value: 0.000000
+      value: 0.500000
     roughness:
       typeIdx: 1
-      value: 0.100000
+      value: 0.000000
   Pass: !<reference> 72c1b6d1-d298-4843-a5d1-ba8791ec0a2d

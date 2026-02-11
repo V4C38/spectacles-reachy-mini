@@ -1,5 +1,8 @@
 """
-Camera handler: captures frames from Reachy Mini's onboard camera.
+Onboard camera capture: single frame from the Reachy Mini robot as base64 JPEG.
+
+Uses the SDK’s media.get_frame() (numpy BGR), encodes to JPEG, and returns
+base64 for transmission over the WebSocket to the Spectacles client.
 """
 
 from __future__ import annotations
@@ -7,6 +10,8 @@ from __future__ import annotations
 import base64
 import logging
 from typing import TYPE_CHECKING
+
+import cv2
 
 if TYPE_CHECKING:
     from reachy_mini import ReachyMini
@@ -26,9 +31,6 @@ class CameraHandler:
 
         Uses mini.media.get_frame() from the Reachy Mini SDK.
         """
-        import cv2
-        import numpy as np
-
         frame = self.mini.media.get_frame()
         if frame is None or frame.size == 0:
             raise RuntimeError("Failed to capture frame from robot camera")

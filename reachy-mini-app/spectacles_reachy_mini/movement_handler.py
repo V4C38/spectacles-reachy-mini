@@ -1,15 +1,18 @@
 """
-Movement handler: decoupled target/current model with LERP smoothing.
+Movement state and robot commands: target/current LERP and set_target rate limiting.
 
-WS calls set the *target* (can jump at any rate).  A background loop LERPs
-*current* toward *target* each tick and sends only *current* to the robot.
-The robot never sees raw input -- movement is always smooth.
+WebSocket messages update an in-memory *target* pose. A background loop (~30 Hz)
+LERPs *current* toward *target*, applies velocity clamping, and sends *current*
+to the robot via ReachyMini.set_target at the same ~30 Hz rate.
+Timeout logic allows the next send if the previous one is slow, so the robot
+does not stay stuck. Also handles goto (interpolated moves) and lifecycle.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import time
 import uuid as uuid_mod
 from typing import Any
@@ -31,7 +34,43 @@ ANTENNA_ALPHA = 0.08  # antennas need heavier smoothing
 MAX_ANGULAR_VEL = 1.5  # rad/s hard safety limit for roll/pitch/yaw
 MAX_POS_VEL = 0.05  # m/s hard safety limit for x/y/z
 LOOP_INTERVAL = 0.033  # ~30 Hz
-SEND_MIN_INTERVAL = 0.05  # 20 Hz max send rate; prevents daemon buffer overflow
+DEFAULT_SEND_RATE_HZ = 30.0  # 30 Hz — send every tick; daemon holds last target at its own 50 Hz
+SEND_RATE_HZ_MIN = 5.0  # minimum send rate (avoids overload)
+SEND_RATE_HZ_MAX = 50.0  # maximum send rate (daemon control loop ~50 Hz)
+SEND_TIMEOUT_SEC = 0.12  # If previous send not done after this, allow next send (avoids robot stuck)
+MAX_DT_FOR_VEL_CLAMP = 0.06  # Cap dt used for velocity clamp (prevents fast snap after IK recovery)
+
+# --- Daemon IK / Reachy Mini safety limits (radians) ------------------------------------------
+LIMIT_BODY_YAW_RAD = 160.0 * math.pi / 180.0  # ±160°
+LIMIT_HEAD_YAW_RAD = math.pi  # ±180°
+LIMIT_HEAD_BODY_YAW_DELTA_RAD = 65.0 * math.pi / 180.0  # ±65°
+
+# --- Head position (Stewart platform workspace, meters) ---------------------------------------
+# Reachy Mini head frame: x forward, y left, z up. No lateral offset; z = vertical only.
+LIMIT_HEAD_X_MIN = 0.0
+LIMIT_HEAD_X_MAX = 0.0
+LIMIT_HEAD_Y_MIN = 0.0
+LIMIT_HEAD_Y_MAX = 0.0
+LIMIT_HEAD_Z_MIN = 0.0
+LIMIT_HEAD_Z_MAX = 0.025  # 25 mm up; conservative after daemon adds head_z_offset
+
+# --- Coupled Stewart platform workspace ellipsoid (roll, pitch, z) ----------------------------
+# The Stewart platform has a COUPLED workspace: individual axis limits are ±30° roll, ±30°
+# pitch, 30mm z — but combinations of these (e.g. 25° pitch + 10° roll + 20mm z) can push
+# branch points outside the geometric reach of the arm+rod mechanism, causing NaN in the
+# Rust IK (discriminant < 0 → sqrt(negative) → NaN).
+#
+# We model the safe workspace as an ellipsoid: (roll/R)^2 + (pitch/P)^2 + (z/Z)^2 <= 1.0
+# and project any pose outside the ellipsoid back onto its surface. This prevents the
+# "corner" combinations that fail IK while preserving full range on individual axes.
+ELLIPSOID_ROLL_MAX_RAD = 18.0 * math.pi / 180.0  # ±18° roll radius
+ELLIPSOID_PITCH_MAX_RAD = 18.0 * math.pi / 180.0  # ±18° pitch radius
+ELLIPSOID_Z_MAX = 0.018  # 18 mm z radius
+
+# IK failure recovery: how fast to retract toward neutral on consecutive failures
+IK_FAIL_RETRACT_TARGET_ALPHA = 0.06  # retract target 6% toward neutral per tick
+IK_FAIL_RETRACT_PREV_ALPHA = 0.15  # retract prev_sent 15% toward neutral per tick
+IK_FAIL_CONSECUTIVE_THRESHOLD = 3  # start retracting after this many consecutive failures
 
 
 def _zero_pose() -> dict[str, float]:
@@ -42,11 +81,97 @@ def _clamp(value: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, value))
 
 
+def _parse_send_rate_hz(value: float | None) -> float:
+    """Clamp send rate to allowed range. Returns interval in seconds."""
+    if value is None:
+        return 1.0 / DEFAULT_SEND_RATE_HZ
+    rate = max(SEND_RATE_HZ_MIN, min(SEND_RATE_HZ_MAX, value))
+    return 1.0 / rate
+
+
+def _clamp_stewart_ellipsoid(
+    roll: float, pitch: float, z: float,
+) -> tuple[float, float, float]:
+    """Project (roll, pitch, z) onto the Stewart platform workspace ellipsoid if outside.
+
+    The Stewart platform's reachable set is a coupled, non-rectangular region in
+    (roll, pitch, z) space.  An ellipsoid is a conservative inner approximation
+    that prevents the "corner" combinations (e.g. large pitch + large roll + z)
+    that produce NaN in the Rust analytical IK (discriminant < 0 under sqrt).
+
+    Points inside the ellipsoid are returned unchanged.  Points outside are
+    scaled proportionally toward the origin (0, 0, 0) so they lie on the surface.
+    """
+    # z is clamped to [0, max] first — the ellipsoid applies to the positive range
+    z_clamped = _clamp(z, LIMIT_HEAD_Z_MIN, LIMIT_HEAD_Z_MAX)
+
+    # Normalised coordinates
+    nr = roll / ELLIPSOID_ROLL_MAX_RAD if ELLIPSOID_ROLL_MAX_RAD > 0 else 0.0
+    np_ = pitch / ELLIPSOID_PITCH_MAX_RAD if ELLIPSOID_PITCH_MAX_RAD > 0 else 0.0
+    nz = z_clamped / ELLIPSOID_Z_MAX if ELLIPSOID_Z_MAX > 0 else 0.0
+
+    dist_sq = nr * nr + np_ * np_ + nz * nz
+    if dist_sq <= 1.0:
+        return (roll, pitch, z_clamped)
+
+    # Scale toward origin so the point lies on the ellipsoid surface
+    scale = 1.0 / math.sqrt(dist_sq)
+    return (
+        roll * scale,
+        pitch * scale,
+        z_clamped * scale,
+    )
+
+
+def _clamp_pose_to_daemon_limits(
+    pose: dict[str, float], body_yaw: float
+) -> tuple[dict[str, float], float]:
+    """Clamp pose and body_yaw to Reachy Mini daemon IK / safety limits.
+
+    Uses a coupled ellipsoidal constraint for (roll, pitch, z) to respect the
+    Stewart platform's non-rectangular workspace, plus independent limits for
+    yaw / body_yaw / head-body delta.
+    """
+    out_pose = dict(pose)
+    out_pose["x"] = _clamp(pose["x"], LIMIT_HEAD_X_MIN, LIMIT_HEAD_X_MAX)
+    out_pose["y"] = _clamp(pose["y"], LIMIT_HEAD_Y_MIN, LIMIT_HEAD_Y_MAX)
+
+    # Coupled ellipsoidal clamp for (roll, pitch, z)
+    clamped_roll, clamped_pitch, clamped_z = _clamp_stewart_ellipsoid(
+        pose["roll"], pose["pitch"], pose["z"],
+    )
+    out_pose["roll"] = clamped_roll
+    out_pose["pitch"] = clamped_pitch
+    out_pose["z"] = clamped_z
+
+    body_yaw_clamped = _clamp(body_yaw, -LIMIT_BODY_YAW_RAD, LIMIT_BODY_YAW_RAD)
+    out_pose["yaw"] = _clamp(
+        pose["yaw"], -LIMIT_HEAD_YAW_RAD, LIMIT_HEAD_YAW_RAD
+    )
+    # Enforce head–body yaw delta ≤ 65°
+    delta = out_pose["yaw"] - body_yaw_clamped
+    if delta > LIMIT_HEAD_BODY_YAW_DELTA_RAD:
+        out_pose["yaw"] = body_yaw_clamped + LIMIT_HEAD_BODY_YAW_DELTA_RAD
+    elif delta < -LIMIT_HEAD_BODY_YAW_DELTA_RAD:
+        out_pose["yaw"] = body_yaw_clamped - LIMIT_HEAD_BODY_YAW_DELTA_RAD
+    return (out_pose, body_yaw_clamped)
+
+
 class MovementHandler:
     """Owns all movement state and SDK interaction."""
 
-    def __init__(self, reachy_mini: ReachyMini) -> None:
+    def __init__(
+        self,
+        reachy_mini: ReachyMini,
+        send_rate_hz: float | None = None,
+    ) -> None:
         self.mini = reachy_mini
+        self._send_min_interval = _parse_send_rate_hz(send_rate_hz)
+        logger.info(
+            "MovementHandler send rate: %.1f Hz (interval %.3f s)",
+            1.0 / self._send_min_interval,
+            self._send_min_interval,
+        )
 
         # Target -- written by WS, can change at any time
         self._target_pose: dict[str, float] = _zero_pose()
@@ -68,9 +193,14 @@ class MovementHandler:
         # Background apply loop
         self._apply_task: asyncio.Task[None] | None = None
 
-        # Non-blocking send: at most one set_target in flight; never block the apply loop
+        # Non-blocking send: at most two set_target in flight (normal + one timeout send)
         self._send_future: asyncio.Future[Any] | None = None
         self._last_send_time: float = 0.0  # when we last submitted; 0 = never
+        self._timeout_send_pending: bool = False  # True after sending on timeout until that future completes
+        self._send_count: int = 0  # for periodic debug logging of sent pose
+
+        # IK failure recovery (Strategy 3)
+        self._consecutive_ik_failures: int = 0
 
     # ------------------------------------------------------------------
     # Public API (called from ws_handler)
@@ -82,12 +212,32 @@ class MovementHandler:
         body_yaw: float | None = None,
         antennas: list[float] | None = None,
     ) -> None:
-        """Store a new target. Non-blocking, no SDK call."""
-        self._target_pose = {k: pose.get(k, self._target_pose[k]) for k in POSE_AXES}
-        if body_yaw is not None:
-            self._target_body_yaw = body_yaw
+        """Store a new target. Non-blocking, no SDK call. Sanitizes and clamps to daemon limits."""
+        # Merge with finite check: only accept numbers so we never store NaN/Inf
+        merged = {}
+        for k in POSE_AXES:
+            v = pose.get(k, self._target_pose[k])
+            merged[k] = (
+                v
+                if isinstance(v, (int, float)) and math.isfinite(v)
+                else self._target_pose[k]
+            )
+        by = (
+            body_yaw
+            if body_yaw is not None
+            and isinstance(body_yaw, (int, float))
+            and math.isfinite(body_yaw)
+            else self._target_body_yaw
+        )
+        self._target_pose, self._target_body_yaw = _clamp_pose_to_daemon_limits(
+            merged, by
+        )
         if antennas is not None:
-            self._target_antennas = list(antennas)
+            self._target_antennas = [
+                a if isinstance(a, (int, float)) and math.isfinite(a) else (self._target_antennas[i] if i < len(self._target_antennas) else 0.0)
+                for i, a in enumerate(antennas)
+            ]
+            self._target_antennas = (self._target_antennas + [0.0, 0.0])[:2]
 
     def goto(
         self,
@@ -159,6 +309,10 @@ class MovementHandler:
             while True:
                 now = time.monotonic()
 
+                # Clear timeout flag when the referenced send completes
+                if self._send_future is not None and self._send_future.done():
+                    self._timeout_send_pending = False
+
                 # Stage 1: LERP current toward target
                 for axis in POSE_AXES:
                     self._current_pose[axis] += POSE_ALPHA * (
@@ -172,25 +326,39 @@ class MovementHandler:
                         self._target_antennas[i] - self._current_antennas[i]
                     )
 
-                # Non-blocking send: only submit when previous send is done and
-                # throttle interval has passed (prevents daemon buffer overflow).
-                can_send = (
-                    (self._send_future is None or self._send_future.done())
-                    and (
-                        self._last_send_time == 0
-                        or (now - self._last_send_time) >= SEND_MIN_INTERVAL
-                    )
+                # Send when: interval has passed AND (previous send done OR timeout elapsed).
+                # Timeout path avoids robot stuck when one SDK call blocks; cap at 2 in flight.
+                interval_ok = (
+                    self._last_send_time == 0
+                    or (now - self._last_send_time) >= self._send_min_interval
                 )
+                previous_done = (
+                    self._send_future is None or self._send_future.done()
+                )
+                timeout_elapsed = (
+                    self._last_send_time > 0
+                    and (now - self._last_send_time) >= SEND_TIMEOUT_SEC
+                )
+                allow_send_because_stale = (
+                    timeout_elapsed and not previous_done and not self._timeout_send_pending
+                )
+                can_send = interval_ok and (previous_done or allow_send_because_stale)
+
                 if can_send:
-                    # Velocity clamp uses time since last *actual* send, so we
-                    # allow larger steps when we've been unable to send (catch up).
+                    if allow_send_because_stale:
+                        logger.debug(
+                            "set_target send on timeout (previous send still in flight)"
+                        )
+                    # Velocity clamp: use time since last send, but CAP it so the
+                    # robot doesn't snap to a far-away pose after IK recovery.
                     dt_since_send = (
                         now - self._last_send_time
                         if self._last_send_time > 0
                         else LOOP_INTERVAL
                     )
-                    max_d_ang = MAX_ANGULAR_VEL * dt_since_send
-                    max_d_pos = MAX_POS_VEL * dt_since_send
+                    dt_clamped = min(dt_since_send, MAX_DT_FOR_VEL_CLAMP)
+                    max_d_ang = MAX_ANGULAR_VEL * dt_clamped
+                    max_d_pos = MAX_POS_VEL * dt_clamped
 
                     send_pose: dict[str, float] = {}
                     for axis in ANGULAR_AXES:
@@ -213,6 +381,16 @@ class MovementHandler:
                     send_body_yaw = self._prev_sent_body_yaw + _clamp(
                         body_yaw_delta, -max_d_ang, max_d_ang
                     )
+                    # Target is already clamped in set_target(); LERP and velocity clamp stay in range.
+
+                    self._send_count += 1
+                    if self._send_count % 100 == 0:
+                        logger.debug(
+                            "sent pose x=%.4f y=%.4f z=%.4f roll=%.4f pitch=%.4f yaw=%.4f body_yaw=%.4f",
+                            send_pose["x"], send_pose["y"], send_pose["z"],
+                            send_pose["roll"], send_pose["pitch"], send_pose["yaw"],
+                            send_body_yaw,
+                        )
 
                     head = create_head_pose(
                         x=send_pose["x"],
@@ -226,6 +404,7 @@ class MovementHandler:
                     antennas_arr = np.array(
                         self._current_antennas, dtype=np.float64
                     )
+                    _sp, _sb = send_pose, send_body_yaw
 
                     def _do_set_target(
                         h=head,
@@ -235,14 +414,59 @@ class MovementHandler:
                         try:
                             self.mini.set_target(head=h, body_yaw=b, antennas=a)
                         except Exception as exc:
-                            logger.warning("set_target failed: %s", exc)
+                            logger.warning(
+                                "set_target failed: %s; sent pose x=%.4f y=%.4f z=%.4f roll=%.4f pitch=%.4f yaw=%.4f body_yaw=%.4f",
+                                exc,
+                                _sp["x"], _sp["y"], _sp["z"],
+                                _sp["roll"], _sp["pitch"], _sp["yaw"],
+                                _sb,
+                            )
+                            raise
 
                     self._send_future = loop.run_in_executor(
                         None, _do_set_target
                     )
-                    self._prev_sent_pose = send_pose
-                    self._prev_sent_body_yaw = send_body_yaw
+                    # Update "last sent" only when set_target completes without exception,
+                    # so we do not desync when the daemon rejects the pose (IK error).
+                    # On failure, retract prev_sent and target toward neutral so the robot
+                    # does not stay stuck at the workspace boundary.
+                    sent_pose = dict(send_pose)
+                    sent_body_yaw = send_body_yaw
+
+                    def _on_send_done(fut: asyncio.Future[Any]) -> None:
+                        if fut.exception() is None:
+                            self._prev_sent_pose = sent_pose
+                            self._prev_sent_body_yaw = sent_body_yaw
+                            self._consecutive_ik_failures = 0
+                        else:
+                            self._consecutive_ik_failures += 1
+                            if self._consecutive_ik_failures >= IK_FAIL_CONSECUTIVE_THRESHOLD:
+                                # Retract prev_sent toward neutral so the next
+                                # velocity-clamped step moves inward, away from
+                                # the workspace boundary that caused the failure.
+                                alpha_p = IK_FAIL_RETRACT_PREV_ALPHA
+                                for ax in POSE_AXES:
+                                    self._prev_sent_pose[ax] *= (1.0 - alpha_p)
+                                self._prev_sent_body_yaw *= (1.0 - alpha_p)
+                                # Also gently pull the target inward so the LERP
+                                # converges to a reachable pose instead of
+                                # perpetually chasing an unreachable one.
+                                alpha_t = IK_FAIL_RETRACT_TARGET_ALPHA
+                                for ax in POSE_AXES:
+                                    self._target_pose[ax] *= (1.0 - alpha_t)
+                                self._target_body_yaw *= (1.0 - alpha_t)
+                                if self._consecutive_ik_failures % 20 == 0:
+                                    logger.warning(
+                                        "IK failed %d consecutive times; retracting toward neutral",
+                                        self._consecutive_ik_failures,
+                                    )
+
+                    self._send_future.add_done_callback(_on_send_done)
                     self._last_send_time = now
+                    if allow_send_because_stale:
+                        self._timeout_send_pending = True
+                    else:
+                        self._timeout_send_pending = False
 
                 await asyncio.sleep(LOOP_INTERVAL)
         except asyncio.CancelledError:
@@ -272,11 +496,12 @@ class MovementHandler:
             t = min(elapsed / max(duration, 0.001), 1.0)
             s = self._ease(t, interpolation)
 
-            # Update target (the apply loop will LERP toward it)
-            self._target_pose = {
-                k: _lerp(start_pose[k], end_pose[k], s) for k in POSE_AXES
-            }
-            self._target_body_yaw = _lerp(start_body_yaw, end_body_yaw, s)
+            # Update target (the apply loop will LERP toward it); clamp to daemon limits
+            lerped = {k: _lerp(start_pose[k], end_pose[k], s) for k in POSE_AXES}
+            by = _lerp(start_body_yaw, end_body_yaw, s)
+            self._target_pose, self._target_body_yaw = _clamp_pose_to_daemon_limits(
+                lerped, by
+            )
             self._target_antennas = [
                 _lerp(start_antennas[i], end_antennas[i], s)
                 for i in range(min(len(start_antennas), len(end_antennas)))
