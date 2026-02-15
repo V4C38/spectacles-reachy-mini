@@ -173,6 +173,23 @@ export class RobotDriver extends BaseScriptComponent {
         this.gazeVarNextChangeTime = 0;
     }
 
+    /**
+     * Snap internal tracked angles to the steady-state values implied by the
+     * current params.  Use after setting params (e.g. sleeping preset) when the
+     * robot should appear in the target pose immediately, without smoothing.
+     */
+    public snapToCurrentParams(): void {
+        this.headPitch = this.params.neutralPitchWhenNull ?? 0;
+        this.headYaw = 0;
+        this.headRoll = 0;
+        this.headY = this.headYBase * this.params.headYPosMul;
+        this.headYBase_current = this.headY;
+        this.bodyYaw = 0;
+        this.prevHeadYaw = 0;
+        this.antennaLeft = 0;
+        this.antennaRight = 0;
+    }
+
     public pause(): void {
         this.isPaused = true;
     }
@@ -214,8 +231,15 @@ export class RobotDriver extends BaseScriptComponent {
     // Animations & Audio (Lens-side local animations)
     // ================================================================
 
-    public async playAnimation(name: string): Promise<void> {
-        await this.playLocalAnimation(name);
+    /**
+     * Play a named animation.
+     * @param name       Animation name (e.g. "greeting", "dance").
+     * @param suppressAudio  When true, only the motion overlay plays — no sound
+     *                       effect.  Use this when TTS speech is playing at the
+     *                       same time and the animation SFX would clash.
+     */
+    public async playAnimation(name: string, suppressAudio: boolean = false): Promise<void> {
+        await this.playLocalAnimation(name, suppressAudio);
     }
 
     public async getAvailableAnimations(): Promise<string[]> {
@@ -223,10 +247,11 @@ export class RobotDriver extends BaseScriptComponent {
     }
 
     /**
-     * Play a named animation: overlay params for duration and play audio.
+     * Play a named animation: overlay params for duration and optionally play audio.
      * Uses NAMED_ANIMATIONS config; audio comes from SimulationAdapter.
+     * @param suppressAudio  Skip the animation's sound effect (motion-only).
      */
-    public async playLocalAnimation(name: string): Promise<void> {
+    public async playLocalAnimation(name: string, suppressAudio: boolean = false): Promise<void> {
         const entry = NAMED_ANIMATIONS[name.trim().toLowerCase()];
         if (!entry) {
             throw new Error(`Unknown animation: "${name}". Available: ${Object.keys(NAMED_ANIMATIONS).join(", ")}`);
@@ -248,7 +273,7 @@ export class RobotDriver extends BaseScriptComponent {
 
         // Get audio track from SimulationAdapter and play in parallel with param overlay
         let audioPromise: Promise<void> = Promise.resolve();
-        if (this.simulationAdapter) {
+        if (!suppressAudio && this.simulationAdapter) {
             const track = this.simulationAdapter.getAudioTrackForAnimation(entry.audioKey);
             if (track) {
                 audioPromise = iface.playAudio(track);
@@ -313,17 +338,30 @@ export class RobotDriver extends BaseScriptComponent {
         }
 
         // --- Effective values from base params x multipliers ---
-        const yawSmoothing = this.headMoveSpeed * effectiveParams.headMoveSpeedMul;
-        const pitchSmoothing = this.headMoveSpeed * effectiveParams.pitchSmoothingMul;
-        const maxYawDelta = this.maxHeadDelta * effectiveParams.maxHeadDeltaMul * DEG;
-        const maxPitchDelta = this.maxHeadDelta * 0.5 * effectiveParams.maxHeadDeltaMul * DEG;
-        const bodySmoothing = yawSmoothing * 0.7 * effectiveParams.bodyFollowMul;
+        let yawSmoothing = this.headMoveSpeed * effectiveParams.headMoveSpeedMul;
+        let pitchSmoothing = this.headMoveSpeed * effectiveParams.pitchSmoothingMul;
+        let maxYawDelta = this.maxHeadDelta * effectiveParams.maxHeadDeltaMul * DEG;
+        let maxPitchDelta = this.maxHeadDelta * 0.5 * effectiveParams.maxHeadDeltaMul * DEG;
+        let bodySmoothing = yawSmoothing * 0.7 * effectiveParams.bodyFollowMul;
         const rollSmoothing = yawSmoothing * 0.8;
         const antennaSmoothing = yawSmoothing * 1.5;
-        const ySmoothing = yawSmoothing * 0.8;
+        let ySmoothing = yawSmoothing * 0.8;
         const effectiveRollAmp = this.rollAmplitude * effectiveParams.rollAmplitudeMul * DEG;
         const effectiveYAmp = this.yBobAmplitude * effectiveParams.yBobAmplitudeMul;
         const effectiveAntAmp = this.antennaAmplitude * effectiveParams.antennaAmplitudeMul * DEG;
+
+        // --- Boost tracking during named animations for visible motion ---
+        const isAnimGaze = !!(this.localAnimation && this.localAnimation.getGazeTarget);
+        if (isAnimGaze) {
+            const ANIM_SPEED = 0.4;
+            const ANIM_MAX_DELTA = 15 * DEG;
+            yawSmoothing = Math.max(yawSmoothing, ANIM_SPEED);
+            pitchSmoothing = Math.max(pitchSmoothing, ANIM_SPEED);
+            maxYawDelta = Math.max(maxYawDelta, ANIM_MAX_DELTA);
+            maxPitchDelta = Math.max(maxPitchDelta, ANIM_MAX_DELTA * 0.7);
+            bodySmoothing = Math.max(bodySmoothing, ANIM_SPEED * 0.5);
+            ySmoothing = Math.max(ySmoothing, ANIM_SPEED);
+        }
 
         // --- 1. Compute desired angles from gaze target ---
         let desiredYaw: number;

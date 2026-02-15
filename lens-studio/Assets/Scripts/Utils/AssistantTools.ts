@@ -44,6 +44,11 @@ export class AssistantTools extends BaseScriptComponent {
         }
     }
 
+    /** Round coordinate to integer (1 unit = 1 cm). Use in tool I/O to keep context window small and avoid decimals. */
+    private roundCoord(v: number): number {
+        return Math.round(v);
+    }
+
     /**
      * Registers all available tools with the provided LLM service.
      * Only tools whose dependencies are available will be registered.
@@ -71,12 +76,12 @@ export class AssistantTools extends BaseScriptComponent {
             print("AssistantTools: Skipping scan_objects tool (missing dependencies)");
         }
 
-        // Register look_at_location tool if dependencies are available
+        // Register look_at tool if dependencies are available (replaces look_at_location + look_direction)
         if (this.robotDriver && this.assistantMode) {
-            llmService.registerTool(this.createLookAtLocationTool());
+            llmService.registerTool(this.createLookAtTool());
             registeredCount++;
         } else {
-            print("AssistantTools: Skipping look_at_location tool (missing dependencies)");
+            print("AssistantTools: Skipping look_at tool (missing dependencies)");
         }
 
         // Register get_state tool if dependencies are available
@@ -85,14 +90,6 @@ export class AssistantTools extends BaseScriptComponent {
             registeredCount++;
         } else {
             print("AssistantTools: Skipping get_state tool (missing dependencies)");
-        }
-
-        // Register look_direction tool if dependencies are available
-        if (this.robotDriver && this.assistantMode) {
-            llmService.registerTool(this.createLookDirectionTool());
-            registeredCount++;
-        } else {
-            print("AssistantTools: Skipping look_direction tool (missing dependencies)");
         }
 
         // Register play_animation and get_available_animations whenever robot is available (hardware or simulation)
@@ -138,7 +135,7 @@ export class AssistantTools extends BaseScriptComponent {
     private createScanObjectsTool(): ToolDefinition {
         return {
             name: "scan_objects",
-            description: "Scan the user's surroundings for objects matching a description. When the user asks to find or locate something (e.g. 'find my phone', 'help me find my glasses'), use ONE scan_objects call; when it returns, call look_at_location with the object's coordinates and draw_line true to point at it, then reply briefly (e.g. 'Yes, I found it! It\'s right there!'). For multiple objects, use one prompt listing all (e.g. 'phone and glasses'). If the user only asked what objects are visible (generic list), do not draw a line.",
+            description: "Scan the user's surroundings for objects matching a description. When the user asks to find or locate something, use ONE scan_objects call; when it returns, call look_at with the object's coordinates (x, y, z; integers only, 1 unit = 1 cm) and draw_line true to point at it. When replying to the user, never mention coordinates. Use relative, natural language only: e.g. 'It\'s right in front of you', 'Slightly to your left', 'Right there!', 'Behind you'. For multiple objects, use one prompt listing all (e.g. 'phone and glasses'). If the user only asked what objects are visible (generic list), do not draw a line.",
             parameters: {
                 type: "object",
                 properties: {
@@ -153,8 +150,14 @@ export class AssistantTools extends BaseScriptComponent {
                 this.assistantMode.setState(AssistantState.Searching);
                 try {
                     await this.triggerScan(args.prompt);
-                    const objects = this.mlDetector.getTrackedObjectSummaries();
-                    return JSON.stringify({ count: objects.length, objects: objects });
+                    const raw = this.mlDetector.getTrackedObjectSummaries();
+                    const objects = raw.map((o) => ({
+                        name: o.name,
+                        x: this.roundCoord(o.x),
+                        y: this.roundCoord(o.y),
+                        z: this.roundCoord(o.z)
+                    }));
+                    return JSON.stringify({ count: objects.length, objects });
                 } catch (error) {
                     this.logDebug(`Agent - Error: Scan failed: ${error}`);
                     return JSON.stringify({ error: `Scan failed: ${error}` });
@@ -200,39 +203,172 @@ export class AssistantTools extends BaseScriptComponent {
 
 
     /* ----------------------------------------------------------------
-     * Look at a specific location in the world.
+     * Look at a location (world x,y,z) or a direction (left, right, up, down, behind).
      * ----------------------------------------------------------------
     */
-    private createLookAtLocationTool(): ToolDefinition {
+    private createLookAtTool(): ToolDefinition {
         return {
-            name: "look_at_location",
-            description: "Make Reachy look at a world-space position for a given duration. By default no line is drawn; set draw_line to true when helping the user find or locate an object (e.g. after scan_objects) so you point at it with a visible line. The robot will hold its gaze for the specified duration before resuming normal behavior.",
+            name: "look_at",
+            description: "Make Reachy look at a world-space position (x, y, z; integers only, 1 unit = 1 cm) OR in a relative direction ('left', 'right', 'up', 'down', 'behind'). Provide either (x, y, z) or direction—not both. Prefer direction when the user says 'look left', 'look up', etc. For world position (e.g. after scan_objects), set draw_line true to point at the object. When speaking to the user, never say coordinates; use relative language only ('in front of you', 'to your left', 'right there'). Duration in seconds (default: 4).",
             parameters: {
                 type: "object",
                 properties: {
-                    x: { type: "number", description: "World X coordinate to look at" },
-                    y: { type: "number", description: "World Y coordinate to look at" },
-                    z: { type: "number", description: "World Z coordinate to look at" },
-                    duration: { type: "number", description: "How long to look at the location in seconds (default: 4)" },
-                    draw_line: { type: "boolean", description: "Whether to draw a visible line from the robot to the target (default: false)" }
+                    x: { type: "number", description: "World X in cm (integer; use with y, z; omit when using direction)" },
+                    y: { type: "number", description: "World Y in cm (integer; use with x, z; omit when using direction)" },
+                    z: { type: "number", description: "World Z in cm (integer; use with x, y; omit when using direction)" },
+                    direction: {
+                        type: "string",
+                        description: "Relative direction: 'left', 'right', 'up', 'down', or 'behind'. Omit when using x, y, z."
+                    },
+                    amount_degrees: {
+                        type: "number",
+                        description: "How far to turn in degrees when using direction (default: 45 horizontal, 20 vertical)"
+                    },
+                    duration: { type: "number", description: "How long to hold the gaze in seconds (default: 4)" },
+                    draw_line: { type: "boolean", description: "When looking at x,y,z: draw a line from robot to target (default: false)" }
                 },
-                required: ["x", "y", "z"]
+                required: []
             },
-            handler: async (args: { x: number; y: number; z: number; duration?: number; draw_line?: boolean }): Promise<string> => {
+            handler: async (args: {
+                x?: number; y?: number; z?: number;
+                direction?: string; amount_degrees?: number;
+                duration?: number; draw_line?: boolean;
+            }): Promise<string> => {
+                if (!this.robotDriver || !this.assistantMode) {
+                    return JSON.stringify({ error: "RobotDriver or AssistantMode not initialized" });
+                }
+
+                const hasLocation = args.x !== undefined && args.y !== undefined && args.z !== undefined;
+                const hasDirection = args.direction !== undefined && String(args.direction).trim().length > 0;
+
+                if (hasLocation && hasDirection) {
+                    return JSON.stringify({ error: "Provide either (x, y, z) or direction, not both." });
+                }
+                if (!hasLocation && !hasDirection) {
+                    return JSON.stringify({ error: "Provide either (x, y, z) or direction." });
+                }
+
                 const dur = args.duration ?? 4;
-                const shouldDrawLine = args.draw_line === true;
-                const target = new vec3(args.x, args.y, args.z);
+                let target: vec3;
+
+                if (hasLocation) {
+                    const x = this.roundCoord(args.x!);
+                    const y = this.roundCoord(args.y!);
+                    const z = this.roundCoord(args.z!);
+                    target = new vec3(x, y, z);
+                    this.assistantMode.lookAtOverrideTarget = target;
+                    this.assistantMode.lookAtOverrideEndTime = getTime() + dur;
+
+                    if (args.draw_line === true && this.lineRendererPrefab) {
+                        const headPos = this.robotDriver.getHeadWorldPosition();
+                        this.showTemporaryLine(headPos, target, dur);
+                    }
+                    return JSON.stringify({
+                        success: true,
+                        looked_at: { x, y, z },
+                        duration: dur,
+                        line_drawn: args.draw_line === true
+                    });
+                }
+
+                // Direction path (reuse look_direction logic)
+                const dir = String(args.direction).toLowerCase().trim();
+                const headPos = this.robotDriver.getHeadWorldPosition();
+                const baseRotation = this.robotDriver.getBaseRotation();
+
+                let forward: vec3;
+                let right: vec3;
+                if (baseRotation) {
+                    forward = baseRotation.multiplyVec3(new vec3(0, 0, 1));
+                    right = baseRotation.multiplyVec3(new vec3(1, 0, 0));
+                } else {
+                    forward = new vec3(0, 0, 1);
+                    right = new vec3(1, 0, 0);
+                }
+
+                const bodyYaw = this.robotDriver.getBodyYaw();
+                const cosY = Math.cos(bodyYaw);
+                const sinY = Math.sin(bodyYaw);
+                const rotatedForward = new vec3(
+                    forward.x * cosY + forward.z * sinY,
+                    forward.y,
+                    -forward.x * sinY + forward.z * cosY
+                );
+                const rotatedRight = new vec3(
+                    right.x * cosY + right.z * sinY,
+                    right.y,
+                    -right.x * sinY + right.z * cosY
+                );
+
+                const LOOK_DISTANCE = 200;
+
+                switch (dir) {
+                    case "left": {
+                        const amountRad = (args.amount_degrees ?? 45) * Math.PI / 180;
+                        const cosA = Math.cos(amountRad);
+                        const sinA = Math.sin(amountRad);
+                        const lookDir = new vec3(
+                            rotatedForward.x * cosA - rotatedRight.x * sinA,
+                            rotatedForward.y,
+                            rotatedForward.z * cosA - rotatedRight.z * sinA
+                        );
+                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
+                        break;
+                    }
+                    case "right": {
+                        const amountRad = (args.amount_degrees ?? 45) * Math.PI / 180;
+                        const cosA = Math.cos(amountRad);
+                        const sinA = Math.sin(amountRad);
+                        const lookDir = new vec3(
+                            rotatedForward.x * cosA + rotatedRight.x * sinA,
+                            rotatedForward.y,
+                            rotatedForward.z * cosA + rotatedRight.z * sinA
+                        );
+                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
+                        break;
+                    }
+                    case "up": {
+                        const amountRad = (args.amount_degrees ?? 20) * Math.PI / 180;
+                        const cosA = Math.cos(amountRad);
+                        const sinA = Math.sin(amountRad);
+                        const lookDir = new vec3(
+                            rotatedForward.x * cosA,
+                            rotatedForward.y * cosA + sinA,
+                            rotatedForward.z * cosA
+                        );
+                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
+                        break;
+                    }
+                    case "down": {
+                        const amountRad = (args.amount_degrees ?? 20) * Math.PI / 180;
+                        const cosA = Math.cos(amountRad);
+                        const sinA = Math.sin(amountRad);
+                        const lookDir = new vec3(
+                            rotatedForward.x * cosA,
+                            rotatedForward.y * cosA - sinA,
+                            rotatedForward.z * cosA
+                        );
+                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
+                        break;
+                    }
+                    case "behind": {
+                        const lookDir = rotatedForward.uniformScale(-1);
+                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
+                        break;
+                    }
+                    default:
+                        return JSON.stringify({ error: `Unknown direction: '${dir}'. Use 'left', 'right', 'up', 'down', or 'behind'.` });
+                }
 
                 this.assistantMode.lookAtOverrideTarget = target;
                 this.assistantMode.lookAtOverrideEndTime = getTime() + dur;
 
-                // Automatically draw a line from robot head to target
-                if (shouldDrawLine && this.robotDriver && this.lineRendererPrefab) {
-                    const headPos = this.robotDriver.getHeadWorldPosition();
-                    this.showTemporaryLine(headPos, target, dur);
-                }
-
-                return JSON.stringify({ success: true, looked_at: { x: args.x, y: args.y, z: args.z }, duration: dur, line_drawn: shouldDrawLine });
+                return JSON.stringify({
+                    success: true,
+                    direction: dir,
+                    looked_at: { x: this.roundCoord(target.x), y: this.roundCoord(target.y), z: this.roundCoord(target.z) },
+                    duration: dur
+                });
             }
         };
     }
@@ -245,7 +381,7 @@ export class AssistantTools extends BaseScriptComponent {
     private createGetStateTool(): ToolDefinition {
         return {
             name: "get_state",
-            description: "Get the robot's current world position and orientation. Returns the head world position, current head angles (yaw, pitch, roll in radians), body yaw, and base rotation. Use this to understand your spatial context. For relative direction commands (look left, right, etc.) prefer using look_direction instead.",
+            description: "Get the robot's current world position and orientation, and the AR headset (user) camera position and rotation. Use robot state for internal context; use user_camera to answer questions about the user's point of view (e.g. 'the mug is to your left', 'in front of you'). When talking to the user, describe locations relative to them: 'to your left', 'in front of you', 'behind you'—never raw coordinates. For 'look left/right/up/down' prefer look_at with the direction parameter.",
             parameters: {
                 type: "object",
                 properties: {},
@@ -267,8 +403,8 @@ export class AssistantTools extends BaseScriptComponent {
                     baseEuler = baseRotation.toEulerAngles();
                 }
                 
-                return JSON.stringify({
-                    position: { x: headPos.x, y: headPos.y, z: headPos.z },
+                const out: Record<string, unknown> = {
+                    position: { x: this.roundCoord(headPos.x), y: this.roundCoord(headPos.y), z: this.roundCoord(headPos.z) },
                     head: {
                         yaw: headAngles.yaw,
                         pitch: headAngles.pitch,
@@ -282,155 +418,26 @@ export class AssistantTools extends BaseScriptComponent {
                         y: baseEuler.y,
                         z: baseEuler.z
                     } : null
-                });
+                };
+                
+                // AR headset (user) camera: position and rotation for answering POV questions ("to your left", etc.)
+                if (this.assistantMode) {
+                    const camPos = this.assistantMode.getViewerCameraWorldPosition();
+                    const camRot = this.assistantMode.getViewerCameraWorldRotation();
+                    if (camPos && camRot) {
+                        const camEuler = camRot.toEulerAngles();
+                        out.user_camera = {
+                            position: { x: this.roundCoord(camPos.x), y: this.roundCoord(camPos.y), z: this.roundCoord(camPos.z) },
+                            rotation: { x: camEuler.x, y: camEuler.y, z: camEuler.z }
+                        };
+                    }
+                }
+                
+                return JSON.stringify(out);
             }
         };
     }
 
-
-    /* ----------------------------------------------------------------
-     * Look in a direction relative to the robot's current orientation.
-     * ----------------------------------------------------------------
-    */
-    private createLookDirectionTool(): ToolDefinition {
-        return {
-            name: "look_direction",
-            description: "Make Reachy look in a direction relative to its current orientation. Use this when the user says things like 'look left', 'look up', 'look behind you', etc. The math is handled internally — just provide the direction name.",
-            parameters: {
-                type: "object",
-                properties: {
-                    direction: {
-                        type: "string",
-                        description: "The relative direction to look: 'left', 'right', 'up', 'down', or 'behind'"
-                    },
-                    amount_degrees: {
-                        type: "number",
-                        description: "How far to turn in degrees (default: 45 for horizontal, 20 for vertical)"
-                    },
-                    duration: {
-                        type: "number",
-                        description: "How long to hold the gaze in seconds (default: 4)"
-                    }
-                },
-                required: ["direction"]
-            },
-            handler: async (args: { direction: string; amount_degrees?: number; duration?: number }): Promise<string> => {
-                if (!this.robotDriver || !this.assistantMode) {
-                    return JSON.stringify({ error: "RobotDriver or AssistantMode not initialized" });
-                }
-
-                const dir = args.direction.toLowerCase().trim();
-                const dur = args.duration ?? 4;
-                const headPos = this.robotDriver.getHeadWorldPosition();
-                const baseRotation = this.robotDriver.getBaseRotation();
-
-                // Derive the robot's forward and right vectors from base rotation
-                // Default forward is (0, 0, 1) in local space
-                let forward: vec3;
-                let right: vec3;
-                const up = new vec3(0, 1, 0);
-
-                if (baseRotation) {
-                    forward = baseRotation.multiplyVec3(new vec3(0, 0, 1));
-                    right = baseRotation.multiplyVec3(new vec3(1, 0, 0));
-                } else {
-                    forward = new vec3(0, 0, 1);
-                    right = new vec3(1, 0, 0);
-                }
-
-                // Also factor in the current body yaw rotation
-                const bodyYaw = this.robotDriver.getBodyYaw();
-                const cosY = Math.cos(bodyYaw);
-                const sinY = Math.sin(bodyYaw);
-                const rotatedForward = new vec3(
-                    forward.x * cosY + forward.z * sinY,
-                    forward.y,
-                    -forward.x * sinY + forward.z * cosY
-                );
-                const rotatedRight = new vec3(
-                    right.x * cosY + right.z * sinY,
-                    right.y,
-                    -right.x * sinY + right.z * cosY
-                );
-
-                const LOOK_DISTANCE = 200;
-                let target: vec3;
-
-                switch (dir) {
-                    case "left": {
-                        const amountRad = (args.amount_degrees ?? 45) * Math.PI / 180;
-                        const cosA = Math.cos(amountRad);
-                        const sinA = Math.sin(amountRad);
-                        // Rotate forward vector left (negative right) by amount
-                        const lookDir = new vec3(
-                            rotatedForward.x * cosA - rotatedRight.x * sinA,
-                            rotatedForward.y,
-                            rotatedForward.z * cosA - rotatedRight.z * sinA
-                        );
-                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
-                        break;
-                    }
-                    case "right": {
-                        const amountRad = (args.amount_degrees ?? 45) * Math.PI / 180;
-                        const cosA = Math.cos(amountRad);
-                        const sinA = Math.sin(amountRad);
-                        // Rotate forward vector right (positive right) by amount
-                        const lookDir = new vec3(
-                            rotatedForward.x * cosA + rotatedRight.x * sinA,
-                            rotatedForward.y,
-                            rotatedForward.z * cosA + rotatedRight.z * sinA
-                        );
-                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
-                        break;
-                    }
-                    case "up": {
-                        const amountRad = (args.amount_degrees ?? 20) * Math.PI / 180;
-                        const cosA = Math.cos(amountRad);
-                        const sinA = Math.sin(amountRad);
-                        // Tilt forward vector upward
-                        const lookDir = new vec3(
-                            rotatedForward.x * cosA,
-                            rotatedForward.y * cosA + sinA,
-                            rotatedForward.z * cosA
-                        );
-                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
-                        break;
-                    }
-                    case "down": {
-                        const amountRad = (args.amount_degrees ?? 20) * Math.PI / 180;
-                        const cosA = Math.cos(amountRad);
-                        const sinA = Math.sin(amountRad);
-                        // Tilt forward vector downward
-                        const lookDir = new vec3(
-                            rotatedForward.x * cosA,
-                            rotatedForward.y * cosA - sinA,
-                            rotatedForward.z * cosA
-                        );
-                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
-                        break;
-                    }
-                    case "behind": {
-                        // Look opposite to forward direction
-                        const lookDir = rotatedForward.uniformScale(-1);
-                        target = headPos.add(lookDir.normalize().uniformScale(LOOK_DISTANCE));
-                        break;
-                    }
-                    default:
-                        return JSON.stringify({ error: `Unknown direction: '${dir}'. Use 'left', 'right', 'up', 'down', or 'behind'.` });
-                }
-
-                this.assistantMode.lookAtOverrideTarget = target;
-                this.assistantMode.lookAtOverrideEndTime = getTime() + dur;
-
-                return JSON.stringify({
-                    success: true,
-                    direction: dir,
-                    looked_at: { x: target.x, y: target.y, z: target.z },
-                    duration: dur
-                });
-            }
-        };
-    }
 
     /* ----------------------------------------------------------------
      * Play a named animation on Reachy Mini (fire-and-forget).
@@ -458,10 +465,17 @@ export class AssistantTools extends BaseScriptComponent {
                 if (!name) {
                     return JSON.stringify({ error: "animationName is required" });
                 }
-                this.robotDriver.playAnimation(name).catch((error) => {
-                    print(`AssistantTools: play_animation failed: ${error}`);
-                    this.logDebug(`Agent - Error: play_animation failed: ${error}`);
-                });
+                // Defer animation start: store on AssistantMode so it fires
+                // alongside TTS playback (audio-suppressed to avoid SFX clash).
+                if (this.assistantMode) {
+                    this.assistantMode.pendingAnimationName = name;
+                } else {
+                    // Fallback: play immediately with audio if no AssistantMode
+                    this.robotDriver.playAnimation(name).catch((error) => {
+                        print(`AssistantTools: play_animation failed: ${error}`);
+                        this.logDebug(`Agent - Error: play_animation failed: ${error}`);
+                    });
+                }
                 return JSON.stringify({ success: true, animation: name });
             }
         };
@@ -503,16 +517,16 @@ export class AssistantTools extends BaseScriptComponent {
     private createDrawLineTool(): ToolDefinition {
         return {
             name: "draw_line",
-            description: "Draw a temporary curved line. Start defaults to the robot's head position; omit start to draw from the robot. End is required. Duration in seconds (default: 10). Useful for pointing at objects or showing spatial relationships.",
+            description: "Draw a temporary curved line. Start defaults to the robot's head; omit start to draw from the robot. End is required. Coordinates in cm; use integers only (1 unit = 1 cm). Duration in seconds (default: 10). Do not tell the user raw coordinates; use relative language ('right there', 'in front of you').",
             parameters: {
                 type: "object",
                 properties: {
-                    start_x: { type: "number", description: "Start position X in world space (omit to use robot head)" },
-                    start_y: { type: "number", description: "Start position Y in world space (omit to use robot head)" },
-                    start_z: { type: "number", description: "Start position Z in world space (omit to use robot head)" },
-                    end_x: { type: "number", description: "End position X coordinate in world space" },
-                    end_y: { type: "number", description: "End position Y coordinate in world space" },
-                    end_z: { type: "number", description: "End position Z coordinate in world space" },
+                    start_x: { type: "number", description: "Start X in cm, integer (omit to use robot head)" },
+                    start_y: { type: "number", description: "Start Y in cm, integer (omit to use robot head)" },
+                    start_z: { type: "number", description: "Start Z in cm, integer (omit to use robot head)" },
+                    end_x: { type: "number", description: "End X in cm, integer" },
+                    end_y: { type: "number", description: "End Y in cm, integer" },
+                    end_z: { type: "number", description: "End Z in cm, integer" },
                     duration: { type: "number", description: "How long to display the line in seconds (default: 10)" }
                 },
                 required: ["end_x", "end_y", "end_z"]
@@ -532,17 +546,17 @@ export class AssistantTools extends BaseScriptComponent {
                     }
                     const hasStart = args.start_x !== undefined && args.start_y !== undefined && args.start_z !== undefined;
                     const start = hasStart
-                        ? new vec3(args.start_x!, args.start_y!, args.start_z!)
+                        ? new vec3(this.roundCoord(args.start_x!), this.roundCoord(args.start_y!), this.roundCoord(args.start_z!))
                         : (this.robotDriver ? this.robotDriver.getHeadWorldPosition() : new vec3(0, 0, 0));
                     if (!hasStart && !this.robotDriver) {
                         return JSON.stringify({ error: "draw_line: omit start only when robotDriver is available" });
                     }
-                    const end = new vec3(args.end_x, args.end_y, args.end_z);
+                    const end = new vec3(this.roundCoord(args.end_x), this.roundCoord(args.end_y), this.roundCoord(args.end_z));
                     const duration = args.duration ?? 10;
                     this.showTemporaryLine(start, end, duration);
                     return JSON.stringify({
                         success: true,
-                        from: { x: start.x, y: start.y, z: start.z },
+                        from: { x: this.roundCoord(start.x), y: this.roundCoord(start.y), z: this.roundCoord(start.z) },
                         to: { x: end.x, y: end.y, z: end.z },
                         duration: duration
                     });
@@ -560,13 +574,13 @@ export class AssistantTools extends BaseScriptComponent {
     private createTakePictureRobotViewTool(): ToolDefinition {
         return {
             name: "take_picture_robotview",
-            description: "Capture an image from Reachy Mini's onboard camera (the robot's perspective). Use when the user wants to see what the robot sees or to aim the robot's head at a location before taking a picture. Optionally provide aim_at_x, aim_at_y, aim_at_z (world coordinates) to point the robot's head at a location first; the capture happens after a short settle delay. Returns camera position, look direction, and aimed_at (if used) so you know where the shot was taken from and what it was looking at.",
+            description: "Capture an image from Reachy Mini's onboard camera (the robot's perspective). Use when the user wants to see what the robot sees. Optionally provide aim_at_x, aim_at_y, aim_at_z (world position in cm; integers only) to point the head at a location first; capture happens after a short delay. When describing the shot to the user, use relative language ('what's in front of you', 'to your left'), never coordinates.",
             parameters: {
                 type: "object",
                 properties: {
-                    aim_at_x: { type: "number", description: "World X to look at before capture (optional)" },
-                    aim_at_y: { type: "number", description: "World Y to look at before capture (optional)" },
-                    aim_at_z: { type: "number", description: "World Z to look at before capture (optional)" },
+                    aim_at_x: { type: "number", description: "World X in cm, integer, to look at before capture (optional)" },
+                    aim_at_y: { type: "number", description: "World Y in cm, integer, to look at before capture (optional)" },
+                    aim_at_z: { type: "number", description: "World Z in cm, integer, to look at before capture (optional)" },
                 },
                 required: [],
             },
@@ -577,10 +591,13 @@ export class AssistantTools extends BaseScriptComponent {
                 const hasAim = args.aim_at_x !== undefined && args.aim_at_y !== undefined && args.aim_at_z !== undefined;
                 let aimedAt: { x: number; y: number; z: number } | undefined;
                 if (hasAim) {
-                    const target = new vec3(args.aim_at_x!, args.aim_at_y!, args.aim_at_z!);
+                    const ax = this.roundCoord(args.aim_at_x!);
+                    const ay = this.roundCoord(args.aim_at_y!);
+                    const az = this.roundCoord(args.aim_at_z!);
+                    const target = new vec3(ax, ay, az);
                     this.assistantMode.lookAtOverrideTarget = target;
                     this.assistantMode.lookAtOverrideEndTime = getTime() + 1.0;
-                    aimedAt = { x: target.x, y: target.y, z: target.z };
+                    aimedAt = { x: ax, y: ay, z: az };
                     await new Promise<void>((resolve) => {
                         const ev = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
                         ev.bind(() => resolve());
@@ -596,7 +613,7 @@ export class AssistantTools extends BaseScriptComponent {
                         image_base64: imageBase64,
                         mime: "image/jpeg",
                         source: "robot_camera",
-                        camera_position: { x: headPos.x, y: headPos.y, z: headPos.z },
+                        camera_position: { x: this.roundCoord(headPos.x), y: this.roundCoord(headPos.y), z: this.roundCoord(headPos.z) },
                         look_direction: { yaw: headAngles.yaw, pitch: headAngles.pitch },
                     };
                     if (aimedAt) result.aimed_at = aimedAt;

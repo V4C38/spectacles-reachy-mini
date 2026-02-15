@@ -55,6 +55,11 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     // matching the MovementHandler POSE_ALPHA = 0.12 at 30 Hz.
     private static readonly SMOOTHING_SPEED = 4.0;
 
+    // --- Velocity clamping (match movement_handler.py so sim and hardware stay aligned) ---
+    private static readonly MAX_ANGULAR_VEL = 1.5;   // rad/s
+    private static readonly MAX_POS_VEL = 0.05;     // m/s
+    private static readonly MAX_DT_FOR_VEL_CLAMP = 0.06;
+
     // Target -- set by setTarget(), can jump
     private targetPose: XYZRPYPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
     private targetBodyYaw: number = 0;
@@ -133,16 +138,24 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
         // Frame-rate-independent alpha: at 30fps this ≈ 0.12
         const alpha = 1 - Math.exp(-SimulationAdapter.SMOOTHING_SPEED * dt);
 
-        this.displayedPose.x     += alpha * (this.targetPose.x     - this.displayedPose.x);
-        this.displayedPose.y     += alpha * (this.targetPose.y     - this.displayedPose.y);
-        this.displayedPose.z     += alpha * (this.targetPose.z     - this.displayedPose.z);
-        this.displayedPose.roll  += alpha * (this.targetPose.roll  - this.displayedPose.roll);
-        this.displayedPose.pitch += alpha * (this.targetPose.pitch - this.displayedPose.pitch);
-        this.displayedPose.yaw   += alpha * (this.targetPose.yaw   - this.displayedPose.yaw);
+        // Velocity clamp (match Python movement_handler so sim and hardware stay aligned)
+        const dtClamped = Math.min(dt, SimulationAdapter.MAX_DT_FOR_VEL_CLAMP);
+        const maxDAng = SimulationAdapter.MAX_ANGULAR_VEL * dtClamped;
+        const maxDPos = SimulationAdapter.MAX_POS_VEL * dtClamped;
 
-        this.displayedBodyYaw += alpha * (this.targetBodyYaw - this.displayedBodyYaw);
-        this.displayedAntennas[0] += alpha * (this.targetAntennas[0] - this.displayedAntennas[0]);
-        this.displayedAntennas[1] += alpha * (this.targetAntennas[1] - this.displayedAntennas[1]);
+        const clamp = (delta: number, maxAbs: number): number =>
+            Math.max(-maxAbs, Math.min(maxAbs, delta));
+
+        this.displayedPose.x     += clamp(alpha * (this.targetPose.x     - this.displayedPose.x), maxDPos);
+        this.displayedPose.y     += clamp(alpha * (this.targetPose.y     - this.displayedPose.y), maxDPos);
+        this.displayedPose.z     += clamp(alpha * (this.targetPose.z     - this.displayedPose.z), maxDPos);
+        this.displayedPose.roll  += clamp(alpha * (this.targetPose.roll  - this.displayedPose.roll), maxDAng);
+        this.displayedPose.pitch += clamp(alpha * (this.targetPose.pitch - this.displayedPose.pitch), maxDAng);
+        this.displayedPose.yaw   += clamp(alpha * (this.targetPose.yaw   - this.displayedPose.yaw), maxDAng);
+
+        this.displayedBodyYaw += clamp(alpha * (this.targetBodyYaw - this.displayedBodyYaw), maxDAng);
+        this.displayedAntennas[0] += clamp(alpha * (this.targetAntennas[0] - this.displayedAntennas[0]), maxDAng);
+        this.displayedAntennas[1] += clamp(alpha * (this.targetAntennas[1] - this.displayedAntennas[1]), maxDAng);
 
         this.applyToScene(this.displayedPose, this.displayedBodyYaw, this.displayedAntennas);
     }

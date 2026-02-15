@@ -1,62 +1,121 @@
----
-title: Spectacles AR controller
-emoji: 😎
-colorFrom: purple
-colorTo: blue
-sdk: static
-pinned: false
-short_description: Control Reachy Mini from Snap Spectacles via WebSocket.
-tags:
-  - reachy_mini
-  - reachy_mini_python_app
----
+# AR Controller for Reachy Mini
 
-# Spectacles AR controller (Reachy Mini App)
+Control the **Reachy Mini** robot via **Augmented Reality Glasses** (Snap Spectacles) in two modes: Puppeteering (directly control the look at target) & Agent (OpenAI ChatGPT with a voice interface that controls the robot via custom tools made available to the LLM)
 
-Control **Reachy Mini** from **Snap Spectacles** with an AR interaction flow.
 
-This Reachy Mini app runs a **WebSocket bridge** (FastAPI + Uvicorn) on port **8765** so a Spectacles Lens can stream targets (head pose, body yaw, antennas) to the robot with smoothing.
+![Hero GIF](.assets/rm_hero.gif)
 
-## Endpoints
+This repo contains:
+- A **Lens Studio** project (the spatial UI for Spectacles, interaction logic and state)
+- A **Reachy Mini Python app** that exposes a **WebSocket** and an extended API (as opposed to the REST API from the deamon alone)
 
-- **WebSocket**: `ws://<robot-ip>:8765/ws`
-- **Helper page (shows IP to enter on Spectacles)**: `http://<robot-ip>:8765/`
-- **REST**: `GET /api/info`, `GET /api/status`
+Aimed to provide an easy starting point for AR developers who would like to start working with hardware / robotics
 
-## Prerequisites
+## Setup
 
-- Reachy Mini daemon running (required). See the official [Quickstart](https://huggingface.co/docs/reachy_mini/SDK/quickstart).
-- Spectacles and the machine running the daemon on the **same local network**.
-- Your firewall allows inbound TCP **8765**.
+- **Prerequisites**: Snap [Spectacles](https://www.spectacles.com/), any [Reachy Mini](https://huggingface.co/spaces/pollen-robotics/Reachy_Mini) version (this is optional for simulation mode)
 
-## Install & run
+1. Start the Reachy Mini [Desktop App](https://huggingface.co/docs/reachy_mini/SDK/quickstart)
+Note: this also works with the daemon web interface
+2. Locate, install and start the app "spectacles-reachy-mini" (untick official box to find it)
+3. Launch the Lens and follow the Setup Wizard:
+Note: if you have no rm, select "I ..."
+   a) IP (will be saved)
+   b) Position (Spatial Anchor)
+![Setup Wizard](.assets/rm_setup_wizard.png)
 
-1. Start the Reachy Mini daemon (keep it running).
-   - **USB (Lite)**: `uv run reachy-mini-daemon`
-   - **Simulation**: `uv run reachy-mini-daemon --sim` (or `mjpython -m reachy_mini.daemon.app.main --sim` on macOS)
-   - **Wireless**: the daemon runs when the robot is powered on
-2. Verify the dashboard is up at `http://localhost:8000`.
-3. Install this app into the **same Python environment** as the daemon:
+## Core concepts
+- direct control
+- agentic mode
 
-```bash
-cd reachy-mini-app
-pip install -e .
+extensible 
+
+### Architecture overview
+
+abstraction UI -> Controller (hw and sim) -> reachy app ws -> daemon
+extensible
+Key decision: all done in Lens -> little dependency on app (intended to only use rest api originally)
+adapter pattern
+
+**Lens class diagram**
+
+```mermaid
+flowchart TB
+    subgraph Lens [Spectacles Lens]
+        RMM[ReachyMiniManager]
+        SW[SetupWizard]
+        UI[UIManager]
+        PM[PuppeteerMode]
+        AM[AssistantMode]
+        RD[RobotDriver]
+        HA[HardwareAdapter]
+        SA[SimulationAdapter]
+
+        RMM --> PM
+        RMM --> AM
+        RMM --> RD
+        SW --> RMM
+        UI --> RMM
+        PM --> RD
+        AM --> RD
+        RD --> HA
+        RD --> SA
+    end
+
+    subgraph Python [Python App]
+        WS[WebSocketHandler]
+        MH[MovementHandler]
+        AH[AudioHandler]
+        CH[CameraHandler]
+    end
+
+    HA --> WS
+    WS --> MH
+    WS --> AH
+    WS --> CH
+    AH --> SDK
+    CH --> SDK
+    MH --> SDK[ReachyMini Daemon]
 ```
 
-4. In the Reachy dashboard / desktop app, start **Spectacles AR controller**.
-5. Open `http://<robot-ip>:8765/` and enter the shown IP in the Spectacles setup wizard. The Lens connects to `ws://<robot-ip>:8765/ws`.
+## Lens Studio Project
 
-## Publishing to Hugging Face (so it shows up in the app store)
+### Modes
+`ReachyMiniManager` switches control modes: Puppeteer (look-at draggable target), Assistant (voice + AI), or Setup (connect IP, position robot). 
 
-Reachy Mini apps are shared as **Hugging Face Spaces** (this Space is `sdk: static` so the page is lightweight; the robot installs/runs the Python code locally).
+#### Puppeteer Mode
+look at
+extend yourself
 
-- **Community listing/discovery**: make the Space **public** and keep these Space tags (top of this README):
-  - `reachy_mini`
-  - `reachy_mini_python_app`
-- **Publish** (from an environment where `reachy-mini` is installed):
-  - `reachy-mini-app-assistant check`
-  - `reachy-mini-app-assistant publish`
-- **Request “official app store” inclusion** (curated list): `reachy-mini-app-assistant publish --official`
+#### Assistant Mode
+llm, tts stt, latency, api keys
 
-See the official guide: [Make and publish your Reachy Mini App](https://huggingface.co/blog/pollen-robotics/make-and-publish-your-reachy-mini-apps).
+**tools**
+link to tools concept
+- look_at
+- find_object
+- draw_line
+- get_animations / play_animation
+- take_picture
 
+how to add your own tools
+
+### Movement
+`RobotDriver` computes pose (yaw, pitch, roll, body, antennas) with smoothing and delegates to either `HardwareAdapter` (WebSocket to the robot) or `SimulationAdapter` (scene objects, no robot)
+Idle movemen / random
+
+**Animations**
+explain system*
+add / modify animations
+
+### Simulation
+![Simulation Mode](.assets/rm_simulation.gif)
+
+## Reachy Mini App
+https://huggingface.co/spaces/V4C38/spectacles_reachy_mini
+**Websocket**
+**Handlers**
+Movement & IK
+`MovementHandler` LERPs target toward current at ~30 Hz before sending to `ReachyMini.set_target`, so motion stays smooth over the network.
+Audio
+Test locally see [Make and publish your Reachy Mini App](https://huggingface.co/blog/pollen-robotics/make-and-publish-your-reachy-mini-apps) 

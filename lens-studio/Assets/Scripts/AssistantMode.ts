@@ -44,6 +44,9 @@ export class AssistantMode extends BaseScriptComponent {
     public onStateChanged: ((newState: AssistantState) => void)[] = [];
     private isPaused: boolean = false;
 
+    // --- Pending animation (set by tool call, started alongside TTS) ---
+    public pendingAnimationName: string | null = null;
+
     // --- Timers ---
     private debounceTimer: number = 0;
     private lastActivityTime: number = 0;
@@ -231,7 +234,11 @@ export class AssistantMode extends BaseScriptComponent {
         if (!this.robotDriver) return;
         this.robotDriver.reset();
 
+        // Force currentState so setState(Sleeping) always runs enterSleeping(),
+        // even if we were already Sleeping from a previous session.
+        this.currentState = AssistantState.Idle;
         this.setState(AssistantState.Sleeping);
+        this.robotDriver.snapToCurrentParams();  // Snap to sleeping pose immediately
         this.startASR();
     }
 
@@ -361,6 +368,17 @@ export class AssistantMode extends BaseScriptComponent {
         }
     }
 
+    /** World position of the AR headset (user) camera. Use for answering POV questions (e.g. "to your left"). */
+    public getViewerCameraWorldPosition(): vec3 | null {
+        if (!this.camera) return null;
+        return this.camera.getTransform().getWorldPosition();
+    }
+
+    /** World rotation of the AR headset (user) camera. Use for answering POV questions. */
+    public getViewerCameraWorldRotation(): quat | null {
+        if (!this.camera) return null;
+        return this.camera.getTransform().getWorldRotation();
+    }
 
     // ----------------------------------------------------------------
     // Conversation Management
@@ -496,10 +514,21 @@ export class AssistantMode extends BaseScriptComponent {
 
         try {
             this.robotDriver.setGazeTarget(this.camera.getTransform().getWorldPosition());
+            this.pendingAnimationName = null;
             const response = await this.llmInterface.sendMessage(text);
 
             this.setState(AssistantState.Speaking);
             this.stopASR();
+
+            // Start pending animation (motion-only, no SFX) alongside TTS
+            if (this.pendingAnimationName) {
+                const animName = this.pendingAnimationName;
+                this.pendingAnimationName = null;
+                this.robotDriver.playAnimation(animName, true).catch((err) => {
+                    print(`AssistantMode: pending animation failed: ${err}`);
+                });
+            }
+
             await this.robotDriver.playAudio(response.audioTrack);
             this.startASR();
             this.setState(AssistantState.Listening);
@@ -514,6 +543,7 @@ export class AssistantMode extends BaseScriptComponent {
             this.onErrorOccurred.forEach(cb => cb(message));
             this.setState(AssistantState.Idle);
         } finally {
+            this.pendingAnimationName = null;
             this.isProcessingSpeech = false;
         }
     }
@@ -527,10 +557,21 @@ export class AssistantMode extends BaseScriptComponent {
 
         try {
             this.robotDriver.setGazeTarget(this.camera.getTransform().getWorldPosition());
+            this.pendingAnimationName = null;
             const response = await this.llmInterface.sendMessage(this.GREETING_PROMPT);
 
             this.setState(AssistantState.Speaking);
             this.stopASR();
+
+            // Start pending animation (motion-only, no SFX) alongside TTS
+            if (this.pendingAnimationName) {
+                const animName = this.pendingAnimationName;
+                this.pendingAnimationName = null;
+                this.robotDriver.playAnimation(animName, true).catch((err) => {
+                    print(`AssistantMode: pending animation failed: ${err}`);
+                });
+            }
+
             await this.robotDriver.playAudio(response.audioTrack);
             this.startASR();
 
@@ -544,6 +585,8 @@ export class AssistantMode extends BaseScriptComponent {
             this.logDebug(`Agent - Error: ${message}`);
             this.onErrorOccurred.forEach(cb => cb(message));
             this.setState(AssistantState.Listening);
+        } finally {
+            this.pendingAnimationName = null;
         }
     }
 
