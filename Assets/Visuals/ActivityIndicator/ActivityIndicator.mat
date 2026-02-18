@@ -4,6 +4,12 @@
     - !<own> 27d191d8-b1f6-4b8c-ad54-7ba45c831bd1
 - !<PassInfo/27d191d8-b1f6-4b8c-ad54-7ba45c831bd1>
   CachedProperties:
+    - Param_Saturation:
+        typeIdx: 1
+        value: 1.000000
+    - Port_Amount_N040:
+        typeIdx: 1
+        value: 1.000000
     - Port_Bool_N012:
         typeIdx: 1
         value: 0.000000
@@ -40,6 +46,12 @@
     - Port_GSplatScale_N004:
         typeIdx: 4
         value: {x: 0.000000, y: 0.000000, z: 0.000000}
+    - Port_Input_N040:
+        typeIdx: 5
+        value: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+    - Port_Output_N042:
+        typeIdx: 5
+        value: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
     - Port_Position0_N055:
         typeIdx: 1
         value: 0.000000
@@ -58,6 +70,9 @@
     - Port_Position5_N055:
         typeIdx: 1
         value: 1.000000
+    - Port_PrevWorldPosition_N004:
+        typeIdx: 4
+        value: {x: 0.000000, y: 0.000000, z: 0.000000}
     - Port_RayDirection_N004:
         typeIdx: 4
         value: {x: 0.000000, y: 1.000000, z: 0.000000}
@@ -88,7 +103,7 @@
     - Port_WorldTangent_N004:
         typeIdx: 4
         value: {x: 0.000000, y: 0.000000, z: 1.000000}
-    - Tweak_N56:
+    - Saturation:
         typeIdx: 1
         value: 1.000000
   DepthWrite: false
@@ -306,6 +321,9 @@
     Tweak_N38:
       typeIdx: 1
       value: 0.300000
+    Tweak_N41:
+      typeIdx: 1
+      value: 1.000000
     in_out:
       typeIdx: 1
       value: 1.000000

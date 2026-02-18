@@ -1,0 +1,59 @@
+- !<AssetImportMetadata/8dee5d4f-5ffb-424e-8d9a-186817a3ead6>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 074b87f7-4050-4ffd-ae2b-4c2c81a24086
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 074b87f7-4050-4ffd-ae2b-4c2c81a24086
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> d8a9aba1-cc3c-47fb-b5b0-a5c6e2409b8b
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/d8a9aba1-cc3c-47fb-b5b0-a5c6e2409b8b>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 376898ca-798d-47b3-9a5d-a316a496e101
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    interactable: false
+    interactableRoot: false
+    interactableVFX: false
+    lineRendererPrefab: false
+    lineRendererRoot: false
+    robotDriver: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - robotDriver: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      interactable: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      interactableVFX: !<reference.RenderMeshVisual> 00000000-0000-0000-0000-000000000000
+      interactableRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      lineRendererPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      lineRendererRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType robotDriver
+    - // @input AssignableType_1 interactable
+    - // @input Component.RenderMeshVisual interactableVFX
+    - // @input SceneObject interactableRoot
+    - // @input Asset.ObjectPrefab lineRendererPrefab
+    - // @input SceneObject lineRendererRoot

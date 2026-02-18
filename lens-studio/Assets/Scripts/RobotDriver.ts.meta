@@ -1,0 +1,68 @@
+- !<AssetImportMetadata/36ea46ff-d900-456b-8c71-67cd26c85bbc>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 31d177a8-1d66-41e2-b981-085afcaf792f
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 31d177a8-1d66-41e2-b981-085afcaf792f
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 6ed97a8b-9e03-4704-812f-15c5de3b19cf
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/6ed97a8b-9e03-4704-812f-15c5de3b19cf>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 6ef09356-f825-45f8-9059-be9da4f2d9f8
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    antennaAmplitude: false
+    hardwareAdapter: false
+    headMoveSpeed: false
+    headRoot: false
+    headYBase: false
+    maxHeadDelta: false
+    rollAmplitude: false
+    simulationAdapter: false
+    yBobAmplitude: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - hardwareAdapter: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      simulationAdapter: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      headRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      headMoveSpeed: 0.050000
+      maxHeadDelta: !<float> 2.000000
+      rollAmplitude: !<float> 8.000000
+      yBobAmplitude: 0.012000
+      headYBase: 0.025000
+      antennaAmplitude: !<float> 15.000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType hardwareAdapter
+    - // @input AssignableType_1 simulationAdapter
+    - // @input SceneObject headRoot
+    - // @input float headMoveSpeed = 0.05
+    - // @input float maxHeadDelta = 2
+    - // @input float rollAmplitude = 8
+    - // @input float yBobAmplitude = 0.012
+    - // @input float headYBase = 0.1
+    - // @input float antennaAmplitude = 15

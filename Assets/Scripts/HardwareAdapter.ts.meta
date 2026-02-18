@@ -1,0 +1,50 @@
+- !<AssetImportMetadata/296b874a-3880-473f-8988-dfef2d78caed>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 8970c334-c712-4bc2-a1e0-c9e489a9a9ab
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 8970c334-c712-4bc2-a1e0-c9e489a9a9ab
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> caab720b-29c6-47ad-9e52-fa230332e206
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/caab720b-29c6-47ad-9e52-fa230332e206>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 641cf167-7e8e-4d3a-b4c1-4eaa216c282d
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    audioComponent: false
+    baseUrl: false
+    internetModule: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - baseUrl: "http://192.168.1.98:8000"
+      internetModule: !<reference.InternetModule> 00000000-0000-0000-0000-000000000000
+      audioComponent: !<reference.AudioComponent> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @input string baseUrl = "http://192.168.1.98:8000"'
+    - // @input Asset.InternetModule internetModule
+    - // @input Component.AudioComponent audioComponent

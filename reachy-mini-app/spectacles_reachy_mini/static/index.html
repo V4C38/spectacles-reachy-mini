@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectacles AR controller — Reachy Mini</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --text: #1a1a1a;
+            --text-muted: #5c5c5c;
+            --accent: #2563eb;
+            --accent-light: #eff6ff;
+            --border: #e2e8f0;
+            --success: #059669;
+            --error: #dc2626;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .stack {
+            width: 100%;
+            max-width: 420px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 100%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .intro {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .intro-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--accent-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            flex-shrink: 0;
+        }
+        .intro-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .intro-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .card-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        .api-list {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0;
+        }
+        .api-list li code {
+            font-family: 'JetBrains Mono', 'SF Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: var(--accent-light);
+            color: var(--accent);
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+        .status-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            margin-top: 1rem;
+        }
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .status-dot.ok { background: var(--success); animation: pulse 2s ease-in-out infinite; }
+        .status-dot.err { background: var(--error); }
+        .status-dot.pending { background: var(--text-muted); opacity: 0.6; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .loading { color: var(--text-muted); }
+        .error { color: var(--error); }
+    </style>
+</head>
+<body>
+    <div class="stack">
+        <div class="card">
+            <div class="intro">
+                <div class="intro-icon">😎</div>
+                <div>
+                    <div class="intro-title">Spectacles AR controller</div>
+                    <div class="intro-desc">WebSocket bridge to control Reachy Mini from Snap Spectacles.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">WebSocket bridge</h2>
+            <p class="card-desc">Message types exposed by the bridge:</p>
+            <ul class="api-list" aria-label="WebSocket message types">
+                <li><code>set_target</code></li>
+                <li><code>goto</code></li>
+                <li><code>stop_move</code></li>
+                <li><code>play_audio</code></li>
+                <li><code>status</code></li>
+                <li><code>get_robot_camera_frame</code></li>
+            </ul>
+
+            <div class="status-list">
+                <div class="status-row" id="http-status">
+                    <span class="status-dot pending"></span>
+                    <span id="http-status-text">HTTP server: checking…</span>
+                </div>
+                <div class="status-row" id="ws-status">
+                    <span class="status-dot pending"></span>
+                    <span id="ws-status-text">WebSocket: checking…</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function setStatus(id, ok, text) {
+            const row = document.getElementById(id);
+            const dot = row.querySelector('.status-dot');
+            const txt = row.querySelector('[id$="-status-text"]');
+            dot.className = 'status-dot ' + (ok ? 'ok' : 'err');
+            txt.textContent = text;
+        }
+
+        function checkWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = protocol + '//' + window.location.host + '/ws';
+            const ws = new WebSocket(wsUrl);
+            return new Promise((resolve) => {
+                const t = setTimeout(() => {
+                    ws.close();
+                    resolve(false);
+                }, 3000);
+                ws.onopen = () => {
+                    clearTimeout(t);
+                    ws.close();
+                    resolve(true);
+                };
+                ws.onerror = () => {
+                    clearTimeout(t);
+                    resolve(false);
+                };
+            });
+        }
+
+        async function fetchInfo() {
+            try {
+                const res = await fetch('/api/info');
+                setStatus('http-status', res.ok, res.ok ? 'HTTP server: running' : 'HTTP server: error');
+            } catch (e) {
+                setStatus('http-status', false, 'HTTP server: not reachable');
+            }
+            const wsOk = await checkWebSocket();
+            setStatus('ws-status', wsOk, wsOk ? 'WebSocket: ready' : 'WebSocket: not connected');
+        }
+
+        fetchInfo();
+        setInterval(fetchInfo, 10000);
+    </script>
+</body>
+</html>

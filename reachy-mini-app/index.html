@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Spectacles AR controller — Reachy Mini</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link
+		href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@500&display=swap"
+		rel="stylesheet"
+	>
+	<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+	<div class="stack">
+		<div class="card">
+			<div class="intro">
+				<div class="intro-icon">😎</div>
+				<div>
+					<div class="intro-title">Spectacles AR controller</div>
+					<div class="intro-desc">WebSocket bridge to control Reachy Mini from Snap Spectacles.</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="card">
+			<h2 class="card-title">WebSocket bridge</h2>
+			<p class="card-desc">Message types exposed by the bridge:</p>
+			<ul class="api-list" aria-label="WebSocket message types">
+				<li><code>set_target</code></li>
+				<li><code>goto</code></li>
+				<li><code>stop_move</code></li>
+				<li><code>play_audio</code></li>
+				<li><code>status</code></li>
+				<li><code>get_robot_camera_frame</code></li>
+			</ul>
+
+			<div class="status-list">
+				<div class="status-row" id="http-status">
+					<span class="status-dot pending"></span>
+					<span id="http-status-text">HTTP server: checking…</span>
+				</div>
+				<div class="status-row" id="ws-status">
+					<span class="status-dot pending"></span>
+					<span id="ws-status-text">WebSocket: checking…</span>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		function setStatus(id, ok, text) {
+			const row = document.getElementById(id);
+			const dot = row.querySelector('.status-dot');
+			const txt = row.querySelector('[id$="-status-text"]');
+			dot.className = 'status-dot ' + (ok ? 'ok' : 'err');
+			txt.textContent = text;
+		}
+
+		function checkWebSocket() {
+			const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+			const wsUrl = protocol + '//' + window.location.host + '/ws';
+			const ws = new WebSocket(wsUrl);
+			return new Promise((resolve) => {
+				const t = setTimeout(() => {
+					ws.close();
+					resolve(false);
+				}, 3000);
+				ws.onopen = () => {
+					clearTimeout(t);
+					ws.close();
+					resolve(true);
+				};
+				ws.onerror = () => {
+					clearTimeout(t);
+					resolve(false);
+				};
+			});
+		}
+
+		async function fetchInfo() {
+			try {
+				const res = await fetch('/api/info');
+				setStatus('http-status', res.ok, res.ok ? 'HTTP server: running' : 'HTTP server: error');
+			} catch (e) {
+				setStatus('http-status', false, 'HTTP server: not reachable');
+			}
+			const wsOk = await checkWebSocket();
+			setStatus('ws-status', wsOk, wsOk ? 'WebSocket: ready' : 'WebSocket: not connected');
+		}
+
+		fetchInfo();
+		setInterval(fetchInfo, 10000);
+	</script>
+</body>
+</html>
