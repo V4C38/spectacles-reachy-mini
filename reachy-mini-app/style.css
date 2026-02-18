@@ -84,33 +84,26 @@ body {
   font-size: 0.9rem;
   color: var(--text-muted);
   line-height: 1.5;
-  margin-bottom: 1.5rem;
-}
-
-.ip-box {
-  background: var(--accent-light);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1rem 1.25rem;
   margin-bottom: 1rem;
 }
 
-.ip-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  margin-bottom: 0.35rem;
+.api-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0;
 }
 
-.ip-address {
+.api-list li code {
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 1.35rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: var(--accent-light);
   color: var(--accent);
-  word-break: break-all;
-  user-select: all;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
 }
 
 .status-list {

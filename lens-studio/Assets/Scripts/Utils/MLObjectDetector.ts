@@ -49,7 +49,7 @@ export class MLObjectDetector extends BaseScriptComponent {
         
     // --- Configuration ---
     private readonly CONFIDENCE_THRESHOLD = 0.35;
-    private readonly REACHY_EXCLUSION_RADIUS_M = 0.15; 
+    private readonly REACHY_EXCLUSION_RADIUS_M = 0.25; 
 
     // --- World-mesh animation state ---
     private worldMeshVisible: boolean = false;
@@ -60,7 +60,6 @@ export class MLObjectDetector extends BaseScriptComponent {
     private readonly WM_PULSE_MIN_OPACITY = 0.5;
 
     onAwake() {
-        // Initialize on start
         this.createEvent("OnStartEvent").bind(() => {
             this.waitForDepthReady();
         });

@@ -49,7 +49,7 @@ export class RobotDriver extends BaseScriptComponent {
     @input
     private headRoot: SceneObject | null = null;
 
-    // --- User-tunable base parameters (scaled by AnimationParams multipliers) ---
+    // --- User-tunable base parameters (scaled by AnimationParams) ---
     @input
     public headMoveSpeed: number = 0.05;
     @input
@@ -58,7 +58,7 @@ export class RobotDriver extends BaseScriptComponent {
     public rollAmplitude: number = 8.0;
     @input
     public yBobAmplitude: number = 0.012;
-    /** Max vertical offset when headYPosMul = 1. Meters. */
+    /** Max vertical offset when headHeight = 1. Meters. */
     @input
     public headYBase: number = 0.10;
     @input
@@ -85,6 +85,9 @@ export class RobotDriver extends BaseScriptComponent {
 
     // --- Head Y base position (smoothed toward param target) ---
     private headYBase_current: number = 0;
+
+    // --- Neutral pitch when no gaze target (e.g. 0.6 for sleeping) ---
+    private neutralPitch: number = 0;
 
     // --- Current animation parameters ---
     private params: AnimationParams = { ...PRESETS.idle };
@@ -131,6 +134,11 @@ export class RobotDriver extends BaseScriptComponent {
         return { ...this.params };
     }
 
+    /** Set the pitch used when gaze target is null (radians). Positive = look down. */
+    public setNeutralPitch(pitch: number): void {
+        this.neutralPitch = pitch;
+    }
+
     // ================================================================
     // Public API: gaze target
     // ================================================================
@@ -165,6 +173,7 @@ export class RobotDriver extends BaseScriptComponent {
         this.antennaLeft = 0;
         this.antennaRight = 0;
         this.gazeTarget = null;
+        this.neutralPitch = 0;
         this.params = { ...PRESETS.idle };
         this.gazeVarTargetYaw = 0;
         this.gazeVarTargetPitch = 0;
@@ -179,10 +188,10 @@ export class RobotDriver extends BaseScriptComponent {
      * robot should appear in the target pose immediately, without smoothing.
      */
     public snapToCurrentParams(): void {
-        this.headPitch = this.params.neutralPitchWhenNull ?? 0;
+        this.headPitch = this.neutralPitch;
         this.headYaw = 0;
         this.headRoll = 0;
-        this.headY = this.headYBase * this.params.headYPosMul;
+        this.headY = this.headYBase * this.params.headHeight;
         this.headYBase_current = this.headY;
         this.bodyYaw = 0;
         this.prevHeadYaw = 0;
@@ -337,18 +346,20 @@ export class RobotDriver extends BaseScriptComponent {
             effectiveGazeTarget = this.localAnimation.getGazeTarget(t, ctx);
         }
 
-        // --- Effective values from base params x multipliers ---
-        let yawSmoothing = this.headMoveSpeed * effectiveParams.headMoveSpeedMul;
-        let pitchSmoothing = this.headMoveSpeed * effectiveParams.pitchSmoothingMul;
-        let maxYawDelta = this.maxHeadDelta * effectiveParams.maxHeadDeltaMul * DEG;
-        let maxPitchDelta = this.maxHeadDelta * 0.5 * effectiveParams.maxHeadDeltaMul * DEG;
-        let bodySmoothing = yawSmoothing * 0.7 * effectiveParams.bodyFollowMul;
+        // --- Derive per-axis values from simplified params ---
+        const p = effectiveParams;
+        let yawSmoothing = this.headMoveSpeed * p.gazeResponsiveness;
+        let pitchSmoothing = this.headMoveSpeed * p.gazeResponsiveness * 0.8;
+        let maxYawDelta = this.maxHeadDelta * p.gazeResponsiveness * DEG;
+        let maxPitchDelta = this.maxHeadDelta * 0.5 * p.gazeResponsiveness * DEG;
+        let bodySmoothing = yawSmoothing * 0.7 * (0.3 + p.liveliness * 0.4);
         const rollSmoothing = yawSmoothing * 0.8;
         const antennaSmoothing = yawSmoothing * 1.5;
         let ySmoothing = yawSmoothing * 0.8;
-        const effectiveRollAmp = this.rollAmplitude * effectiveParams.rollAmplitudeMul * DEG;
-        const effectiveYAmp = this.yBobAmplitude * effectiveParams.yBobAmplitudeMul;
-        const effectiveAntAmp = this.antennaAmplitude * effectiveParams.antennaAmplitudeMul * DEG;
+        const effectiveRollAmp = this.rollAmplitude * p.liveliness * DEG;
+        const effectiveYAmp = this.yBobAmplitude * p.liveliness;
+        const effectiveAntAmp = this.antennaAmplitude * p.antennaActivity * DEG;
+        const antSpeed = 0.5 + p.antennaActivity * 0.5;
 
         // --- Boost tracking during named animations for visible motion ---
         const isAnimGaze = !!(this.localAnimation && this.localAnimation.getGazeTarget);
@@ -380,14 +391,13 @@ export class RobotDriver extends BaseScriptComponent {
         } else {
             // No target: use neutral pose (straight ahead or sleep-tucked)
             desiredYaw = 0;
-            const neutralPitch = effectiveParams.neutralPitchWhenNull ?? 0;
-            desiredPitch = neutralPitch;
+            desiredPitch = this.neutralPitch;
         }
 
         // --- 2. Gaze variation (smooth random offset) ---
-        if (effectiveParams.gazeVariation > 0) {
+        if (p.gazeWander > 0) {
             if (now > this.gazeVarNextChangeTime) {
-                const amp = effectiveParams.gazeVariation;
+                const amp = p.gazeWander;
                 this.gazeVarTargetYaw = this.randomRange(-amp, amp);
                 this.gazeVarTargetPitch = this.randomRange(-amp * 0.5, amp * 0.3);
                 this.gazeVarNextChangeTime = now + this.randomRange(1.5, 3.0);
@@ -407,7 +417,7 @@ export class RobotDriver extends BaseScriptComponent {
         this.headPitch += this.dampen((desiredPitch - this.headPitch) * pitchSmoothing, maxPitchDelta);
         this.headPitch = this.clamp(this.headPitch, this.MIN_PITCH, this.MAX_PITCH);
 
-        // --- 4. Body follows head (scaled by bodyFollowMul) ---
+        // --- 4. Body follows head (scaled by liveliness) ---
         const relYaw = this.headYaw - this.bodyYaw;
         const followStrength = Math.abs(relYaw) > this.MAX_HEAD_YAW * 0.5 ? bodySmoothing * 2 : bodySmoothing;
         if (Math.abs(relYaw) > this.MAX_HEAD_YAW) {
@@ -429,13 +439,12 @@ export class RobotDriver extends BaseScriptComponent {
         this.headRoll += (this.clamp(desiredRoll, -this.MAX_ROLL, this.MAX_ROLL) - this.headRoll) * rollSmoothing;
 
         // --- 6. Head Y: base position + bob ---
-        const targetBaseY = this.headYBase * effectiveParams.headYPosMul;
+        const targetBaseY = this.headYBase * p.headHeight;
         this.headYBase_current += (targetBaseY - this.headYBase_current) * ySmoothing;
         const desiredY = this.headYBase_current + this.dualSine(now, 0.41, 0.29) * effectiveYAmp;
         this.headY += (desiredY - this.headY) * ySmoothing;
 
         // --- 7. Antennas (speed-scaled dual sine) ---
-        const antSpeed = effectiveParams.antennaSpeedMul;
         const desiredL = this.dualSine(now * antSpeed, 1.3, 3.11) * effectiveAntAmp;
         const desiredR = this.dualSine(now * antSpeed, 1.7, 2.73) * effectiveAntAmp;
         this.antennaLeft += (desiredL - this.antennaLeft) * antennaSmoothing;

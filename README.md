@@ -7,7 +7,7 @@ Control the **Reachy Mini** robot via **Augmented Reality Glasses** (Snap Specta
 
 This repo contains:
 - A **Lens Studio** project (the spatial UI for Spectacles, interaction logic and state)
-- A **Reachy Mini Python app** that exposes a **WebSocket** and an extended API (as opposed to the REST API from the deamon alone)
+- A **Reachy Mini Python app** that provides and an extended API via **WebSocket** (as opposed to the REST API from the deamon alone)
 
 Aimed to provide an easy starting point for AR developers who would like to start working with hardware / robotics
 

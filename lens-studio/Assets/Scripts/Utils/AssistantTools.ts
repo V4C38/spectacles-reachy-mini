@@ -44,9 +44,9 @@ export class AssistantTools extends BaseScriptComponent {
         }
     }
 
-    /** Round coordinate to integer (1 unit = 1 cm). Use in tool I/O to keep context window small and avoid decimals. */
+    /** Round coordinate to two decimal places (1 unit = 1 cm). Use in tool I/O for consistent formatting. */
     private roundCoord(v: number): number {
-        return Math.round(v);
+        return Math.round(v * 100) / 100;
     }
 
     /**
@@ -135,7 +135,7 @@ export class AssistantTools extends BaseScriptComponent {
     private createScanObjectsTool(): ToolDefinition {
         return {
             name: "scan_objects",
-            description: "Scan the user's surroundings for objects matching a description. When the user asks to find or locate something, use ONE scan_objects call; when it returns, call look_at with the object's coordinates (x, y, z; integers only, 1 unit = 1 cm) and draw_line true to point at it. When replying to the user, never mention coordinates. Use relative, natural language only: e.g. 'It\'s right in front of you', 'Slightly to your left', 'Right there!', 'Behind you'. For multiple objects, use one prompt listing all (e.g. 'phone and glasses'). If the user only asked what objects are visible (generic list), do not draw a line.",
+            description: "Scan the user's surroundings for objects matching a description. When the user asks to find or locate something, use ONE scan_objects call; when it returns, call look_at with the object's coordinates (x, y, z; two decimal places, 1 unit = 1 cm) and draw_line true to point at it. When replying to the user, never mention coordinates. Use relative, natural language only: e.g. 'It\'s right in front of you', 'Slightly to your left', 'Right there!', 'Behind you'. For multiple objects, use one prompt listing all (e.g. 'phone and glasses'). If the user only asked what objects are visible (generic list), do not draw a line.",
             parameters: {
                 type: "object",
                 properties: {
@@ -209,13 +209,13 @@ export class AssistantTools extends BaseScriptComponent {
     private createLookAtTool(): ToolDefinition {
         return {
             name: "look_at",
-            description: "Make Reachy look at a world-space position (x, y, z; integers only, 1 unit = 1 cm) OR in a relative direction ('left', 'right', 'up', 'down', 'behind'). Provide either (x, y, z) or direction—not both. Prefer direction when the user says 'look left', 'look up', etc. For world position (e.g. after scan_objects), set draw_line true to point at the object. When speaking to the user, never say coordinates; use relative language only ('in front of you', 'to your left', 'right there'). Duration in seconds (default: 4).",
+            description: "Make Reachy look at a world-space position (x, y, z; two decimal places, 1 unit = 1 cm) OR in a relative direction ('left', 'right', 'up', 'down', 'behind'). Provide either (x, y, z) or direction—not both. Prefer direction when the user says 'look left', 'look up', etc. For world position (e.g. after scan_objects), set draw_line true to point at the object. When speaking to the user, never say coordinates; use relative language only ('in front of you', 'to your left', 'right there'). Duration in seconds (default: 4).",
             parameters: {
                 type: "object",
                 properties: {
-                    x: { type: "number", description: "World X in cm (integer; use with y, z; omit when using direction)" },
-                    y: { type: "number", description: "World Y in cm (integer; use with x, z; omit when using direction)" },
-                    z: { type: "number", description: "World Z in cm (integer; use with x, y; omit when using direction)" },
+                    x: { type: "number", description: "World X in cm (two decimal places; use with y, z; omit when using direction)" },
+                    y: { type: "number", description: "World Y in cm (two decimal places; use with x, z; omit when using direction)" },
+                    z: { type: "number", description: "World Z in cm (two decimal places; use with x, y; omit when using direction)" },
                     direction: {
                         type: "string",
                         description: "Relative direction: 'left', 'right', 'up', 'down', or 'behind'. Omit when using x, y, z."
@@ -517,16 +517,16 @@ export class AssistantTools extends BaseScriptComponent {
     private createDrawLineTool(): ToolDefinition {
         return {
             name: "draw_line",
-            description: "Draw a temporary curved line. Start defaults to the robot's head; omit start to draw from the robot. End is required. Coordinates in cm; use integers only (1 unit = 1 cm). Duration in seconds (default: 10). Do not tell the user raw coordinates; use relative language ('right there', 'in front of you').",
+            description: "Draw a temporary curved line. Start defaults to the robot's head; omit start to draw from the robot. End is required. Coordinates in cm; two decimal places (1 unit = 1 cm). Duration in seconds (default: 10). Do not tell the user raw coordinates; use relative language ('right there', 'in front of you').",
             parameters: {
                 type: "object",
                 properties: {
-                    start_x: { type: "number", description: "Start X in cm, integer (omit to use robot head)" },
-                    start_y: { type: "number", description: "Start Y in cm, integer (omit to use robot head)" },
-                    start_z: { type: "number", description: "Start Z in cm, integer (omit to use robot head)" },
-                    end_x: { type: "number", description: "End X in cm, integer" },
-                    end_y: { type: "number", description: "End Y in cm, integer" },
-                    end_z: { type: "number", description: "End Z in cm, integer" },
+                    start_x: { type: "number", description: "Start X in cm, two decimal places (omit to use robot head)" },
+                    start_y: { type: "number", description: "Start Y in cm, two decimal places (omit to use robot head)" },
+                    start_z: { type: "number", description: "Start Z in cm, two decimal places (omit to use robot head)" },
+                    end_x: { type: "number", description: "End X in cm, two decimal places" },
+                    end_y: { type: "number", description: "End Y in cm, two decimal places" },
+                    end_z: { type: "number", description: "End Z in cm, two decimal places" },
                     duration: { type: "number", description: "How long to display the line in seconds (default: 10)" }
                 },
                 required: ["end_x", "end_y", "end_z"]
@@ -574,13 +574,13 @@ export class AssistantTools extends BaseScriptComponent {
     private createTakePictureRobotViewTool(): ToolDefinition {
         return {
             name: "take_picture_robotview",
-            description: "Capture an image from Reachy Mini's onboard camera (the robot's perspective). Use when the user wants to see what the robot sees. Optionally provide aim_at_x, aim_at_y, aim_at_z (world position in cm; integers only) to point the head at a location first; capture happens after a short delay. When describing the shot to the user, use relative language ('what's in front of you', 'to your left'), never coordinates.",
+            description: "Capture an image from Reachy Mini's onboard camera (the robot's perspective). Use when the user wants to see what the robot sees. Optionally provide aim_at_x, aim_at_y, aim_at_z (world position in cm; two decimal places) to point the head at a location first; capture happens after a short delay. When describing the shot to the user, use relative language ('what's in front of you', 'to your left'), never coordinates.",
             parameters: {
                 type: "object",
                 properties: {
-                    aim_at_x: { type: "number", description: "World X in cm, integer, to look at before capture (optional)" },
-                    aim_at_y: { type: "number", description: "World Y in cm, integer, to look at before capture (optional)" },
-                    aim_at_z: { type: "number", description: "World Z in cm, integer, to look at before capture (optional)" },
+                    aim_at_x: { type: "number", description: "World X in cm, two decimal places, to look at before capture (optional)" },
+                    aim_at_y: { type: "number", description: "World Y in cm, two decimal places, to look at before capture (optional)" },
+                    aim_at_z: { type: "number", description: "World Z in cm, two decimal places, to look at before capture (optional)" },
                 },
                 required: [],
             },

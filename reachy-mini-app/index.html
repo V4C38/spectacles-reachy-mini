@@ -25,12 +25,16 @@
 		</div>
 
 		<div class="card">
-			<h2 class="card-title">Connect to Spectacles Bridge</h2>
-			<p class="card-desc">Enter the IP address shown below on the Spectacles setup wizard.</p>
-
-			<div id="ip-box" class="ip-box">
-				<div id="content" class="loading">Loading…</div>
-			</div>
+			<h2 class="card-title">WebSocket bridge</h2>
+			<p class="card-desc">Message types exposed by the bridge:</p>
+			<ul class="api-list" aria-label="WebSocket message types">
+				<li><code>set_target</code></li>
+				<li><code>goto</code></li>
+				<li><code>stop_move</code></li>
+				<li><code>play_audio</code></li>
+				<li><code>status</code></li>
+				<li><code>get_robot_camera_frame</code></li>
+			</ul>
 
 			<div class="status-list">
 				<div class="status-row" id="http-status">
@@ -76,47 +80,12 @@
 		}
 
 		async function fetchInfo() {
-			const content = document.getElementById('content');
-			let ip = null;
-			let port = 8765;
-
-			// Try API first
 			try {
 				const res = await fetch('/api/info');
-				if (res.ok) {
-					const data = await res.json();
-					if (data.ips && data.ips.length > 0) {
-						ip = data.ips[0];
-						port = data.port ?? 8765;
-						setStatus('http-status', true, 'HTTP server: running');
-						if (data.ips.length > 1) {
-							content.innerHTML = `
-								<div class="ip-label">IP address to enter on Spectacles</div>
-								<div class="ip-address">${ip}</div>
-								<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem">Also: ${data.ips.slice(1).join(', ')}</div>
-							`;
-						} else {
-							content.innerHTML = `
-								<div class="ip-label">IP address to enter on Spectacles</div>
-								<div class="ip-address">${ip}</div>
-								<div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.4rem">Port ${port} is used automatically</div>
-							`;
-						}
-					} else {
-						setStatus('http-status', false, 'HTTP server: no network interfaces');
-						ip = window.location.hostname;
-						content.innerHTML = `<div class="ip-label">IP address to enter on Spectacles</div><div class="ip-address">${ip}</div><div style="font-size:0.75rem;color:var(--error);margin-top:0.4rem">Fallback from page URL</div>`;
-					}
-				} else {
-					throw new Error('API error');
-				}
+				setStatus('http-status', res.ok, res.ok ? 'HTTP server: running' : 'HTTP server: error');
 			} catch (e) {
 				setStatus('http-status', false, 'HTTP server: not reachable');
-				ip = window.location.hostname;
-				content.innerHTML = `<div class="ip-label">IP address to enter on Spectacles</div><div class="ip-address">${ip}</div><div style="font-size:0.75rem;color:var(--error);margin-top:0.4rem">Using host from page URL (API unreachable)</div>`;
 			}
-
-			// Check WebSocket
 			const wsOk = await checkWebSocket();
 			setStatus('ws-status', wsOk, wsOk ? 'WebSocket: ready' : 'WebSocket: not connected');
 		}

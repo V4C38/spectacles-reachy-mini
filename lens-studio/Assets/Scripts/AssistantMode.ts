@@ -123,7 +123,7 @@ export class AssistantMode extends BaseScriptComponent {
             if (now < this.lookAtOverrideEndTime) {
                 this.robotDriver.setGazeTarget(this.lookAtOverrideTarget);
                 // Exact tracking during override (no gaze variation)
-                this.robotDriver.setParams({ gazeVariation: 0 });
+                this.robotDriver.setParams({ gazeWander: 0 });
                 this.robotDriver.updateFrame();
                 return;
             } else {
@@ -300,8 +300,14 @@ export class AssistantMode extends BaseScriptComponent {
     private applyStateParams(): void {
         if (!this.robotDriver) return;
         switch (this.currentState) {
-            case AssistantState.Sleeping:  this.robotDriver.setParams(PRESETS.sleeping);  break;
-            case AssistantState.Idle:      this.robotDriver.setParams(PRESETS.idle);      break;
+            case AssistantState.Sleeping:
+                this.robotDriver.setParams(PRESETS.sleeping);
+                this.robotDriver.setNeutralPitch(0.6);
+                break;
+            case AssistantState.Idle:
+                this.robotDriver.setParams(PRESETS.idle);
+                this.robotDriver.setNeutralPitch(0);
+                break;
             case AssistantState.Listening: this.robotDriver.setParams(PRESETS.listening); break;
             case AssistantState.Speaking:  this.robotDriver.setParams(PRESETS.speaking);  break;
             case AssistantState.Searching: this.robotDriver.setParams(PRESETS.searching); break;
@@ -314,6 +320,7 @@ export class AssistantMode extends BaseScriptComponent {
         if (this.robotDriver) {
             this.robotDriver.clearLocalAnimation();
             this.robotDriver.setParams(PRESETS.sleeping);
+            this.robotDriver.setNeutralPitch(0.6);
             this.robotDriver.setGazeTarget(null);
         }
     }
@@ -325,6 +332,7 @@ export class AssistantMode extends BaseScriptComponent {
         this.nextIdleTargetTime = 0;
         if (this.robotDriver) {
             this.robotDriver.setParams(PRESETS.idle);
+            this.robotDriver.setNeutralPitch(0);
         }
     }
 
