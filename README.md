@@ -3,7 +3,7 @@
 Control the **Reachy Mini** robot via **Augmented Reality Glasses** (Snap Spectacles) in two modes: Puppeteering (directly control the look at target) & Agent (OpenAI ChatGPT with a voice interface that controls the robot via custom tools made available to the LLM)
 
 
-![Hero GIF](.assets/rm_hero.gif)
+![Hero GIF](assets/rm_hero.gif)
 
 This repo contains:
 - A **Lens Studio** project (the spatial UI for Spectacles, interaction logic and state)
@@ -22,7 +22,7 @@ Note: this also works with the daemon web interface
 Note: if you have no rm, select "I ..."
    a) IP (will be saved)
    b) Position (Spatial Anchor)
-![Setup Wizard](.assets/rm_setup_wizard.png)
+![Setup Wizard](assets/rm_setup_wizard.png)
 
 ## Core concepts
 - direct control
@@ -109,7 +109,7 @@ how to add your own tools
 For example add tools based on [AI Playground](https://github.com/specs-devs/samples/tree/main/AI%20Playground) or [Agentic Playground](https://github.com/specs-devs/samples/tree/main/Agentic%20Playground)
 
 ### Simulation
-![Simulation Mode](.assets/rm_simulation.gif)
+![Simulation Mode](assets/rm_simulation.gif)
 
 
 ## Reachy Mini App
