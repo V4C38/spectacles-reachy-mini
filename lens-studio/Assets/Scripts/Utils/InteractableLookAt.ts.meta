@@ -1,0 +1,50 @@
+- !<AssetImportMetadata/4eac0c92-941d-44ba-bc13-299d1558cfe3>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> e4e7bc8f-f23e-4709-9540-cd9e14d24422
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> e4e7bc8f-f23e-4709-9540-cd9e14d24422
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> aaa294d3-bd63-4680-a2bd-def5eb326546
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/aaa294d3-bd63-4680-a2bd-def5eb326546>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 40dfc563-77ab-4384-9d9f-91219ee8ec9c
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    duration: false
+    lineRendererPrefab: false
+    reachyMiniManager: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - reachyMiniManager: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      lineRendererPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      duration: !<float> 4.000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType reachyMiniManager
+    - // @input Asset.ObjectPrefab lineRendererPrefab
+    - // @input float duration = 2

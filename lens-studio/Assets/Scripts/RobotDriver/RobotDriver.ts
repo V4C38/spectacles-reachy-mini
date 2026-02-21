@@ -2,18 +2,10 @@ import { HardwareAdapter } from "./HardwareAdapter";
 import { SimulationAdapter } from "./SimulationAdapter";
 import { AnimationParams, AnimationGazeContext, NAMED_ANIMATIONS, PRESETS } from "./RobotAnimationConfig";
 
-// ================================================================
-// Shared types (used by adapters)
-// ================================================================
-
 /** 3D pose: position (x, y, z) in meters, orientation (roll, pitch, yaw) in radians. */
 export interface XYZRPYPose {
-    x: number;
-    y: number;
-    z: number;
-    roll: number;
-    pitch: number;
-    yaw: number;
+    x: number; y: number; z: number;
+    roll: number; pitch: number; yaw: number;
 }
 
 /** Interface that both HardwareAdapter and SimulationAdapter implement. */
@@ -95,7 +87,7 @@ export class RobotDriver extends BaseScriptComponent {
     // --- Gaze target (world position, null = look straight ahead) ---
     private gazeTarget: vec3 | null = null;
 
-    // --- Gaze variation (smooth random offset, replaces old glance system) ---
+    // --- Gaze variation (smooth random offset) ---
     private gazeVarTargetYaw: number = 0;
     private gazeVarTargetPitch: number = 0;
     private gazeVarCurrentYaw: number = 0;
@@ -280,7 +272,6 @@ export class RobotDriver extends BaseScriptComponent {
             getGazeTarget: entry.getGazeTarget,
         };
 
-        // Get audio track from SimulationAdapter and play in parallel with param overlay
         let audioPromise: Promise<void> = Promise.resolve();
         if (!suppressAudio && this.simulationAdapter) {
             const track = this.simulationAdapter.getAudioTrackForAnimation(entry.audioKey);
@@ -289,7 +280,6 @@ export class RobotDriver extends BaseScriptComponent {
             }
         }
 
-        // Wait for animation duration (param overlay expires in updateFrame)
         const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
         const waitPromise = new Promise<void>((resolve) => {
             delayEvent.bind(() => resolve());
@@ -326,6 +316,20 @@ export class RobotDriver extends BaseScriptComponent {
         const iface = this.getActiveInterface();
         if (!iface) return;
 
+        this.computePose();
+
+        const headPose: XYZRPYPose = { x: 0, y: 0, z: this.headY, roll: this.headRoll, pitch: this.headPitch, yaw: this.headYaw };
+        const antennaPose: [number, number] = [this.antennaLeft, this.antennaRight];
+
+        iface.setTarget(headPose, this.bodyYaw, antennaPose).catch(() => {});
+
+        if (!this.simulationMode && this.simulationAdapter) {
+            this.simulationAdapter.setTarget(headPose, this.bodyYaw, antennaPose).catch(() => {});
+        }
+    }
+
+    /** Advance all tracked axes one tick: gaze tracking, body follow, roll, bob, antennas. */
+    private computePose(): void {
         const now = getTime();
         const DEG = Math.PI / 180;
 
@@ -384,12 +388,10 @@ export class RobotDriver extends BaseScriptComponent {
                 desiredYaw = angles.yaw;
                 desiredPitch = angles.pitch;
             } else {
-                // Keep current angles on invalid input
                 desiredYaw = this.headYaw;
                 desiredPitch = this.headPitch;
             }
         } else {
-            // No target: use neutral pose (straight ahead or sleep-tucked)
             desiredYaw = 0;
             desiredPitch = this.neutralPitch;
         }
@@ -449,17 +451,6 @@ export class RobotDriver extends BaseScriptComponent {
         const desiredR = this.dualSine(now * antSpeed, 1.7, 2.73) * effectiveAntAmp;
         this.antennaLeft += (desiredL - this.antennaLeft) * antennaSmoothing;
         this.antennaRight += (desiredR - this.antennaRight) * antennaSmoothing;
-
-        // --- 8. Send to active interface ---
-        const headPose: XYZRPYPose = { x: 0, y: 0, z: this.headY, roll: this.headRoll, pitch: this.headPitch, yaw: this.headYaw };
-        const antennaPose: [number, number] = [this.antennaLeft, this.antennaRight];
-
-        iface.setTarget(headPose, this.bodyYaw, antennaPose).catch(() => {});
-
-        // Mirror to simulation when hardware is active
-        if (!this.simulationMode && this.simulationAdapter) {
-            this.simulationAdapter.setTarget(headPose, this.bodyYaw, antennaPose).catch(() => {});
-        }
     }
 
     // ================================================================

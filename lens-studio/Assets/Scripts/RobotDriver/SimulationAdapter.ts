@@ -359,11 +359,12 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
                 return t < 0.5
                     ? 4 * t * t * t
                     : 1 - Math.pow(-2 * t + 2, 3) / 2;
-            case "cartoon":
+            case "cartoon": {
                 // Overshoot then settle
                 const c = 1.70158;
                 const c3 = c + 1;
                 return 1 + c3 * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2);
+            }
             case "linear":
             default:
                 return t;
@@ -393,3 +394,4 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     }
 
 }
+ 

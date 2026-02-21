@@ -1,8 +1,8 @@
 import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
-import { RobotDriver } from "./RobotDriver";
-import { PRESETS } from "./RobotAnimationConfig";
-import { getObjectLinkRenderer, ObjectLinkRenderer } from "./Utils/ObjectLinkRenderer";
+import { RobotDriver } from "../RobotDriver/RobotDriver";
+import { PRESETS } from "../RobotDriver/RobotAnimationConfig";
+import { getObjectLinkRenderer, ObjectLinkRenderer } from "../Utils/ObjectLinkRenderer";
 
 //Puppeteer control mode: makes the robot look at a draggable target scene object.
 @component

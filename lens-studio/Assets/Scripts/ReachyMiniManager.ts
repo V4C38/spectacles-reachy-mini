@@ -1,19 +1,32 @@
 import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 
-import { PuppeteerMode } from "./PuppeteerMode";
+import { PuppeteerMode } from "./Puppeteer/PuppeteerMode";
 import { PersistenceManager } from "./Utils/PersistenceManager";
-import { AssistantMode, AssistantState } from "./AssistantMode";
-import { RobotDriver } from "./RobotDriver";
+import { AssistantMode, AssistantState } from "./Assistant/AssistantMode";
+import { RobotDriver } from "./RobotDriver/RobotDriver";
 
-
+/**
+ * Top-level orchestrator. SetupWizard completes first, then hands control here.
+ *
+ * Control flow:
+ *   SetupWizard  -->  UIManager.setMode(n)  -->  ReachyMiniManager.setControlMode(n)
+ *
+ * Control modes:
+ *   0 = Inactive    No update loop runs; robot holds last pose.
+ *   1 = Puppeteer   PuppeteerMode.update() runs every frame (hand-drag gaze control).
+ *   2 = Assistant    AssistantMode.updateFrame() runs every frame (voice AI + gaze).
+ *
+ * Each mode owns its own update loop (started/stopped by setControlMode).
+ * setIsActive(false) pauses the current mode without switching; resume with setIsActive(true).
+ */
 @component
 export class ReachyMiniManager extends BaseScriptComponent {
 
     @input
     private reachyMiniRoot: SceneObject | null = null;
     @input
-    private robotDriver: RobotDriver | null = null;
+    public robotDriver: RobotDriver | null = null;
     @input
     public persistenceManager: PersistenceManager | null = null;
 
@@ -29,9 +42,9 @@ export class ReachyMiniManager extends BaseScriptComponent {
     // Control Modes
     public controlMode: number = 0;
     @input
-    private puppeteerMode: PuppeteerMode | null = null;
+    public puppeteerMode: PuppeteerMode | null = null;
     @input
-    private assistantMode: AssistantMode | null = null;
+    public assistantMode: AssistantMode | null = null;
 
     private puppeteerUpdateEvent: SceneEvent | null = null;
     private assistantUpdateEvent: SceneEvent | null = null;

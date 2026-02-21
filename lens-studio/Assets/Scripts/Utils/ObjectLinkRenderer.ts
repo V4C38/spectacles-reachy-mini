@@ -1,4 +1,4 @@
-// This is some vibecoded slop because the LensStudio line renderer needs some material I don´t know how to setup and thus doesn't work
+// The LensStudio line renderer needs some material I don´t know how to setup and thus doesn't work so we use this instead. 
 
 
 // ================================================================

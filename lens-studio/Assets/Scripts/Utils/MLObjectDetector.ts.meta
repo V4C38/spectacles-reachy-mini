@@ -28,6 +28,7 @@
   ScriptInputsHidden:
     depthCacheHelper: false
     objectMarkerPrefab: false
+    reachyMiniManager: false
     worldMeshRenderer: false
     worldMeshRoot: false
   ScriptTypesHidden:
@@ -43,6 +44,7 @@
       objectMarkerPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
       worldMeshRenderer: !<reference.RenderMeshVisual> 00000000-0000-0000-0000-000000000000
       worldMeshRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      reachyMiniManager: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -51,3 +53,4 @@
     - // @input Asset.ObjectPrefab objectMarkerPrefab
     - // @input Component.RenderMeshVisual worldMeshRenderer
     - // @input SceneObject worldMeshRoot
+    - // @input AssignableType_1 reachyMiniManager

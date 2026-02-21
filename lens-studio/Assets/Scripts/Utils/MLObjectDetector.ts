@@ -1,4 +1,6 @@
 import { DepthCache } from "./DepthCache";
+import { getInteractableLookAt } from "./InteractableLookAt";
+import { ReachyMiniManager } from "../ReachyMiniManager";
 import { Gemini } from "RemoteServiceGateway.lspkg/HostedExternal/Gemini";
 import { GeminiTypes } from "RemoteServiceGateway.lspkg/HostedExternal/GeminiTypes";
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
@@ -39,6 +41,9 @@ export class MLObjectDetector extends BaseScriptComponent {
 
     @input
     private worldMeshRoot: SceneObject | null = null;
+
+    @input
+    public reachyMiniManager: ReachyMiniManager | null = null;
 
     private cameraModule: CameraModule = require("LensStudio:CameraModule");
 
@@ -154,6 +159,13 @@ export class MLObjectDetector extends BaseScriptComponent {
                 
                 marker.enabled = true;
                 this.animateMarkerIn(marker);
+
+                if (this.reachyMiniManager) {
+                    const lookAt = getInteractableLookAt(marker);
+                    if (lookAt) {
+                        lookAt.reachyMiniManager = this.reachyMiniManager;
+                    }
+                }
                 
                 this.currentMarkers.push(marker);
                 markerIndex++;
