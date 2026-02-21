@@ -4,6 +4,7 @@
     - !<own> 00000000-0000-0065-0000-000000000064
     - !<own> 0005641c-028d-459a-0000-000000014b4d
     - !<own> 5aa0f98b-e799-448c-a2dc-cae5d04fa2a4
+    - !<own> 267f89d7-97c1-4c40-a03a-fbbcb033f32e
     - !<own> de76f38b-d250-4102-bd75-fc9b3cdb0427
     - !<own> 7bddf6e7-2ff8-418c-ac05-c1cb54b58df8
     - !<own> 33d037d1-44e2-497d-b77a-038f49428ddf
@@ -960,6 +961,24 @@
     - !<own> d491b31f-c593-49a0-932a-b8bbe817b1bf
   Components:
     []
+- !<ScriptComponent/20aec83c-5b55-4c11-8b9e-91f31cca9e3e>
+  PrefabRemaps:
+    []
+  Name: RemoteServiceGatewayCredentials
+  Enabled: true
+  ScriptAsset: !<reference> 37976aca-6847-44c8-88d9-5edb6aadbbf2
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      openAIToken: db0ec7ef-28dc-4561-9ccc-dfdd01aa775d
+      googleToken: 77bed942-f94b-4881-b60a-6cc9f161540f
+      snapToken: fa5d61d3-777a-43f8-8810-50ba02bc20e3
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/210e408d-9607-4a16-99e4-f7382deff630>
   PrefabRemaps:
     []
@@ -1038,6 +1057,21 @@
     - !<own> 00fdb93a-85d7-4497-9622-9fad02238fc3
   Components:
     []
+- !<SceneObject/267f89d7-97c1-4c40-a03a-fbbcb033f32e>
+  PrefabRemaps:
+    []
+  Name: RemoteServiceGatewayCredentials
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: -20.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 20aec83c-5b55-4c11-8b9e-91f31cca9e3e
 - !<RenderMeshVisual/269b08f5-3658-41c8-9ade-0d6a7c4de69d>
   PrefabRemaps:
     []

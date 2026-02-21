@@ -5,13 +5,14 @@ Control the **Reachy Mini** robot via **Spectacles AR Glasses** in two modes: Pu
 <img src="Assets/rm_hero.gif" alt="Hero GIF">
 
 This repo contains:
-- A **Lens Studio** project (the spatial UI for Spectacles, interaction logic and state)
+- A **Lens Studio project** (the spatial UI for Spectacles, interaction logic and state)
 - A **Reachy Mini Python app** that provides an extended API via **WebSocket**
 
 This project is an easy starting point for AR developers who would like to venture into the intersection of spatial computing, robotics and AI.
 
 ## Setup
 **Prerequisites**: Snap [Spectacles](https://www.spectacles.com/), any [Reachy Mini](https://huggingface.co/spaces/pollen-robotics/Reachy_Mini) (supporting both Lite and wireless version)
+
    *Note: You can also use simulation mode if you do not have the physical robot!*
 
 1. **Start the Reachy Mini [Desktop App](https://huggingface.co/docs/reachy_mini/SDK/quickstart)**
@@ -21,20 +22,22 @@ This project is an easy starting point for AR developers who would like to ventu
    <img src="Assets/rm_setup_wizard.gif" alt="Setup Wizard">
 
    It will ask you to enter the IP of the machine running the Reachy App. This can be on your local network or over the internet.
-   *If you do not have a Reachy Mini, select 'I have no Reachy Mini' in the first step which will skip the hardware setup and start Simulation Mode*
+   Select 'I have no Reachy Mini' to enter Simulation Mode.
 
 
 ## Core concepts
 
 There are two main ways of controlling the robot:
+
 **User directly controls the robot:**
 This direct control is referred to as **Puppeteer Mode** in this lens: it gives the user a grabbable object that the robot will always look at. This is an easy way to have interactivity.
+
 **An LLM / agent controls the robot:**
 A more technically involved approach is what is referred to as **Assistant Mode**, the user can interact with an LLM (ChatGPT) that has custom tools available to move the physical (or simulated) robot.
 
 ### Extensibility by Design
 This project is designed to be extended by you!
-Some suggestions and workflows for this, like adding your own tools for the agent, can be found in later sections.
+Some suggestions and workflows for this, like adding your own tools for the agent, can be found in later sections. Checkout the `Customization Section` for how to get started!
 
 ## Architecture overview
 This project is aimed at Lens Studio developers and designers, so almost all of the logic is handled in the Lens itself. This alleviates the need for using python, making it easier to play around and experiment without the complexity of hardware and firmware.
@@ -102,12 +105,18 @@ Random movement is applied to all movements to create more lively movement patte
 This implementation is fairly straight forward and computes a look_at pose which is continuously updated at 30 Hz. A target scene object is provided as a reference.
 This target object has an `InteractableManipulation` so the user can directly control the robot gaze.
 
+
 *A good starting point to modifying this project would be to set the lookat target programmatically!*
 
 #### Assistant Mode
 <img src="Assets/rm_assistant_mode.png" alt="Assistant Mode">
-Using [ChatGPT](https://developers.snap.com/lens-studio/features/remote-apis/chatgpt-api), the robot is controlled via tools exposed to the agent.
+
+An `AssistantConversation` is established (you can think of it as a chat in [ChatGPT within the Lens](https://developers.snap.com/lens-studio/features/remote-apis/chatgpt-api)), the robot is controlled via tools exposed to the agent in `LLMService.ts`. By having access to the camera and depth data of the spectacles as well as it´s own position in the shared 3D space, Reachy can reason surprisingly well about spatial relationships between objects, itself and the user.
+
+Try asking things like "What is the object to my left", "Look at the Teapot" or "Turn around". Take a look at the `systemPrompt` field in `LLMService.ts` to find out more.
+
 An internal state machine determines animation states and what tools can be called:
+
 
 | State | Behavior |
 |---|---|
@@ -157,15 +166,17 @@ This setup has some latency but transcription is required to support tool callin
 
 </details>
 
-#### Simulation Mode
+#### Simulation
 
 Simulation mode is entered by selecting "I have no Reachy Mini" in the first step of the setup Wizard. You can at any time switch between the modes by restarting the setup from the main menu.
 
 <img src="Assets/rm_simulation.gif" alt="Simulation Mode">
 
-This is a fully simulated version of the robot that adheres to the exact same kinematics as the physical robot. If simulation mode is enabled, the RobotDriver will send all movement commands to SimulationAdapter (as opposed to HardwareAdapter) which then applies them to the model in the scene.
+This is a fully simulated version of the robot that adheres to the exact same kinematics as the physical robot. If simulation mode is enabled, the `RobotDriver` will send all movement commands to `SimulationAdapter` (as opposed to `HardwareAdapter`) which then applies them to the model in the scene.
 
-*Note: the tool take_picture_robot_view is not available in simulation mode*
+**Both Puppeteering and Assistant mode are available and work the same as with the physical robot!**
+
+*Note: the tool `take_picture_robot_view` is not available in simulation mode*
 
 ### Reachy Mini App
 
@@ -173,31 +184,35 @@ The preferred way to create custom logic for Reachy Mini is by creating a custom
 
 This project provides the app **spectacles-reachy-mini** which is already published so you can simply add it inside the Reachy Mini Desktop App.
 
+*Note: The original intention was to only use the Reachy Mini Daemons REST API or Websocket instead of having a custom app for the Reachy Mini App store.
+Unfortunately the standard API is quite limited (for example no audio playback) as the intention is to use the Python SDK*
+
 <img src="Assets/rm_desktop_app.png" alt="Reachy Mini App">
+
 
 #### WebSocket on port 8765
 
 One of the main reasons for the app is to have a WebSocket instead of a REST API for low latency. On the Lens side, we use [the WebSocket API](https://developers.snap.com/spectacles/about-spectacles-features/apis/web-socket).
 
 Available commands:
-- `set_target` — continuously stream head pose, body yaw, and antenna positions
-- `goto` — move to a specific pose over a given duration with interpolation
-- `stop_move` — cancel a `goto` move by UUID
-- `play_audio` — play base64-encoded raw audio on the robot speaker
-- `status` — connection health check
-- `get_robot_camera_frame` — capture a camera frame from the robot (returned as base64)
+- `set_target` continuously stream head pose, body yaw, and antenna positions
+- `goto` move to a specific pose over a given duration with interpolation
+- `stop_move` cancel a `goto` move by UUID
+- `play_audio` play base64-encoded raw audio on the robot speaker
+- `status` connection health check
+- `get_robot_camera_frame` capture a camera frame from the robot (returned as base64)
 
 #### Movement handler
 
-This app is designed to receive continuous movement requests via set_target and applies its own smoothing and IK safety checks. The movement update rate is ~30 Hz.
-If you want to see the details, they can be found in movement_handler.py.
+This app is designed to receive continuous movement requests via `set_target` and applies its own smoothing and IK safety checks. The movement update rate is ~30 Hz.
+If you want to see the details, they can be found in `movement_handler.py`.
 
 #### Modifying the App itself
 
 <details>
 <summary>Guide and links</summary>
 
-If you want to change the app to for example expose more functionality (like named animations for example), you can find it on [Hugging Face](https://huggingface.co/spaces/V4C38/spectacles_reachy_mini). Feel free to Fork it or create a Pull request.
+If you want to change the app to for example expose more functionality (like named animations), you can find it on [Hugging Face](https://huggingface.co/spaces/V4C38/spectacles_reachy_mini). Feel free to Fork it or create a Pull request.
 
 If you want to test your changes locally without publishing, here is a great guide: [Make and publish your Reachy Mini App](https://huggingface.co/blog/pollen-robotics/make-and-publish-your-reachy-mini-apps)
 
@@ -205,14 +220,23 @@ See also the [Reachy Mini Python SDK](https://huggingface.co/docs/reachy_mini/v1
 
 </details>
 
-*Note: The original intention was to only use the Reachy Mini Daemons REST API or Websocket instead of having a custom app for the Reachy Mini App store.
-Unfortunately the standard API is quite limited (for example no audio playback) as the intention is to use the Python SDK*
+### Customization
+
+Here are some things you can change right away:
+
+- **System prompt:** Edit the `systemPrompt` field in `LLMService.ts` to change the assistant's personality, behavior rules, and tool usage instructions
+- **Animation parameters:** Tune the robot's expressiveness (liveliness, gaze responsiveness, antenna activity, etc.) by editing the presets in `RobotAnimationConfig.ts`
+- **Add a tool:** Create a new file in `Assets/Scripts/Assistant/Tools/` and register it in `ToolFactory.ts` (see the step-by-step guide above)
+- **LLM model:** Change the `model` input on `LLMService` (default: `gpt-4.1-nano`) to use a different OpenAI model or switch over to gemini entirely
+- **TTS voice:** Change the `ttsVoice` input on `LLMService` (default: `alloy`) to any [supported voice](https://platform.openai.com/docs/guides/text-to-speech)
+
+Contributions, ideas, and bug reports are more than welcome. Feel free to open an issue or pull request!
 
 ### Additional Notes
 
 #### Development tips
 
-- If you upload the Lens from Lens Studio, consider setting Base URL in the HardwareAdapter script to your IP so you don't have to type it every time.
+- If you upload the Lens from Lens Studio, consider setting Base URL in the `HardwareAdapter` script to your IP so you don't have to type it every time as sometimes the local storage is cleared when re-uploading a Lens.
 - In the Lens itself, consider to **enable Logging** (main menu below the Connection Status). This is especially useful when testing the assistant mode as it will show all TTS transcriptions, current agent state, tool calls and LLM responses.
 
 #### Known Issues
