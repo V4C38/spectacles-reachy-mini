@@ -37,7 +37,29 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     private static readonly SET_TARGET_MIN_INTERVAL_SEC = 0.05; // 20 Hz max
     private lastSetTargetTime: number = 0;
 
+    // --- IP persistence ---
+    private static readonly IP_KEY = "reachy_mini_ip";
+
+    private get store(): GeneralDataStore {
+        return global.persistentStorageSystem.store;
+    }
+
     onAwake() {
+        const saved = this.loadIp();
+        if (saved) {
+            this.baseUrl = saved;
+        }
+    }
+
+    public saveIp(ip: string): void {
+        this.store.putString(HardwareAdapter.IP_KEY, ip);
+    }
+
+    public loadIp(): string | null {
+        if (this.store.has(HardwareAdapter.IP_KEY)) {
+            return this.store.getString(HardwareAdapter.IP_KEY);
+        }
+        return null;
     }
 
     // ================================================================

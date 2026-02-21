@@ -4,7 +4,6 @@ import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 
 import { ReachyMiniManager } from "./ReachyMiniManager";
 import { UIManager } from "./UIManager";
-import { PersistenceManager } from "./Utils/PersistenceManager";
 
 @component
 export class SetupWizard extends BaseScriptComponent {
@@ -13,8 +12,6 @@ export class SetupWizard extends BaseScriptComponent {
     private reachyMiniManager: ReachyMiniManager | null = null;
     @input
     private uiManager: UIManager | null = null;
-    @input
-    private persistenceManager: PersistenceManager | null = null;
     @input
     private buttonRestart: RectangleButton | null = null;
 
@@ -94,14 +91,13 @@ export class SetupWizard extends BaseScriptComponent {
                 });
             }
 
-            // Handle IP typing: update IP address and check connection via facade
             if (this.textInputField && this.reachyMiniManager) {
-                this.textInputField.onReturnKeyPressed.add((value: string) => {
-                    this.updateConnectionStatus();
+                this.textInputField.onReturnKeyPressed.add(() => {
+                    this.startAutoconnect();
                 });
                 this.textInputField.onKeyboardStateChanged.add((isOpen: boolean) => {
                     if (!isOpen) {
-                        this.updateConnectionStatus();
+                        this.startAutoconnect();
                     }
                 });
             }
@@ -121,12 +117,9 @@ export class SetupWizard extends BaseScriptComponent {
         }
     }
 
-    private async setStep(step: number) {
-        // Cancel any previous async operations by incrementing the operation ID
+    private setStep(step: number) {
         this.stepOperationId++;
-        const currentOperationId = this.stepOperationId;
 
-        // Update text fields
         this.currentStep = step;
         if (this.textStepIndicator && step < this.steps.length) {
             this.textStepIndicator.text = this.steps[step];
@@ -172,24 +165,22 @@ export class SetupWizard extends BaseScriptComponent {
                     this.textButtonNext.text = "Next";
                 }
 
-                // Load saved IP and populate text field
-                const savedIp = this.persistenceManager ? this.persistenceManager.loadIp() : null;
+                const savedIp = this.reachyMiniManager ? this.reachyMiniManager.loadIp() : null;
                 if (savedIp && this.reachyMiniManager) {
                     this.reachyMiniManager.setBaseUrl(savedIp);
                 }
 
-                if (this.textInputField && this.reachyMiniManager && this.textStepStatus) {
+                if (this.textInputField && this.reachyMiniManager) {
                     this.textInputField.enabled = true;
                     this.textInputField.initialize();
-                    // Use saved IP if available, otherwise use current baseUrl
                     this.textInputField.text = savedIp || this.reachyMiniManager.getBaseUrl();
-                    this.updateConnectionStatus();
                 }
                 if (this.textStepStatus) {
                     this.textStepStatus.text = "Connecting...";
                     this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
                     this.textStepStatus.sceneObject.enabled = true;
                 }
+                this.startAutoconnect();
                 break;
 
             // Step 3: Position Reachy Mini
@@ -199,38 +190,19 @@ export class SetupWizard extends BaseScriptComponent {
                     this.textButtonNext.text = "";
                     this.textInputField.enabled = false;
                 }
-                if (this.textStepStatus) {
-                    this.textStepStatus.sceneObject.enabled = true;
-                    this.textStepStatus.textFill.color = new vec4(1, 1, 0, 1);
-                    this.textStepStatus.text = "Searching for saved position...";
-                }
-
                 if (this.textButtonPrevious) {
                     this.textButtonPrevious.text = "Back";
                 }
 
                 if (this.reachyMiniManager && this.uiSetupContainer) {
-                    const anchorLoaded = await this.tryLoadAnchor();
+                    const uiPosition = this.uiSetupContainer.getTransform().getWorldPosition();
+                    const defaultPosition = new vec3(uiPosition.x, uiPosition.y - 35, uiPosition.z);
+                    this.reachyMiniManager.setRootPosition(defaultPosition);
 
-                    // Check if operation was cancelled (step changed)
-                    if (currentOperationId !== this.stepOperationId) {
-                        return;
-                    }
-
-                    if (anchorLoaded) {
-                        if (this.textStepStatus) {
-                            this.textStepStatus.text = "Saved position loaded";
-                            this.textStepStatus.textFill.color = new vec4(0, 1, 0, 1);
-                        }
-                    } else {
-                        const uiPosition = this.uiSetupContainer.getTransform().getWorldPosition();
-                        const defaultPosition = new vec3(uiPosition.x, uiPosition.y - 35, uiPosition.z);
-                        this.reachyMiniManager.setRootPosition(defaultPosition);
-
-                        if (this.textStepStatus) {
-                            this.textStepStatus.text = "No saved position found";
-                            this.textStepStatus.textFill.color = new vec4(1, 1, 0, 1);
-                        }
+                    if (this.textStepStatus) {
+                        this.textStepStatus.sceneObject.enabled = true;
+                        this.textStepStatus.text = "Position Reachy Mini";
+                        this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
                     }
 
                     if (this.buttonNext && this.textButtonNext) {
@@ -259,48 +231,70 @@ export class SetupWizard extends BaseScriptComponent {
     }
 
     // ------------------------------------------------------------
-    // Helper functions
+    // Autoconnect
     // ------------------------------------------------------------
-    private updateConnectionStatus() {
-        if (!this.reachyMiniManager) return;
-        const operationIdAtStart = this.stepOperationId;
+    private startAutoconnect() {
+        this.stepOperationId++;
+        const opId = this.stepOperationId;
 
-        this.textStepStatus.text = "Checking connection...";
-        this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
+        if (!this.reachyMiniManager || !this.textInputField) return;
 
         this.reachyMiniManager.setBaseUrl(this.textInputField.text);
+
+        if (this.textStepStatus) {
+            this.textStepStatus.text = "Connecting...";
+            this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
+        }
+
         this.reachyMiniManager.checkConnection().then((isConnected: boolean) => {
-            // Check if step changed during async operation
-            if (operationIdAtStart !== this.stepOperationId) {
-                return;
-            }
+            if (opId !== this.stepOperationId) return;
 
             if (isConnected) {
-                this.textStepStatus.text = "Connected";
-                this.textStepStatus.textFill.color = new vec4(0, 1, 0, 1);
-                // Save IP on successful connection
-                if (this.persistenceManager) {
-                    this.persistenceManager.saveIp(this.textInputField.text);
+                if (this.textStepStatus) {
+                    this.textStepStatus.text = "Connected";
+                    this.textStepStatus.textFill.color = new vec4(0, 1, 0, 1);
                 }
+                this.reachyMiniManager.saveIp(this.textInputField.text);
             } else {
-                this.textStepStatus.text = "Not connected";
-                this.textStepStatus.textFill.color = new vec4(1, 0, 0, 1);
+                if (this.textStepStatus) {
+                    this.textStepStatus.text = "Not connected — retrying...";
+                    this.textStepStatus.textFill.color = new vec4(1, 0, 0, 1);
+                }
+                this.scheduleAutoconnectRetry(opId);
             }
         });
     }
 
-    private async tryLoadAnchor(): Promise<boolean> {
-        if (!this.persistenceManager || !this.reachyMiniManager) {
-            return false;
-        }
+    private scheduleAutoconnectRetry(opId: number) {
+        const retryEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
+        retryEvent.bind(() => {
+            if (opId !== this.stepOperationId) return;
+            this.reachyMiniManager.setBaseUrl(this.textInputField.text);
 
-        const position = await this.persistenceManager.loadAnchorPosition();
+            if (this.textStepStatus) {
+                this.textStepStatus.text = "Connecting...";
+                this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
+            }
 
-        if (position) {
-            this.reachyMiniManager.setRootPosition(position);
-            return true;
-        }
-        return false;
+            this.reachyMiniManager.checkConnection().then((isConnected: boolean) => {
+                if (opId !== this.stepOperationId) return;
+
+                if (isConnected) {
+                    if (this.textStepStatus) {
+                        this.textStepStatus.text = "Connected";
+                        this.textStepStatus.textFill.color = new vec4(0, 1, 0, 1);
+                    }
+                    this.reachyMiniManager.saveIp(this.textInputField.text);
+                } else {
+                    if (this.textStepStatus) {
+                        this.textStepStatus.text = "Not connected — retrying...";
+                        this.textStepStatus.textFill.color = new vec4(1, 0, 0, 1);
+                    }
+                    this.scheduleAutoconnectRetry(opId);
+                }
+            });
+        });
+        retryEvent.reset(2.0);
     }
 
     private animateSceneObjectState(sceneObject: SceneObject, state: boolean, duration: number = 0.5): Promise<void> {

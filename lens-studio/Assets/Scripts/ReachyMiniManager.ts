@@ -2,7 +2,6 @@ import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interact
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 
 import { PuppeteerMode } from "./Puppeteer/PuppeteerMode";
-import { PersistenceManager } from "./Utils/PersistenceManager";
 import { AssistantMode, AssistantState } from "./Assistant/AssistantMode";
 import { RobotDriver } from "./RobotDriver/RobotDriver";
 
@@ -27,8 +26,6 @@ export class ReachyMiniManager extends BaseScriptComponent {
     private reachyMiniRoot: SceneObject | null = null;
     @input
     public robotDriver: RobotDriver | null = null;
-    @input
-    public persistenceManager: PersistenceManager | null = null;
 
     // State
     private isActive: boolean = false;
@@ -83,13 +80,6 @@ export class ReachyMiniManager extends BaseScriptComponent {
 
             this.setPositioningEnabled(false);
             this.setControlMode(0);
-
-            // Save anchor when positioning interaction ends
-            if (this.positioningInteraction) {
-                this.positioningInteraction.onTriggerEnd.add(() => {
-                    this.saveCurrentPosition();
-                });
-            }
         });
     }
 
@@ -200,6 +190,14 @@ export class ReachyMiniManager extends BaseScriptComponent {
         return this.robotDriver ? this.robotDriver.getIsSimulationMode() : false;
     }
 
+    public saveIp(ip: string): void {
+        if (this.robotDriver) this.robotDriver.saveIp(ip);
+    }
+
+    public loadIp(): string | null {
+        return this.robotDriver ? this.robotDriver.loadIp() : null;
+    }
+
     public get isConversationActive(): boolean {
         return this.assistantMode ? this.assistantMode.currentState !== AssistantState.Sleeping : false;
     }
@@ -296,13 +294,6 @@ export class ReachyMiniManager extends BaseScriptComponent {
         if (this.robotDriver) {
             const neutralPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
             this.robotDriver.goto(neutralPose, 0, 1.5, "minjerk").catch(() => {});
-        }
-    }
-
-    public async saveCurrentPosition(): Promise<void> {
-        if (this.persistenceManager && this.reachyMiniRoot) {
-            const position = this.reachyMiniRoot.getTransform().getWorldPosition();
-            await this.persistenceManager.saveAnchorPosition(position);
         }
     }
 

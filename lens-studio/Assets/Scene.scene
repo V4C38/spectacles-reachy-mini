@@ -4,7 +4,6 @@
     - !<own> 00000000-0000-0065-0000-000000000064
     - !<own> 0005641c-028d-459a-0000-000000014b4d
     - !<own> 5aa0f98b-e799-448c-a2dc-cae5d04fa2a4
-    - !<own> 267f89d7-97c1-4c40-a03a-fbbcb033f32e
     - !<own> de76f38b-d250-4102-bd75-fc9b3cdb0427
     - !<own> 7bddf6e7-2ff8-418c-ac05-c1cb54b58df8
     - !<own> 33d037d1-44e2-497d-b77a-038f49428ddf
@@ -752,11 +751,10 @@
     "":
       reachyMiniRoot: !<reference.SceneObject> de76f38b-d250-4102-bd75-fc9b3cdb0427
       robotDriver: !<MappingBased.AssignableType> 7cb7a6c3-924e-4765-9a29-0ae41e8228d2
-      persistenceManager: !<MappingBased.AssignableType_1> 3d80dea7-4d49-46cd-847c-f8e15ebff614
       positioningHologram: !<reference.SceneObject> 7c4a57ff-2f1a-4e27-88c5-b34f6fee833e
-      positioningInteraction: !<MappingBased.AssignableType_2> 49a5dcdc-fbd8-4894-852b-a3e0b8a11a57
-      puppeteerMode: !<MappingBased.AssignableType_3> 176627b4-d84f-4944-bde3-4b5d6583aed7
-      assistantMode: !<MappingBased.AssignableType_4> 107e3fd6-a4ed-4db9-aed7-81fe04a1f2dd
+      positioningInteraction: !<MappingBased.AssignableType_1> 49a5dcdc-fbd8-4894-852b-a3e0b8a11a57
+      puppeteerMode: !<MappingBased.AssignableType_2> 176627b4-d84f-4944-bde3-4b5d6583aed7
+      assistantMode: !<MappingBased.AssignableType_3> 107e3fd6-a4ed-4db9-aed7-81fe04a1f2dd
       textDebugInfo: !<reference.Text> c33211ac-033b-498e-97df-7eebb431d0ca
   ScriptTypes:
     "":
@@ -962,24 +960,6 @@
     - !<own> d491b31f-c593-49a0-932a-b8bbe817b1bf
   Components:
     []
-- !<ScriptComponent/20aec83c-5b55-4c11-8b9e-91f31cca9e3e>
-  PrefabRemaps:
-    []
-  Name: RemoteServiceGatewayCredentials
-  Enabled: true
-  ScriptAsset: !<reference> 37976aca-6847-44c8-88d9-5edb6aadbbf2
-  ScriptInputsDefault:
-    {}
-  ScriptTypesDefault:
-    {}
-  ScriptInputs:
-    "":
-      openAIToken: db0ec7ef-28dc-4561-9ccc-dfdd01aa775d
-      googleToken: 77bed942-f94b-4881-b60a-6cc9f161540f
-      snapToken: fa5d61d3-777a-43f8-8810-50ba02bc20e3
-  ScriptTypes:
-    "":
-      {}
 - !<SceneObject/210e408d-9607-4a16-99e4-f7382deff630>
   PrefabRemaps:
     []
@@ -1058,21 +1038,6 @@
     - !<own> 00fdb93a-85d7-4497-9622-9fad02238fc3
   Components:
     []
-- !<SceneObject/267f89d7-97c1-4c40-a03a-fbbcb033f32e>
-  PrefabRemaps:
-    []
-  Name: RemoteServiceGatewayCredentials
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: -20.000000, z: 0.000000}
-    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> 20aec83c-5b55-4c11-8b9e-91f31cca9e3e
 - !<RenderMeshVisual/269b08f5-3658-41c8-9ade-0d6a7c4de69d>
   PrefabRemaps:
     []
@@ -2135,17 +2100,16 @@
     "":
       reachyMiniManager: !<MappingBased.AssignableType> 17626024-4d91-4898-8194-27e22ff30993
       uiManager: !<MappingBased.AssignableType_1> fac33dc6-f823-452b-a368-49f7036cf3fe
-      persistenceManager: !<MappingBased.AssignableType_2> 3d80dea7-4d49-46cd-847c-f8e15ebff614
-      buttonRestart: !<MappingBased.AssignableType_3> 023cd213-c6ca-4c6d-bbc9-227d82aceb24
+      buttonRestart: !<MappingBased.AssignableType_2> 023cd213-c6ca-4c6d-bbc9-227d82aceb24
       uiSetupContainer: !<reference.SceneObject> abd4eff4-6c3c-4ff1-b4b8-e076636f30fd
       textStepIndicator: !<reference.Text> fa515d0d-8695-46d0-8eba-55cc23c14bce
       textStepDescription: !<reference.Text> 5677856b-014f-4e85-8e03-2c62d0f6c920
       textStepStatus: !<reference.Text> 8510da84-26a4-4e07-bbec-f52b830115e7
-      buttonNext: !<MappingBased.AssignableType_4> d2047fb3-c75b-4e8a-9915-f16637ae50b3
+      buttonNext: !<MappingBased.AssignableType_3> d2047fb3-c75b-4e8a-9915-f16637ae50b3
       textButtonNext: !<reference.Text> e7c6549d-f279-4a97-ac15-6af7996a2416
-      buttonPrevious: !<MappingBased.AssignableType_5> 2e5af6d8-3159-4ece-9ed4-840619624ba6
+      buttonPrevious: !<MappingBased.AssignableType_4> 2e5af6d8-3159-4ece-9ed4-840619624ba6
       textButtonPrevious: !<reference.Text> 33eee511-9596-4de4-9aed-f8e531cb1b49
-      textInputField: !<MappingBased.AssignableType_6> 6e30f728-7048-4ace-a132-1860d843e3d1
+      textInputField: !<MappingBased.AssignableType_5> 6e30f728-7048-4ace-a132-1860d843e3d1
   ScriptTypes:
     "":
       {}
@@ -4975,17 +4939,6 @@
       rightAntennaSceneObject: !<reference.SceneObject> b254aa04-847c-4728-a1e1-cf805d1904e0
       audioComponent: !<reference.AudioComponent> 0fe74073-4f29-4e6b-8f78-f6a339d7427e
       hologramMaterial: !<reference.Material> 4e9ca73a-eb1f-4d7b-8511-ac0214cb723e
-      audioGreeting: !<reference.AudioTrackAsset> c510c9bb-6b1e-4895-93c4-b8dac22e6b14
-      audioGoodbye: !<reference.AudioTrackAsset> 4ceeb93c-4349-47db-bf37-81d83eaaa712
-      audioHappy: !<reference.AudioTrackAsset> eb4e8223-9ab1-42c3-92f6-1f023a5e86ef
-      audioNod: !<reference.AudioTrackAsset> ee17df3f-81ba-4545-8b51-587d9961110b
-      audioWave: !<reference.AudioTrackAsset> 664e5787-7944-4d56-915e-360075243df4
-      audioSway: !<reference.AudioTrackAsset> 3f8c4fa1-ad5b-437b-a208-42b3dc11ec21
-      audioPeekaboo: !<reference.AudioTrackAsset> 3067e8bd-d6aa-4830-b481-1c6c96a3863e
-      audioSad: !<reference.AudioTrackAsset> 1dbf60ac-a109-434e-9cec-4f4790511d1f
-      audioExcited: !<reference.AudioTrackAsset> c476f2f9-9583-4f88-a749-c837f8a797e4
-      audioThinking: !<reference.AudioTrackAsset> 6a7b9a6e-e8a2-4970-b373-d77ab2be10fc
-      audioDance: !<reference.AudioTrackAsset> c476f2f9-9583-4f88-a749-c837f8a797e4
   ScriptTypes:
     "":
       {}

@@ -184,19 +184,10 @@ export class AssistantConversation {
 
         try {
             this.robotDriver.setGazeTarget(this.camera.getTransform().getWorldPosition());
-            this.mode.pendingAnimationName = null;
             const response = await this.llmInterface.sendMessage(text);
 
             this.mode.setState(AssistantState.Speaking);
             this.stopASR();
-
-            if (this.mode.pendingAnimationName) {
-                const animName = this.mode.pendingAnimationName;
-                this.mode.pendingAnimationName = null;
-                this.robotDriver.playAnimation(animName, true).catch((err) => {
-                    print(`AssistantMode: pending animation failed: ${err}`);
-                });
-            }
 
             await this.robotDriver.playAudio(response.audioTrack);
             this.startASR();
@@ -212,7 +203,6 @@ export class AssistantConversation {
             this.mode.onErrorOccurred.forEach(cb => cb(message));
             this.mode.setState(AssistantState.Idle);
         } finally {
-            this.mode.pendingAnimationName = null;
             this.isProcessingSpeech = false;
         }
     }
@@ -226,19 +216,10 @@ export class AssistantConversation {
 
         try {
             this.robotDriver.setGazeTarget(this.camera.getTransform().getWorldPosition());
-            this.mode.pendingAnimationName = null;
             const response = await this.llmInterface.sendMessage(this.GREETING_PROMPT);
 
             this.mode.setState(AssistantState.Speaking);
             this.stopASR();
-
-            if (this.mode.pendingAnimationName) {
-                const animName = this.mode.pendingAnimationName;
-                this.mode.pendingAnimationName = null;
-                this.robotDriver.playAnimation(animName, true).catch((err) => {
-                    print(`AssistantMode: pending animation failed: ${err}`);
-                });
-            }
 
             await this.robotDriver.playAudio(response.audioTrack);
             this.startASR();
@@ -253,8 +234,6 @@ export class AssistantConversation {
             this.mode.logDebug(`Agent - Error: ${message}`);
             this.mode.onErrorOccurred.forEach(cb => cb(message));
             this.mode.setState(AssistantState.Listening);
-        } finally {
-            this.mode.pendingAnimationName = null;
         }
     }
 }

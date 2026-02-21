@@ -43,7 +43,6 @@ export class AssistantMode extends BaseScriptComponent {
 
     // --- State ---
     public currentState: AssistantState = AssistantState.Idle;
-    public pendingAnimationName: string | null = null;
 
     // --- Look-at override (timed gaze from tool calls) ---
     public lookAtOverrideTarget: vec3 | null = null;
@@ -228,7 +227,9 @@ export class AssistantMode extends BaseScriptComponent {
     }
 
     public deactivate(): void {
-        this.conversation.stopASR();
+        if (this.conversation) {
+            this.conversation.stopASR();
+        }
         this.mlDetector.clearAllDetections();
         if (this.robotDriver) {
             this.robotDriver.pause();
@@ -236,6 +237,7 @@ export class AssistantMode extends BaseScriptComponent {
     }
 
     public pause(): void {
+        if (!this.conversation) return;
         this.conversation.isPaused = true;
         if (this.robotDriver) {
             this.robotDriver.pause();
@@ -243,6 +245,7 @@ export class AssistantMode extends BaseScriptComponent {
     }
 
     public resume(): void {
+        if (!this.conversation) return;
         this.conversation.isPaused = false;
         if (this.robotDriver) {
             this.robotDriver.resume();
@@ -292,7 +295,6 @@ export class AssistantMode extends BaseScriptComponent {
         this.conversation.closeSession();
         this.conversation.postSpeakListeningEndTime = 0;
         if (this.robotDriver) {
-            this.robotDriver.clearLocalAnimation();
             this.robotDriver.setParams(PRESETS.sleeping);
             this.robotDriver.setNeutralPitch(0.6);
             this.robotDriver.setGazeTarget(null);

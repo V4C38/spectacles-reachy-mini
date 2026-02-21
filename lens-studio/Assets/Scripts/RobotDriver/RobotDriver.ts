@@ -1,6 +1,6 @@
 import { HardwareAdapter } from "./HardwareAdapter";
 import { SimulationAdapter } from "./SimulationAdapter";
-import { AnimationParams, AnimationGazeContext, NAMED_ANIMATIONS, PRESETS } from "./RobotAnimationConfig";
+import { AnimationParams, PRESETS } from "./RobotAnimationConfig";
 
 /** 3D pose: position (x, y, z) in meters, orientation (roll, pitch, yaw) in radians. */
 export interface XYZRPYPose {
@@ -49,21 +49,24 @@ export class RobotDriver extends BaseScriptComponent {
     @input
     public rollAmplitude: number = 8.0;
     @input
-    public yBobAmplitude: number = 0.012;
+    public yBobAmplitude: number = 0.005;
     /** Max vertical offset when headHeight = 1. Meters. */
     @input
-    public headYBase: number = 0.10;
+    public headYBase: number = 0.025;
     @input
     public antennaAmplitude: number = 15.0;
 
-    // --- Mechanical limits: match Reachy Mini daemon / IK safety; ±30° roll/pitch for Stewart workspace ---
-    private readonly MIN_PITCH = -30 * Math.PI / 180;
-    private readonly MAX_PITCH = 30 * Math.PI / 180;
+    // --- Mechanical limits: derived from Reachy Mini Stewart platform geometry ---
+    // Stewart platform: motor_arm=0.04m, rod=0.085m → pitch ≈ ±25°, Z ≈ ±0.03m
+    private readonly MIN_PITCH = -25 * Math.PI / 180;
+    private readonly MAX_PITCH = 25 * Math.PI / 180;
     private readonly MAX_HEAD_YAW = 65 * Math.PI / 180;   // max head–body yaw delta
     private readonly MAX_BODY_YAW = 160 * Math.PI / 180;
-    private readonly MAX_ROLL = 30 * Math.PI / 180;
+    private readonly MAX_ROLL = 25 * Math.PI / 180;
     private readonly MAX_HEAD_YAW_ABSOLUTE = 180 * Math.PI / 180;  // total head yaw ±180°
     private readonly ROLL_YAW_COUPLING = 0.12;
+    private readonly MIN_HEAD_Z = -0.02;
+    private readonly MAX_HEAD_Z = 0.03;
 
     // --- Tracked axes (internal state driven by the loop) ---
     private headYaw: number = 0;
@@ -96,15 +99,6 @@ export class RobotDriver extends BaseScriptComponent {
 
     // --- Pause ---
     private isPaused: boolean = false;
-
-    // --- Local animation overlay (params, gaze, end time) ---
-    private localAnimation: {
-        params: AnimationParams;
-        endTime: number;
-        startTime: number;
-        durationSec: number;
-        getGazeTarget?: (t: number, ctx: AnimationGazeContext) => vec3;
-    } | null = null;
 
     // --- Simulation mode ---
     private simulationMode: boolean = false;
@@ -143,11 +137,6 @@ export class RobotDriver extends BaseScriptComponent {
     /** Get the current gaze target (may be null). */
     public getGazeTarget(): vec3 | null {
         return this.gazeTarget;
-    }
-
-    /** Cancel any active named-animation overlay so base params and gaze apply immediately (e.g. when entering sleep). */
-    public clearLocalAnimation(): void {
-        this.localAnimation = null;
     }
 
     // ================================================================
@@ -228,70 +217,6 @@ export class RobotDriver extends BaseScriptComponent {
         return parent.getTransform().getWorldRotation();
     }
 
-    // ================================================================
-    // Animations & Audio (Lens-side local animations)
-    // ================================================================
-
-    /**
-     * Play a named animation.
-     * @param name       Animation name (e.g. "greeting", "dance").
-     * @param suppressAudio  When true, only the motion overlay plays — no sound
-     *                       effect.  Use this when TTS speech is playing at the
-     *                       same time and the animation SFX would clash.
-     */
-    public async playAnimation(name: string, suppressAudio: boolean = false): Promise<void> {
-        await this.playLocalAnimation(name, suppressAudio);
-    }
-
-    public async getAvailableAnimations(): Promise<string[]> {
-        return Object.keys(NAMED_ANIMATIONS);
-    }
-
-    /**
-     * Play a named animation: overlay params for duration and optionally play audio.
-     * Uses NAMED_ANIMATIONS config; audio comes from SimulationAdapter.
-     * @param suppressAudio  Skip the animation's sound effect (motion-only).
-     */
-    public async playLocalAnimation(name: string, suppressAudio: boolean = false): Promise<void> {
-        const entry = NAMED_ANIMATIONS[name.trim().toLowerCase()];
-        if (!entry) {
-            throw new Error(`Unknown animation: "${name}". Available: ${Object.keys(NAMED_ANIMATIONS).join(", ")}`);
-        }
-        const iface = this.getActiveInterface();
-        if (!iface) {
-            throw new Error("Animations are not available (no hardware or simulation adapter)");
-        }
-
-        const now = getTime();
-        const endTime = now + entry.durationSec;
-        this.localAnimation = {
-            params: { ...entry.params },
-            endTime,
-            startTime: now,
-            durationSec: entry.durationSec,
-            getGazeTarget: entry.getGazeTarget,
-        };
-
-        let audioPromise: Promise<void> = Promise.resolve();
-        if (!suppressAudio && this.simulationAdapter) {
-            const track = this.simulationAdapter.getAudioTrackForAnimation(entry.audioKey);
-            if (track) {
-                audioPromise = iface.playAudio(track);
-            }
-        }
-
-        const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
-        const waitPromise = new Promise<void>((resolve) => {
-            delayEvent.bind(() => resolve());
-            delayEvent.reset(entry.durationSec);
-        });
-
-        await Promise.all([audioPromise, waitPromise]);
-        if (this.localAnimation && getTime() >= this.localAnimation.endTime) {
-            this.localAnimation = null;
-        }
-    }
-
     public async goto(pose: XYZRPYPose, bodyYaw: number, duration: number, interpolation: string): Promise<string> {
         const iface = this.getActiveInterface();
         if (!iface) throw new Error("RobotDriver: no active movement interface");
@@ -333,25 +258,8 @@ export class RobotDriver extends BaseScriptComponent {
         const now = getTime();
         const DEG = Math.PI / 180;
 
-        // --- Clear expired local animation overlay ---
-        if (this.localAnimation && now >= this.localAnimation.endTime) {
-            this.localAnimation = null;
-        }
-
-        // --- Effective params and gaze: use overlay when active ---
-        const effectiveParams = this.localAnimation ? this.localAnimation.params : this.params;
-        let effectiveGazeTarget: vec3 | null = this.gazeTarget;
-        if (this.localAnimation && this.localAnimation.getGazeTarget) {
-            const t = Math.min(1, Math.max(0, (now - this.localAnimation.startTime) / this.localAnimation.durationSec));
-            const ctx: AnimationGazeContext = {
-                headPos: this.getHeadWorldPosition(),
-                baseRotation: this.getBaseRotation(),
-            };
-            effectiveGazeTarget = this.localAnimation.getGazeTarget(t, ctx);
-        }
-
         // --- Derive per-axis values from simplified params ---
-        const p = effectiveParams;
+        const p = this.params;
         let yawSmoothing = this.headMoveSpeed * p.gazeResponsiveness;
         let pitchSmoothing = this.headMoveSpeed * p.gazeResponsiveness * 0.8;
         let maxYawDelta = this.maxHeadDelta * p.gazeResponsiveness * DEG;
@@ -365,25 +273,12 @@ export class RobotDriver extends BaseScriptComponent {
         const effectiveAntAmp = this.antennaAmplitude * p.antennaActivity * DEG;
         const antSpeed = 0.5 + p.antennaActivity * 0.5;
 
-        // --- Boost tracking during named animations for visible motion ---
-        const isAnimGaze = !!(this.localAnimation && this.localAnimation.getGazeTarget);
-        if (isAnimGaze) {
-            const ANIM_SPEED = 0.4;
-            const ANIM_MAX_DELTA = 15 * DEG;
-            yawSmoothing = Math.max(yawSmoothing, ANIM_SPEED);
-            pitchSmoothing = Math.max(pitchSmoothing, ANIM_SPEED);
-            maxYawDelta = Math.max(maxYawDelta, ANIM_MAX_DELTA);
-            maxPitchDelta = Math.max(maxPitchDelta, ANIM_MAX_DELTA * 0.7);
-            bodySmoothing = Math.max(bodySmoothing, ANIM_SPEED * 0.5);
-            ySmoothing = Math.max(ySmoothing, ANIM_SPEED);
-        }
-
         // --- 1. Compute desired angles from gaze target ---
         let desiredYaw: number;
         let desiredPitch: number;
 
-        if (effectiveGazeTarget) {
-            const angles = this.anglesToTarget(effectiveGazeTarget);
+        if (this.gazeTarget) {
+            const angles = this.anglesToTarget(this.gazeTarget);
             if (isFinite(angles.yaw) && isFinite(angles.pitch)) {
                 desiredYaw = angles.yaw;
                 desiredPitch = angles.pitch;
@@ -445,6 +340,7 @@ export class RobotDriver extends BaseScriptComponent {
         this.headYBase_current += (targetBaseY - this.headYBase_current) * ySmoothing;
         const desiredY = this.headYBase_current + this.dualSine(now, 0.41, 0.29) * effectiveYAmp;
         this.headY += (desiredY - this.headY) * ySmoothing;
+        this.headY = this.clamp(this.headY, this.MIN_HEAD_Z, this.MAX_HEAD_Z);
 
         // --- 7. Antennas (speed-scaled dual sine) ---
         const desiredL = this.dualSine(now * antSpeed, 1.3, 3.11) * effectiveAntAmp;
@@ -477,6 +373,14 @@ export class RobotDriver extends BaseScriptComponent {
 
     public getBaseUrl(): string {
         return this.hardwareAdapter ? this.hardwareAdapter.baseUrl : "";
+    }
+
+    public saveIp(ip: string): void {
+        if (this.hardwareAdapter) this.hardwareAdapter.saveIp(ip);
+    }
+
+    public loadIp(): string | null {
+        return this.hardwareAdapter ? this.hardwareAdapter.loadIp() : null;
     }
 
     public async checkConnection(): Promise<boolean> {

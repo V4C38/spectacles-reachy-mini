@@ -11,7 +11,6 @@ import { getObjectLinkRenderer } from "../../Utils/ObjectLinkRenderer";
 import { createScanObjectsTool } from "./ScanObjectsTool";
 import { createLookAtTool } from "./LookAtTool";
 import { createGetStateTool } from "./GetStateTool";
-import { createPlayAnimationTool, createGetAvailableAnimationsTool } from "./PlayAnimationTool";
 import { createDrawLineTool } from "./DrawLineTool";
 import { createTakePictureRobotViewTool } from "./TakePictureRobotViewTool";
 
@@ -116,19 +115,6 @@ export class ToolFactory extends BaseScriptComponent {
             registeredCount++;
         } else {
             print("ToolFactory: Skipping get_state tool (missing dependencies)");
-        }
-
-        // Register play_animation and get_available_animations whenever robot is available
-        if (this.robotDriver) {
-            llmService.registerTool(createPlayAnimationTool({
-                robotDriver: this.robotDriver,
-                assistantMode: this.assistantMode,
-                logDebug: (msg) => this.logDebug(msg),
-            }));
-            llmService.registerTool(createGetAvailableAnimationsTool(this.robotDriver));
-            registeredCount += 2;
-        } else {
-            print("ToolFactory: Skipping play_animation and get_available_animations (missing robotDriver)");
         }
 
         // Register draw_line tool (requires line renderer prefab)

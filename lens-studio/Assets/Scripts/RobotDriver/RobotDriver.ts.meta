@@ -63,6 +63,6 @@
     - // @input float headMoveSpeed = 0.05
     - // @input float maxHeadDelta = 2
     - // @input float rollAmplitude = 8
-    - // @input float yBobAmplitude = 0.012
-    - // @input float headYBase = 0.1
+    - // @input float yBobAmplitude = 0.005
+    - // @input float headYBase = 0.025
     - // @input float antennaAmplitude = 15

@@ -27,17 +27,6 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     audioComponent: false
-    audioDance: false
-    audioExcited: false
-    audioGoodbye: false
-    audioGreeting: false
-    audioHappy: false
-    audioNod: false
-    audioPeekaboo: false
-    audioSad: false
-    audioSway: false
-    audioThinking: false
-    audioWave: false
     bodySceneObject: false
     headSceneObject: false
     hologramMaterial: false
@@ -58,17 +47,6 @@
       rightAntennaSceneObject: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       audioComponent: !<reference.AudioComponent> 00000000-0000-0000-0000-000000000000
       hologramMaterial: !<reference.Material> 00000000-0000-0000-0000-000000000000
-      audioGreeting: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioGoodbye: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioHappy: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioNod: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioWave: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioSway: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioPeekaboo: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioSad: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioExcited: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioThinking: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
-      audioDance: !<reference.AudioTrackAsset> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -79,14 +57,3 @@
     - // @input SceneObject rightAntennaSceneObject
     - // @input Component.AudioComponent audioComponent
     - // @input Asset.Material hologramMaterial
-    - // @input Asset.AudioTrackAsset audioGreeting
-    - // @input Asset.AudioTrackAsset audioGoodbye
-    - // @input Asset.AudioTrackAsset audioHappy
-    - // @input Asset.AudioTrackAsset audioNod
-    - // @input Asset.AudioTrackAsset audioWave
-    - // @input Asset.AudioTrackAsset audioSway
-    - // @input Asset.AudioTrackAsset audioPeekaboo
-    - // @input Asset.AudioTrackAsset audioSad
-    - // @input Asset.AudioTrackAsset audioExcited
-    - // @input Asset.AudioTrackAsset audioThinking
-    - // @input Asset.AudioTrackAsset audioDance

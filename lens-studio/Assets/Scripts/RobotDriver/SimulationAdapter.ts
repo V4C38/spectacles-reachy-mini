@@ -20,30 +20,6 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     /** Cached at awake: per-RenderMeshVisual materials to restore in applyDefaultMaterials(). */
     private defaultMaterialsCache: { visual: RenderMeshVisual; materials: Material[] }[] = [];
 
-    // Animation audio tracks (same names as backend animations)
-    @input
-    private audioGreeting: AudioTrackAsset | null = null;
-    @input
-    private audioGoodbye: AudioTrackAsset | null = null;
-    @input
-    private audioHappy: AudioTrackAsset | null = null;
-    @input
-    private audioNod: AudioTrackAsset | null = null;
-    @input
-    private audioWave: AudioTrackAsset | null = null;
-    @input
-    private audioSway: AudioTrackAsset | null = null;
-    @input
-    private audioPeekaboo: AudioTrackAsset | null = null;
-    @input
-    private audioSad: AudioTrackAsset | null = null;
-    @input
-    private audioExcited: AudioTrackAsset | null = null;
-    @input
-    private audioThinking: AudioTrackAsset | null = null;
-    @input
-    private audioDance: AudioTrackAsset | null = null;
-
     private headRestPosition: vec3 | null = null;
 
     // --- Antenna base angles (scene has antennas pre-angled in Y) ---
@@ -373,24 +349,6 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
 
     private lerp(a: number, b: number, t: number): number {
         return a + (b - a) * t;
-    }
-
-    public getAudioTrackForAnimation(name: string): AudioTrackAsset | null {
-        const key = name.trim().toLowerCase();
-        switch (key) {
-            case "greeting": return this.audioGreeting;
-            case "goodbye": return this.audioGoodbye;
-            case "happy": return this.audioHappy;
-            case "nod": return this.audioNod;
-            case "wave": return this.audioWave;
-            case "sway": return this.audioSway;
-            case "peekaboo": return this.audioPeekaboo;
-            case "sad": return this.audioSad;
-            case "excited": return this.audioExcited;
-            case "thinking": return this.audioThinking;
-            case "dance": return this.audioDance;
-            default: return null;
-        }
     }
 
 }
