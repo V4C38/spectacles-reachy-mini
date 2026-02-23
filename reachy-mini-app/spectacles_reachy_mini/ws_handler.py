@@ -1,12 +1,9 @@
 """
 WebSocket message router: parse JSON, dispatch by type, correlate request/response.
 
-Receives text frames from the Spectacles client, parses JSON, and routes
-set_target, goto, stop_move, play_audio, status, and get_robot_camera_frame.
+Receives text frames from the Spectacles client, parses JSON, and routes set_target, goto, stop_move, play_audio, status, and get_robot_camera_frame.
 Animations are handled on the Lens side (RobotDriver / RobotAnimationConfig).
-to the appropriate handler (movement, audio, camera). Slow handlers run in
-background tasks so the receive loop is never blocked. Sends JSON responses
-back with _id for request correlation.
+Slow handlers run in background tasks so the receive loop is never blocked. Sends JSON responses back with _id for request correlation.
 """
 
 from __future__ import annotations

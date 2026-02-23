@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spectacles_reachy_mini"
-version = "0.9"
+version = "1.0.0"
 description = "Spectacles AR controller — WebSocket bridge for Snap Spectacles AR glasses to Reachy Mini"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,7 +15,6 @@ dependencies = [
     "uvicorn[standard]",
     "numpy",
     "opencv-python-headless",
-    "openai",
 ]
 keywords = ["reachy-mini-app"]
 

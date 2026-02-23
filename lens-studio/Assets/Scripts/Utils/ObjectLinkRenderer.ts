@@ -1,4 +1,4 @@
-// The LensStudio line renderer needs some material I don´t know how to setup and thus doesn't work so we use this instead. 
+// The LensStudio line renderer component should be used instead of this custom one. It however needs some material setup and I couldn´t get it to work.
 
 
 // ================================================================

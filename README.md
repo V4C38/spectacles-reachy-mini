@@ -1,4 +1,4 @@
-# Spectacles AR & Reachy Mini
+# Spectacles AR + Reachy Mini
 
 Control the **Reachy Mini** robot via **Spectacles AR Glasses** in two modes: Puppeteering (directly control the look at target) & Assistant (OpenAI ChatGPT based Agent with custom tools)
 
@@ -10,6 +10,8 @@ This repo contains:
 
 This project is an easy starting point for AR developers who would like to venture into the intersection of spatial computing, robotics and AI.
 
+See also the [Demo Video](https://youtu.be/o7Qg9_Oi4b0)
+
 ## Setup
 **Prerequisites**: Snap [Spectacles](https://www.spectacles.com/), any [Reachy Mini](https://huggingface.co/spaces/pollen-robotics/Reachy_Mini) (supporting both Lite and wireless version)
 
@@ -19,9 +21,10 @@ This project is an easy starting point for AR developers who would like to ventu
    *If you do not have a Reachy Mini, skip directly to Step 3*
 2. Locate, install and **start the App: "spectacles-reachy-mini"** (untick official box to find it)
 3. Launch the Lens and **follow the Setup Wizard**
+
    <img src="Assets/rm_setup_wizard.gif" alt="Setup Wizard">
 
-   It will ask you to enter the IP of the machine running the Reachy App. This can be on your local network or over the internet.
+   You will be asked to enter the IP of the machine running the Reachy Mini App. This can be on your local network (better latency) or over the internet.
    Select 'I have no Reachy Mini' to enter Simulation Mode.
 
 
@@ -130,7 +133,7 @@ All interaction is handled via two way voice communication inside of `LLMService
 
 This setup has some latency but transcription is required to support tool calling, thus a pipeline with audio to audio is not feasible here.
 
-*IMPORTANT NOTE:* You have to set the API tokens in Lens Studio, see [Snap ChatGPT API](https://developers.snap.com/lens-studio/features/remote-apis/chatgpt-api)
+*IMPORTANT NOTE:* You have to set the API tokens in the `RemoteServiceGatewayCredentials` Scene Object within Lens Studio, see [Remote Service Gateway](https://developers.snap.com/lens-studio/features/remote-apis/chatgpt-api)
 
 **Available Tools**
 
@@ -147,32 +150,38 @@ This setup has some latency but transcription is required to support tool callin
 
 ***Adding your own tools***
 
+The `DrawLineTool` is a great example on how this is done in practice and can be used as a reference.
+For further guidance, follow these steps:
+
 <details>
 <summary>Step by step guide</summary>
 
-1. Create a new file in `lens-studio/Assets/Scripts/Assistant/Tools/` (e.g. `MyTool.ts`)
+1. Create a new file in `lens-studio/Assets/Scripts/Assistant/Tools/` (e.g. `MyCustomTool.ts`)
 2. Define a dependencies interface for the dependencies your tool needs
-3. Export a `createMyTool(deps)` function that returns a `ToolDefinition` with:
+3. Export a `createMyCustomTool(deps)` function that returns a `ToolDefinition` with:
    - `name` — the tool name the LLM will call
    - `description` — explains to the LLM when and how to use the tool
    - `parameters` — JSON Schema describing the arguments
    - `handler` — an async function that receives the args and returns a JSON string
 4. Import and register your tool in `ToolFactory.ts`:
-   - Import your `createMyTool` function
+   - Import your `createMyCustomTool` function
    - Add a registration block inside `registerTools()` (with dependency guards as needed)
-   - Call `llmService.registerTool(createMyTool({ ... }))`
-
-*You could for example add tools based on the [AI Playground](https://github.com/specs-devs/samples/tree/main/AI%20Playground) or [Agentic Playground](https://github.com/specs-devs/samples/tree/main/Agentic%20Playground) templates!*
+   - Call `llmService.registerTool(createMyCustomTool({ ... }))`
 
 </details>
 
+*You could for example add tools based on the [AI Playground](https://github.com/specs-devs/samples/tree/main/AI%20Playground) or [Agentic Playground](https://github.com/specs-devs/samples/tree/main/Agentic%20Playground) templates!*
+
+
 #### Simulation
 
-Simulation mode is entered by selecting "I have no Reachy Mini" in the first step of the setup Wizard. You can at any time switch between the modes by restarting the setup from the main menu.
+This is a fully simulated version of the robot that adheres to the exact same kinematics and (approximated) speeds as the physical robot. 
 
 <img src="Assets/rm_simulation.gif" alt="Simulation Mode">
 
-This is a fully simulated version of the robot that adheres to the exact same kinematics as the physical robot. If simulation mode is enabled, the `RobotDriver` will send all movement commands to `SimulationAdapter` (as opposed to `HardwareAdapter`) which then applies them to the model in the scene.
+If simulation mode is enabled, the `RobotDriver` will send all movement commands to `SimulationAdapter` (as opposed to `HardwareAdapter`) which then applies them to the model in the scene.
+
+Simulation mode is entered by selecting "I have no Reachy Mini" in the first step of the setup Wizard. You can at any time switch between the modes by restarting the setup from the main menu.
 
 **Both Puppeteering and Assistant mode are available and work the same as with the physical robot!**
 
@@ -184,7 +193,8 @@ The preferred way to create custom logic for Reachy Mini is by creating a custom
 
 This project provides the app **spectacles-reachy-mini** which is already published so you can simply add it inside the Reachy Mini Desktop App.
 
-*Note: The original intention was to only use the Reachy Mini Daemons REST API or Websocket instead of having a custom app for the Reachy Mini App store.
+*Note on why there is an App: The original intention was to only use the Reachy Mini Daemons REST API or Websocket instead of having a custom app for the Reachy Mini App store. This would have reduced complexity by only having a Lens.
+
 Unfortunately the standard API is quite limited (for example no audio playback) as the intention is to use the Python SDK*
 
 <img src="Assets/rm_desktop_app.png" alt="Reachy Mini App">
@@ -222,7 +232,7 @@ See also the [Reachy Mini Python SDK](https://huggingface.co/docs/reachy_mini/v1
 
 ### Customization
 
-Here are some things you can change right away:
+Here are some things you can change right away without leaving Lens Studio or writing a lot of code:
 
 - **System prompt:** Edit the `systemPrompt` field in `LLMService.ts` to change the assistant's personality, behavior rules, and tool usage instructions
 - **Animation parameters:** Tune the robot's expressiveness (liveliness, gaze responsiveness, antenna activity, etc.) by editing the presets in `RobotAnimationConfig.ts`
