@@ -27,7 +27,6 @@
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
     assistantMode: false
-    persistenceManager: false
     positioningHologram: false
     positioningInteraction: false
     puppeteerMode: false
@@ -45,11 +44,10 @@
   DefaultScriptInputs:
     - reachyMiniRoot: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
       robotDriver: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
-      persistenceManager: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
       positioningHologram: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
-      positioningInteraction: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
-      puppeteerMode: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
-      assistantMode: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
+      positioningInteraction: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      puppeteerMode: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      assistantMode: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
       textDebugInfo: !<reference.Text> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
@@ -57,9 +55,8 @@
   InputLines:
     - // @input SceneObject reachyMiniRoot
     - // @input AssignableType robotDriver
-    - // @input AssignableType_1 persistenceManager
     - // @input SceneObject positioningHologram
-    - // @input AssignableType_2 positioningInteraction
-    - // @input AssignableType_3 puppeteerMode
-    - // @input AssignableType_4 assistantMode
+    - // @input AssignableType_1 positioningInteraction
+    - // @input AssignableType_2 puppeteerMode
+    - // @input AssignableType_3 assistantMode
     - // @input Component.Text textDebugInfo

@@ -1,0 +1,65 @@
+- !<AssetImportMetadata/ee1d8484-2cbf-4f52-8ec4-3cbc5b999c1e>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> f36914d4-f8d6-40ac-8aee-d381d6be3d07
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> f36914d4-f8d6-40ac-8aee-d381d6be3d07
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 156800fe-c41f-4fbe-9bf7-6720b146aadb
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/156800fe-c41f-4fbe-9bf7-6720b146aadb>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: e3c1b2e3-1536-4675-be38-350878ec921d
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    assistantTools: false
+    camera: false
+    depthCacheHelper: false
+    llmInterface: false
+    mlDetector: false
+    objectMarkerPrefab: false
+    robotDriver: false
+    textDebugInfo: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - robotDriver: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      objectMarkerPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      camera: !<reference.SceneObject> 00000000-0000-0000-0000-000000000000
+      depthCacheHelper: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      llmInterface: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      mlDetector: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      assistantTools: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
+      textDebugInfo: !<reference.Text> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType robotDriver
+    - // @input Asset.ObjectPrefab objectMarkerPrefab
+    - // @input SceneObject camera
+    - // @input AssignableType_1 depthCacheHelper
+    - // @input AssignableType_2 llmInterface
+    - // @input AssignableType_3 mlDetector
+    - // @input AssignableType_4 assistantTools
+    - // @input Component.Text textDebugInfo

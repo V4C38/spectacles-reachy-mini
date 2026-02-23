@@ -39,6 +39,44 @@
   BlendNormals: false
   BlendShapes:
     {}
+- !<ScriptComponent/5cc0a51e-403d-4429-b5f9-b8d76b0a7337>
+  PrefabRemaps:
+    []
+  Name: Interactable
+  Enabled: true
+  ScriptAsset: !<reference> 652e631a-22d0-4941-9f74-2943df59f34c
+  ScriptInputsDefault:
+    targetingMode: true
+    targetingVisual: true
+    ignoreInteractionPlane: true
+    keepHoverOnTrigger: true
+    enableInstantDrag: true
+    isScrollable: true
+    allowMultipleInteractors: true
+    enablePokeDirectionality: true
+    acceptableXDirections: true
+    acceptableYDirections: true
+    acceptableZDirections: true
+    useFilteredPinch: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      targetingMode: !<float> 3.000000
+      targetingVisual: !<float> 1.000000
+      ignoreInteractionPlane: false
+      keepHoverOnTrigger: false
+      enableInstantDrag: false
+      isScrollable: false
+      allowMultipleInteractors: true
+      enablePokeDirectionality: false
+      acceptableXDirections: !<float> 0.000000
+      acceptableYDirections: !<float> 0.000000
+      acceptableZDirections: !<float> 1.000000
+      useFilteredPinch: false
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/860c7663-afbd-4e7b-6adb-9cc6c48c7712>
   PrefabRemaps:
     []
@@ -64,6 +102,24 @@
   WorldUpVector: SceneY
   Target: !<reference> 00000000-0000-0065-0000-000000000064
   OffsetRotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+- !<ScriptComponent/925e01b2-02f1-4660-8a8a-870e0eb38b47>
+  PrefabRemaps:
+    []
+  Name: InteractableLookAt
+  Enabled: true
+  ScriptAsset: !<reference> e4e7bc8f-f23e-4709-9540-cd9e14d24422
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      reachyMiniManager: !<MappingBased.AssignableType> 17626024-4d91-4898-8194-27e22ff30993
+      lineRendererPrefab: !<reference.ObjectPrefab> f7a443b8-4645-45ff-8273-c1e6355e722c
+      duration: !<float> 2.000000
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/9952fbd1-0480-4a9f-467c-4fc14d74ff6b>
   PrefabRemaps:
     []
@@ -95,6 +151,27 @@
     - !<own> 860c7663-afbd-4e7b-6adb-9cc6c48c7712
   Components:
     - !<own> 8d95e95d-5e76-4dbe-46d5-1638e536ddd4
+    - !<own> f126ac1d-bf09-403f-bfee-90e099ec31e5
+    - !<own> 925e01b2-02f1-4660-8a8a-870e0eb38b47
+    - !<own> 5cc0a51e-403d-4429-b5f9-b8d76b0a7337
+- !<ColliderComponent/f126ac1d-bf09-403f-bfee-90e099ec31e5>
+  PrefabRemaps:
+    []
+  Name: Physics Collider
+  Enabled: true
+  Shape: !<Sphere>
+    FitVisual: true
+    Radius: 6.000000
+  Matter: !<reference> 00000000-0000-0000-0000-000000000000
+  Filter: !<reference> 00000000-0000-0000-0000-000000000000
+  OverlapFilter: !<reference> 00000000-0000-0000-0000-000000000000
+  WorldSettings: !<reference> 00000000-0000-0000-0000-000000000000
+  EnableSmoothing: false
+  PositionTension: 30.000000
+  RotationTension: 30.000000
+  ForceCompound: false
+  Intangible: false
+  ShowCollider: false
 - !<Text/fa36e99d-163e-4b9c-6f09-424b469d2529>
   PrefabRemaps:
     []

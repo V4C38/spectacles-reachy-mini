@@ -1,9 +1,8 @@
 """
-Audio playback on the Reachy Mini robot: raw PCM and WAV files.
+Audio playback on the Reachy Mini robot: raw PCM via base64.
 
-Handles play_audio (base64 float32 PCM decode and push to robot) and WAV file
-playback for animation audio. Uses the robot’s media API; sample rate and
-format are fixed for the hardware.
+Handles play_audio (base64 float32 PCM decode and push to robot).
+Uses the robot's media API; sample rate and format are fixed for the hardware.
 """
 
 from __future__ import annotations
@@ -11,8 +10,6 @@ from __future__ import annotations
 import base64
 import logging
 import time
-import wave
-from pathlib import Path
 
 import numpy as np
 from reachy_mini import ReachyMini
@@ -21,9 +18,6 @@ logger = logging.getLogger(__name__)
 
 # Target sample rate for Reachy Mini speaker output
 ROBOT_SAMPLE_RATE = 16000
-
-# Directory for animation WAV files (next to this module)
-_AUDIO_DIR = Path(__file__).resolve().parent / "audio"
 
 
 class AudioHandler:
@@ -54,51 +48,6 @@ class AudioHandler:
 
         self._push_and_wait(samples, target_rate)
         logger.info("Raw audio playback complete (%d samples)", len(samples))
-
-    def _play_wav_file(self, path: Path) -> None:
-        """Load a WAV file and play on the robot speaker. Mono or stereo, 8/16/24/32 bit."""
-        with wave.open(str(path), "rb") as wav:
-            nch = wav.getnchannels()
-            sampwidth = wav.getsampwidth()
-            framerate = wav.getframerate()
-            nframes = wav.getnframes()
-            raw = wav.readframes(nframes)
-
-        # Decode to float32 [-1, 1]
-        if sampwidth == 1:
-            samples_int = np.frombuffer(raw, dtype=np.uint8)
-            samples_int = (samples_int.astype(np.int16) - 128) * 256
-        elif sampwidth == 2:
-            samples_int = np.frombuffer(raw, dtype=np.int16)
-        elif sampwidth == 3:
-            # 24-bit: 3 bytes per sample, little-endian, sign-extend to 32-bit
-            raw_arr = np.frombuffer(raw, dtype=np.uint8)
-            n = len(raw_arr) // 3
-            padded = np.zeros(n * 4, dtype=np.uint8)
-            padded[0::4] = raw_arr[0::3]
-            padded[1::4] = raw_arr[1::3]
-            padded[2::4] = raw_arr[2::3]
-            padded[3::4] = np.where(raw_arr[2::3] >= 128, 255, 0)
-            samples_int = np.frombuffer(padded.tobytes(), dtype=np.int32)
-        elif sampwidth == 4:
-            samples_int = np.frombuffer(raw, dtype=np.int32) >> 8
-        else:
-            raise ValueError(f"Unsupported WAV sample width: {sampwidth}")
-        scale = 2147483648.0 if sampwidth in (3, 4) else 32768.0
-        samples_f32 = samples_int.astype(np.float32) / scale
-
-        if nch == 2:
-            samples_f32 = samples_f32.reshape(-1, 2).mean(axis=1)
-        samples_f32 = samples_f32.reshape(-1, 1)
-
-        target_rate = self._get_output_sample_rate()
-        if framerate != target_rate:
-            samples_f32 = self._resample(samples_f32[:, 0], framerate, target_rate).reshape(-1, 1)
-        else:
-            pass  # already (n, 1)
-
-        self._push_and_wait(samples_f32, target_rate)
-        logger.info("WAV playback complete: %s", path.name)
 
     def _push_and_wait(self, samples: np.ndarray, sample_rate: int) -> None:
         """Push audio samples and wait for playback to finish."""

@@ -1,8 +1,7 @@
 """
 Onboard camera capture: single frame from the Reachy Mini robot as base64 JPEG.
 
-Uses the SDK’s media.get_frame() (numpy BGR), encodes to JPEG, and returns
-base64 for transmission over the WebSocket to the Spectacles client.
+Uses the SDK’s media.get_frame() (numpy BGR), encodes to JPEG, and returns base64 for transmission over the WebSocket to the Spectacles client.
 """
 
 from __future__ import annotations

@@ -1,0 +1,65 @@
+- !<AssetImportMetadata/c48baa39-c8a6-4d9a-bf9c-67e9ab45abef>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 95f94658-e323-42b0-b31c-676950ecd4ee
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 95f94658-e323-42b0-b31c-676950ecd4ee
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 88e4deb6-aa1d-4998-b382-40e34413abfa
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/88e4deb6-aa1d-4998-b382-40e34413abfa>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: fdef6119-3c6c-4daa-99b4-d345b14e3345
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    assistantMode: false
+    hardwareAdapter: false
+    lineRendererPrefab: false
+    mlDetector: false
+    objectMarkerPrefab: false
+    robotDriver: false
+    switchObjectDetectionTool: false
+    textDebugInfo: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - assistantMode: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+      mlDetector: !<MappingBased.AssignableType_1> 00000000-0000-0000-0000-000000000000
+      robotDriver: !<MappingBased.AssignableType_2> 00000000-0000-0000-0000-000000000000
+      objectMarkerPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      lineRendererPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
+      hardwareAdapter: !<MappingBased.AssignableType_3> 00000000-0000-0000-0000-000000000000
+      switchObjectDetectionTool: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
+      textDebugInfo: !<reference.Text> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - // @input AssignableType assistantMode
+    - // @input AssignableType_1 mlDetector
+    - // @input AssignableType_2 robotDriver
+    - // @input Asset.ObjectPrefab objectMarkerPrefab
+    - // @input Asset.ObjectPrefab lineRendererPrefab
+    - // @input AssignableType_3 hardwareAdapter
+    - // @input AssignableType_4 switchObjectDetectionTool
+    - // @input Component.Text textDebugInfo

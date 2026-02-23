@@ -1,0 +1,56 @@
+- !<AssetImportMetadata/02e0ee2c-d8dd-48e3-b6a3-2a35f94114fb>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> 51e4aefa-a250-4746-883a-cb5945a430a8
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> 51e4aefa-a250-4746-883a-cb5945a430a8
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 87d33ff3-7816-43d6-848c-281816a9c555
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/87d33ff3-7816-43d6-848c-281816a9c555>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 90028da2-20c7-46d9-8427-7addfc2a4d92
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    model: false
+    systemPrompt: false
+    textDebugInfo: false
+    ttsModel: false
+    ttsVoice: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - model: gpt-4.1-nano
+      ttsModel: tts-1
+      ttsVoice: alloy
+      textDebugInfo: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      systemPrompt: ""
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @input string model = "gpt-4.1-nano"'
+    - '// @input string ttsModel = "tts-1"'
+    - '// @input string ttsVoice = "alloy"'
+    - // @input Component.Text textDebugInfo
+    - // @input string systemPrompt

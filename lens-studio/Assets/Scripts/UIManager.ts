@@ -2,7 +2,7 @@ import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 import { RoundButton } from "SpectaclesUIKit.lspkg/Scripts/Components/Button/RoundButton";
 import { RectangleButton } from "SpectaclesUIKit.lspkg/Scripts/Components/Button/RectangleButton";
 import { ReachyMiniManager } from "./ReachyMiniManager";
-import { AssistantState } from "./AssistantMode";
+import { AssistantState } from "./Assistant/AssistantMode";
 
 
 @component

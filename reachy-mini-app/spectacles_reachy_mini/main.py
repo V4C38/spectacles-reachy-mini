@@ -1,9 +1,7 @@
 """
 App entry point and FastAPI setup for the Spectacles–Reachy Mini bridge.
 
-Defines the ReachyMiniApp subclass that runs a WebSocket server on port 8765,
-wires handlers (movement, audio, camera), and serves the info/status and static
-info page. Send rate for movement is read from REACHY_SPECTACLES_SEND_RATE_HZ.
+Defines the ReachyMiniApp subclass that runs a WebSocket server on port 8765, wires handlers (movement, audio, camera), and serves the info/status and static info page. Send rate for movement is read from REACHY_SPECTACLES_SEND_RATE_HZ.
 """
 
 from __future__ import annotations

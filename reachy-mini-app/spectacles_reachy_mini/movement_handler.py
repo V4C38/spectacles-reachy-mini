@@ -1,11 +1,8 @@
 """
 Movement state and robot commands: target/current LERP and set_target rate limiting.
 
-WebSocket messages update an in-memory *target* pose. A background loop (~30 Hz)
-LERPs *current* toward *target*, applies velocity clamping, and sends *current*
-to the robot via ReachyMini.set_target at the same ~30 Hz rate.
-Timeout logic allows the next send if the previous one is slow, so the robot
-does not stay stuck. Also handles goto (interpolated moves) and lifecycle.
+WebSocket messages update an in-memory *target* pose. A background loop (~30 Hz) LERPs *current* toward *target*, applies velocity clamping, and sends *current* to the robot via ReachyMini.set_target at the same ~30 Hz rate.
+Timeout logic allows the next send if the previous one is slow, so the robot does not stay stuck. Also handles goto (interpolated moves) and lifecycle.
 """
 
 from __future__ import annotations
