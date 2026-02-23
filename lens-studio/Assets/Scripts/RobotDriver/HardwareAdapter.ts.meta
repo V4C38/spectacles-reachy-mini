@@ -28,7 +28,6 @@
   ScriptInputsHidden:
     audioComponent: false
     baseUrl: false
-    internetModule: false
   ScriptTypesHidden:
     {}
   ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
@@ -39,12 +38,10 @@
     []
   DefaultScriptInputs:
     - baseUrl: 192.168.1.98
-      internetModule: !<reference.InternetModule> 00000000-0000-0000-0000-000000000000
       audioComponent: !<reference.AudioComponent> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
   InputLines:
     - '// @input string baseUrl = "192.168.1.98"'
-    - // @input Asset.InternetModule internetModule
     - // @input Component.AudioComponent audioComponent

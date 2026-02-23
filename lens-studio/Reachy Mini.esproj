@@ -15,7 +15,7 @@ metaInfo:
     []
   lensName: Reachy Mini
   lensDescriptors:
-    - EXPERIMENTAL_API
+    []
   lensApplicability:
     - Front
     - Back

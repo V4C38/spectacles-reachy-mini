@@ -69,6 +69,11 @@ export class ToolFactory extends BaseScriptComponent {
         llmService.clearTools();
         let registeredCount = 0;
 
+        /*
+
+        // REMOVED IN SIMULATION VERSION 
+        // No experimental API allowed in published lenses
+
         // Register scan_objects tool if dependencies are available
         if (this.mlDetector && this.objectMarkerPrefab && this.assistantMode) {
 
@@ -90,6 +95,7 @@ export class ToolFactory extends BaseScriptComponent {
         } else {
             print("ToolFactory: Skipping scan_objects tool (missing dependencies)");
         }
+        */
 
         // Register look_at tool if dependencies are available
         if (this.robotDriver && this.assistantMode) {

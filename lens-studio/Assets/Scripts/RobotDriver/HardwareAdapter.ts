@@ -21,8 +21,6 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     @input
     public baseUrl: string = "192.168.1.98";
 
-    @input
-    private internetModule!: InternetModule;
 
     @input
     private audioComponent: AudioComponent | null = null;
@@ -110,7 +108,7 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
 
         return new Promise<void>((resolve, reject) => {
             try {
-                this.ws = this.internetModule.createWebSocket(wsUrl);
+                
             } catch (error) {
                 this.isConnecting = false;
                 print(`HardwareAdapter: Failed to create WebSocket: ${error}`);

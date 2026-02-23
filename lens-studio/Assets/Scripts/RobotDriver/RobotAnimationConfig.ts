@@ -19,5 +19,5 @@ export const PRESETS: Record<string, AnimationParams> = {
     listening: { liveliness: 0.7,  gazeResponsiveness: 1.0, headHeight:  0.8,  antennaActivity: 1.3,  gazeWander: 0.08 },
     speaking:  { liveliness: 0.9,  gazeResponsiveness: 1.2, headHeight:  0.8,  antennaActivity: 1.4,  gazeWander: 0.12 },
     searching: { liveliness: 0.55, gazeResponsiveness: 1.5, headHeight:  1.0,  antennaActivity: 2.0,  gazeWander: 0    },
-    puppeteer: { liveliness: 1.25, gazeResponsiveness: 1.2, headHeight:  0.6,  antennaActivity: 0.8,  gazeWander: 0    },
+    puppeteer: { liveliness: 1.25, gazeResponsiveness: 1.2, headHeight:  0.2,  antennaActivity: 0.8,  gazeWander: 0    },
 };
