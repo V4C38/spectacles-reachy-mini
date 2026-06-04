@@ -105,11 +105,14 @@ export class AssistantMode extends BaseScriptComponent {
             }
         }
 
-        if (this.currentState === AssistantState.Listening && this.conversation.postSpeakListeningEndTime > 0) {
-            if (now >= this.conversation.postSpeakListeningEndTime) {
-                this.conversation.postSpeakListeningEndTime = 0;
-                this.setState(AssistantState.Idle);
-            }
+        if (
+            this.currentState === AssistantState.Listening
+            && this.conversation.postSpeakListeningEndTime > 0
+            && now >= this.conversation.postSpeakListeningEndTime
+            && !this.conversation.isSessionActive
+        ) {
+            this.conversation.postSpeakListeningEndTime = 0;
+            this.setState(AssistantState.Idle);
         }
 
         // --- Look-at override takes priority ---
@@ -272,6 +275,12 @@ export class AssistantMode extends BaseScriptComponent {
 
     public getState(): AssistantState {
         return this.currentState;
+    }
+
+    public scheduleOnce(delaySec: number, callback: () => void): void {
+        const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
+        delayEvent.bind(callback);
+        delayEvent.reset(delaySec);
     }
 
     private applyStateParams(): void {

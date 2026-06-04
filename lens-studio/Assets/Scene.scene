@@ -7083,16 +7083,14 @@
   Enabled: true
   ScriptAsset: !<reference> 37976aca-6847-44c8-88d9-5edb6aadbbf2
   ScriptInputsDefault:
-    openAIToken: true
-    googleToken: true
-    snapToken: true
+    {}
   ScriptTypesDefault:
     {}
   ScriptInputs:
     "":
-      openAIToken: "[INSERT OPENAI TOKEN HERE]"
-      googleToken: "[INSERT GOOGLE TOKEN HERE]"
-      snapToken: "[INSERT SNAP TOKEN HERE]"
+      openAIToken: ""
+      googleToken: ""
+      snapToken: ""
   ScriptTypes:
     "":
       {}
