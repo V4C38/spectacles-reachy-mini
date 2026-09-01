@@ -33,9 +33,12 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     private pendingRequests: Map<number, PendingRequest> = new Map();
     private isConnecting: boolean = false;
 
-    // --- set_target throttling (aligns with Python 20 Hz send rate) ---
+    // --- set_target coalescing (20 Hz max; latest pose always wins) ---
     private static readonly SET_TARGET_MIN_INTERVAL_SEC = 0.05; // 20 Hz max
     private lastSetTargetTime: number = 0;
+    private pendingTarget: { headPose: XYZRPYPose; bodyYaw?: number; antennas?: [number, number] } | null = null;
+    private flushEvent: DelayedCallbackEvent | null = null;
+    private flushScheduled: boolean = false;
 
     // --- IP persistence ---
     private static readonly IP_KEY = "reachy_mini_ip";
@@ -49,6 +52,8 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
         if (saved) {
             this.baseUrl = saved;
         }
+        this.flushEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
+        this.flushEvent.bind(() => this.flushPendingTarget());
     }
 
     public saveIp(ip: string): void {
@@ -137,6 +142,7 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
             this.ws.onclose = (event: WebSocketCloseEvent) => {
                 print(`HardwareAdapter: WebSocket closed`);
                 this.ws = null;
+                this.cancelPendingTarget();
                 // Reject all pending requests
                 this.pendingRequests.forEach((pending) => {
                     pending.reject(new Error("WebSocket closed"));
@@ -164,8 +170,9 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
      * Close the WebSocket connection.
      */
     public disconnect(): void {
+        this.cancelPendingTarget();
         if (this.ws) {
-            this.ws.onclose = null; // Prevent the onclose handler from running
+            this.ws.onclose = () => {}; // Prevent the onclose handler from running
             this.ws.close();
             this.ws = null;
         }
@@ -192,7 +199,9 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
             if (id !== undefined && this.pendingRequests.has(id)) {
                 const pending = this.pendingRequests.get(id);
                 this.pendingRequests.delete(id);
-                pending.resolve(data);
+                if (pending) {
+                    pending.resolve(data);
+                }
             }
         } catch (error) {
             print(`HardwareAdapter: Failed to parse WebSocket message: ${error}`);
@@ -283,6 +292,7 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
      * @returns UUID to track/stop the move
      */
     public async goto(headPose: XYZRPYPose, bodyYaw?: number, duration: number = 0.5, interpolation: string = "minjerk"): Promise<string> {
+        this.dropPendingTarget();
         const msg: any = {
             type: "goto",
             head_pose: headPose,
@@ -304,26 +314,72 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
      * Set target pose immediately (no interpolation).
      * Used for real-time tracking at high frequency (e.g., 50Hz).
      * Fire-and-forget: does not wait for a response for maximum performance.
+     * Calls within the 20 Hz window replace a pending slot (latest wins) and
+     * flush when the window opens — never drop the newest pose.
      * @param headPose Target head pose (x, y, z in meters, roll, pitch, yaw in radians)
      * @param bodyYaw Optional target body yaw in radians
      * @param antennas Optional antenna positions [left, right] in radians
      */
     public async setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void> {
         const now = getTime();
-        if (now - this.lastSetTargetTime < HardwareAdapter.SET_TARGET_MIN_INTERVAL_SEC) {
-            return; // Throttle to 20 Hz; Python-side LERP at 30 Hz fills the gaps
+        const elapsed = now - this.lastSetTargetTime;
+        if (elapsed >= HardwareAdapter.SET_TARGET_MIN_INTERVAL_SEC) {
+            // Drop any older buffered pose so a delayed flush cannot overwrite this one.
+            this.dropPendingTarget();
+            this.sendSetTarget(headPose, bodyYaw, antennas);
+            return;
         }
-        this.lastSetTargetTime = now;
 
+        this.pendingTarget = {
+            headPose: { ...headPose },
+            bodyYaw,
+            antennas: antennas ? [antennas[0], antennas[1]] : undefined,
+        };
+        if (!this.flushScheduled && this.flushEvent) {
+            this.flushScheduled = true;
+            this.flushEvent.enabled = true;
+            const wait = Math.max(0, HardwareAdapter.SET_TARGET_MIN_INTERVAL_SEC - elapsed);
+            this.flushEvent.reset(wait);
+        }
+    }
+
+    private sendSetTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): void {
+        this.lastSetTargetTime = getTime();
         const msg: any = {
             type: "set_target",
-            target_head_pose: headPose,
-            target_antennas: antennas ?? [0, 0]
+            target_head_pose: { ...headPose },
+            target_antennas: antennas ? [antennas[0], antennas[1]] : [0, 0]
         };
         if (bodyYaw !== undefined) {
             msg.target_body_yaw = bodyYaw;
         }
         this.send(msg);
+    }
+
+    private flushPendingTarget(): void {
+        this.flushScheduled = false;
+        const pending = this.pendingTarget;
+        this.pendingTarget = null;
+        if (this.flushEvent) {
+            this.flushEvent.enabled = false;
+        }
+        if (!pending) return;
+        if (!this.ws || this.ws.readyState !== WS_OPEN) return;
+        this.sendSetTarget(pending.headPose, pending.bodyYaw, pending.antennas);
+    }
+
+    /** Drop a buffered pose without resetting the 20 Hz window (used when a newer send wins). */
+    private dropPendingTarget(): void {
+        this.pendingTarget = null;
+        this.flushScheduled = false;
+        if (this.flushEvent) {
+            this.flushEvent.enabled = false;
+        }
+    }
+
+    private cancelPendingTarget(): void {
+        this.dropPendingTarget();
+        this.lastSetTargetTime = 0;
     }
 
     // ================================================================

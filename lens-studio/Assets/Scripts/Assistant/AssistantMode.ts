@@ -117,7 +117,6 @@ export class AssistantMode extends BaseScriptComponent {
             if (now < this.lookAtOverrideEndTime) {
                 this.robotDriver.setGazeTarget(this.lookAtOverrideTarget);
                 this.robotDriver.setParams({ gazeWander: 0 });
-                this.robotDriver.updateFrame();
                 return;
             } else {
                 this.lookAtOverrideTarget = null;
@@ -153,8 +152,6 @@ export class AssistantMode extends BaseScriptComponent {
                 this.updateSearchSweep(now);
                 break;
         }
-
-        this.robotDriver.updateFrame();
     }
 
     // ----------------------------------------------------------------
@@ -223,6 +220,7 @@ export class AssistantMode extends BaseScriptComponent {
         this.currentState = AssistantState.Idle;
         this.setState(AssistantState.Sleeping);
         this.robotDriver.snapToCurrentParams();
+        this.robotDriver.resume();
         this.conversation.startASR();
     }
 
