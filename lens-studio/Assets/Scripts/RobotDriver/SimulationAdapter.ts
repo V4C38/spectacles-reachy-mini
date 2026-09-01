@@ -25,10 +25,10 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     private static readonly ANTENNA_LEFT_BASE_Y_DEG = 30;
     private static readonly ANTENNA_RIGHT_BASE_Y_DEG = -30;
 
-    // Keep in sync with movement_handler.py: POSE_ALPHA=0.12, ANTENNA_ALPHA=0.08,
-    // MAX_ANGULAR_VEL=1.5, MAX_POS_VEL=0.05. SMOOTHING_SPEED=4.0 → alpha ≈ 0.12 at 30 fps.
-    private static readonly SMOOTHING_SPEED = 4.0;
-    private static readonly SMOOTHING_SPEED_ANTENNA = 2.5;
+    // Lag the hologram to match the Python plant (POSE_ALPHA=0.12) plus WS/SDK.
+    // 2.0 → τ ≈ 0.5 s, vs 4.0 which only matched the LERP and still led the motors.
+    private static readonly SMOOTHING_SPEED = 2.0;
+    private static readonly SMOOTHING_SPEED_ANTENNA = 1.25;
     private static readonly MAX_ANGULAR_VEL = 1.5;
     private static readonly MAX_POS_VEL = 0.05;
     private static readonly MAX_DT_FOR_VEL_CLAMP = 0.06;
