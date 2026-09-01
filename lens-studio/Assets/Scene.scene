@@ -1213,7 +1213,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 15.000000, z: 0.000000}
+    Position: {x: 0.000000, y: 10.775928, z: 1.183093}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -3107,7 +3107,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 1.046387, z: 0.000000}
+    Position: {x: 0.000000, y: 5.270459, z: -1.183093}
     Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
     HasSegmentScaleCompensation: false
@@ -3172,7 +3172,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.895928, z: 5.553093}
+    Position: {x: 0.000000, y: 5.120000, z: 4.370000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -3247,7 +3247,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 1.046387, z: 0.000000}
+    Position: {x: 0.000000, y: 5.270459, z: -1.183093}
     Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
     HasSegmentScaleCompensation: false
@@ -5288,7 +5288,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 5.707228, y: 3.000000, z: -4.000000}
+    Position: {x: 5.707228, y: 7.224072, z: -5.183093}
     Rotation: {x: 5.000000, y: -30.000000, z: -0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -6340,7 +6340,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 1.046387, z: 0.000000}
+    Position: {x: 0.000000, y: 5.270459, z: -1.183093}
     Rotation: {x: -90.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 100.000000, y: 100.000000, z: 100.000000}
     HasSegmentScaleCompensation: false
@@ -6751,7 +6751,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: -5.500000, y: 3.000000, z: -4.000000}
+    Position: {x: -5.500000, y: 7.224072, z: -5.183093}
     Rotation: {x: 5.000000, y: 30.000011, z: -0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false

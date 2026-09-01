@@ -107,7 +107,9 @@ export class ReachyMiniManager extends BaseScriptComponent {
 
     public setControlMode(mode: number) {
         this.controlMode = mode;
-        this.resetRobotToDefaultPose();
+        if (this.robotDriver) {
+            this.robotDriver.pause();
+        }
 
         switch (mode) {
             case 0:
@@ -138,6 +140,9 @@ export class ReachyMiniManager extends BaseScriptComponent {
         if (this.puppeteerMode) {
             this.puppeteerMode.activate();
             this.startPuppeteerUpdateLoop();
+            if (!this.isActive) {
+                this.puppeteerMode.pause();
+            }
         }
     }
 
@@ -292,8 +297,11 @@ export class ReachyMiniManager extends BaseScriptComponent {
 
     private resetRobotToDefaultPose() {
         if (this.robotDriver) {
-            const neutralPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
-            this.robotDriver.goto(neutralPose, 0, 1.5, "minjerk").catch(() => {});
+            this.robotDriver.setBodyPose({
+                head: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
+                bodyYaw: 0,
+                antennas: [0, 0],
+            });
         }
     }
 

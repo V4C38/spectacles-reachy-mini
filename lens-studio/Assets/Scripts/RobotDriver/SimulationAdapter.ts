@@ -22,44 +22,23 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
 
     private headRestPosition: vec3 | null = null;
 
-    // --- Antenna base angles (scene has antennas pre-angled in Y) ---
     private static readonly ANTENNA_LEFT_BASE_Y_DEG = 30;
     private static readonly ANTENNA_RIGHT_BASE_Y_DEG = -30;
 
-    // --- Smoothing (matches Python-side LERP behaviour) ---
-    // SMOOTHING_SPEED ≈ 4.0 gives alpha ≈ 0.12 per tick at 30 fps,
-    // matching the MovementHandler POSE_ALPHA = 0.12 at 30 Hz.
-    private static readonly SMOOTHING_SPEED = 4.0;
-
-    // --- Velocity clamping (match movement_handler.py so sim and hardware stay aligned) ---
-    private static readonly MAX_ANGULAR_VEL = 1.5;   // rad/s
-    private static readonly MAX_POS_VEL = 0.05;     // m/s
+    // Lag the hologram to match the Python plant (POSE_ALPHA=0.12) plus WS/SDK.
+    // 2.0 → τ ≈ 0.5 s, vs 4.0 which only matched the LERP and still led the motors.
+    private static readonly SMOOTHING_SPEED = 2.0;
+    private static readonly SMOOTHING_SPEED_ANTENNA = 1.25;
+    private static readonly MAX_ANGULAR_VEL = 1.5;
+    private static readonly MAX_POS_VEL = 0.05;
     private static readonly MAX_DT_FOR_VEL_CLAMP = 0.06;
 
-    // Target -- set by setTarget(), can jump
     private targetPose: XYZRPYPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
     private targetBodyYaw: number = 0;
     private targetAntennas: [number, number] = [0, 0];
-
-    // Displayed -- lerped toward target each frame; what the scene objects show
     private displayedPose: XYZRPYPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
     private displayedBodyYaw: number = 0;
     private displayedAntennas: [number, number] = [0, 0];
-
-    // --- Goto interpolation state ---
-    private gotoStartPose: XYZRPYPose | null = null;
-    private gotoEndPose: XYZRPYPose | null = null;
-    private gotoStartBodyYaw: number = 0;
-    private gotoEndBodyYaw: number = 0;
-    private gotoStartTime: number = 0;
-    private gotoDuration: number = 0;
-    private gotoInterpolation: string = "minjerk";
-    private gotoUpdateEvent: SceneEvent | null = null;
-    private gotoResolve: (() => void) | null = null;
-
-    // --- Current pose (tracked for goto start capture) ---
-    private currentPose: XYZRPYPose = { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 };
-    private currentBodyYaw: number = 0;
 
     onAwake() {
         this.cacheDefaultMaterials();
@@ -95,26 +74,20 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
         }
     }
 
-    // Store target pose. The smoothing tick lerps toward it each frame.
+    /** Store the commanded pose. The smoothing tick matches the Python plant. */
     public async setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void> {
         this.targetPose = { ...headPose };
         if (bodyYaw !== undefined) this.targetBodyYaw = bodyYaw;
         if (antennas) this.targetAntennas = [antennas[0], antennas[1]];
-
-        // Keep current pose in sync for goto start-capture
-        this.currentPose = { ...headPose };
-        if (bodyYaw !== undefined) this.currentBodyYaw = bodyYaw;
     }
 
-    // --- Smoothing loop (runs every frame) ---
     private smoothingTick(): void {
         const dt = getDeltaTime();
         if (dt <= 0) return;
 
-        // Frame-rate-independent alpha: at 30fps this ≈ 0.12
-        const alpha = 1 - Math.exp(-SimulationAdapter.SMOOTHING_SPEED * dt);
+        const alphaPose = 1 - Math.exp(-SimulationAdapter.SMOOTHING_SPEED * dt);
+        const alphaAnt = 1 - Math.exp(-SimulationAdapter.SMOOTHING_SPEED_ANTENNA * dt);
 
-        // Velocity clamp (match Python movement_handler so sim and hardware stay aligned)
         const dtClamped = Math.min(dt, SimulationAdapter.MAX_DT_FOR_VEL_CLAMP);
         const maxDAng = SimulationAdapter.MAX_ANGULAR_VEL * dtClamped;
         const maxDPos = SimulationAdapter.MAX_POS_VEL * dtClamped;
@@ -122,21 +95,20 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
         const clamp = (delta: number, maxAbs: number): number =>
             Math.max(-maxAbs, Math.min(maxAbs, delta));
 
-        this.displayedPose.x     += clamp(alpha * (this.targetPose.x     - this.displayedPose.x), maxDPos);
-        this.displayedPose.y     += clamp(alpha * (this.targetPose.y     - this.displayedPose.y), maxDPos);
-        this.displayedPose.z     += clamp(alpha * (this.targetPose.z     - this.displayedPose.z), maxDPos);
-        this.displayedPose.roll  += clamp(alpha * (this.targetPose.roll  - this.displayedPose.roll), maxDAng);
-        this.displayedPose.pitch += clamp(alpha * (this.targetPose.pitch - this.displayedPose.pitch), maxDAng);
-        this.displayedPose.yaw   += clamp(alpha * (this.targetPose.yaw   - this.displayedPose.yaw), maxDAng);
+        this.displayedPose.x += clamp(alphaPose * (this.targetPose.x - this.displayedPose.x), maxDPos);
+        this.displayedPose.y += clamp(alphaPose * (this.targetPose.y - this.displayedPose.y), maxDPos);
+        this.displayedPose.z += clamp(alphaPose * (this.targetPose.z - this.displayedPose.z), maxDPos);
+        this.displayedPose.roll += clamp(alphaPose * (this.targetPose.roll - this.displayedPose.roll), maxDAng);
+        this.displayedPose.pitch += clamp(alphaPose * (this.targetPose.pitch - this.displayedPose.pitch), maxDAng);
+        this.displayedPose.yaw += clamp(alphaPose * (this.targetPose.yaw - this.displayedPose.yaw), maxDAng);
 
-        this.displayedBodyYaw += clamp(alpha * (this.targetBodyYaw - this.displayedBodyYaw), maxDAng);
-        this.displayedAntennas[0] += clamp(alpha * (this.targetAntennas[0] - this.displayedAntennas[0]), maxDAng);
-        this.displayedAntennas[1] += clamp(alpha * (this.targetAntennas[1] - this.displayedAntennas[1]), maxDAng);
+        this.displayedBodyYaw += clamp(alphaPose * (this.targetBodyYaw - this.displayedBodyYaw), maxDAng);
+        this.displayedAntennas[0] += clamp(alphaAnt * (this.targetAntennas[0] - this.displayedAntennas[0]), maxDAng);
+        this.displayedAntennas[1] += clamp(alphaAnt * (this.targetAntennas[1] - this.displayedAntennas[1]), maxDAng);
 
         this.applyToScene(this.displayedPose, this.displayedBodyYaw, this.displayedAntennas);
     }
 
-    // --- Apply pose to scene objects ---
     private applyToScene(pose: XYZRPYPose, bodyYaw: number, antennas: [number, number]): void {
         if (this.bodySceneObject) {
             const bodyRotation = quat.fromEulerAngles(0, bodyYaw, 0);
@@ -164,7 +136,6 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
                 ? this.headSceneObject.getTransform().getWorldRotation()
                 : quat.quatIdentity();
 
-            // Antennas are pre-angled Y +30° (left) / -30° (right) in the scene; apply base then pitch.
             const leftBaseY = quat.fromEulerAngles(0, SimulationAdapter.ANTENNA_LEFT_BASE_Y_DEG, 0);
             const rightBaseY = quat.fromEulerAngles(0, SimulationAdapter.ANTENNA_RIGHT_BASE_Y_DEG, 0);
             const leftPitch = quat.fromEulerAngles(antennas[0], 0, 0);
@@ -177,39 +148,6 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
                 headWorldRot.multiply(rightBaseY.multiply(rightPitch))
             );
         }
-    }
-
-    // Move to target pose with smooth interpolation over the given duration.
-    public async goto(headPose: XYZRPYPose, bodyYaw?: number, duration: number = 0.5, interpolation: string = "minjerk"): Promise<string> {
-        // Cancel any in-progress goto
-        this.cancelGoto();
-
-        const uuid = "simulation-" + Date.now().toString();
-
-        // If duration is negligible, snap immediately
-        if (duration <= 0.01) {
-            await this.setTarget(headPose, bodyYaw);
-            return uuid;
-        }
-
-        // Capture start state
-        this.gotoStartPose = { ...this.currentPose };
-        this.gotoEndPose = { ...headPose };
-        this.gotoStartBodyYaw = this.currentBodyYaw;
-        this.gotoEndBodyYaw = bodyYaw ?? this.currentBodyYaw;
-        this.gotoStartTime = getTime();
-        this.gotoDuration = duration;
-        this.gotoInterpolation = interpolation;
-
-        // Return a promise that resolves when interpolation completes
-        return new Promise<string>((resolve) => {
-            this.gotoResolve = () => resolve(uuid);
-
-            this.gotoUpdateEvent = this.createEvent("UpdateEvent");
-            this.gotoUpdateEvent.bind(() => {
-                this.tickGoto();
-            });
-        });
     }
 
     /**
@@ -227,7 +165,6 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
         const durationSec = this.audioComponent.duration;
         print(`SimulationAdapter: Playing audio (${durationSec.toFixed(2)}s)`);
 
-        // Wait for playback to complete
         return new Promise<void>((resolve) => {
             const delayEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
             delayEvent.bind(() => {
@@ -236,53 +173,6 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
             delayEvent.reset(durationSec);
         });
     }
-
-    // ----------------------------------------------------------------
-    // Goto interpolation internals
-    // ----------------------------------------------------------------
-    private tickGoto(): void {
-        if (!this.gotoStartPose || !this.gotoEndPose) return;
-
-        const elapsed = getTime() - this.gotoStartTime;
-        const t = Math.min(elapsed / this.gotoDuration, 1.0);
-        const s = this.ease(t, this.gotoInterpolation);
-
-        const pose: XYZRPYPose = {
-            x:     this.lerp(this.gotoStartPose.x,     this.gotoEndPose.x,     s),
-            y:     this.lerp(this.gotoStartPose.y,     this.gotoEndPose.y,     s),
-            z:     this.lerp(this.gotoStartPose.z,     this.gotoEndPose.z,     s),
-            roll:  this.lerp(this.gotoStartPose.roll,  this.gotoEndPose.roll,  s),
-            pitch: this.lerp(this.gotoStartPose.pitch, this.gotoEndPose.pitch, s),
-            yaw:   this.lerp(this.gotoStartPose.yaw,   this.gotoEndPose.yaw,   s),
-        };
-        const bodyYaw = this.lerp(this.gotoStartBodyYaw, this.gotoEndBodyYaw, s);
-
-        this.setTarget(pose, bodyYaw);
-
-        if (t >= 1.0) {
-            this.finishGoto();
-        }
-    }
-
-    private finishGoto(): void {
-        const resolve = this.gotoResolve;
-        this.cancelGoto();
-        if (resolve) resolve();
-    }
-
-    private cancelGoto(): void {
-        if (this.gotoUpdateEvent) {
-            this.removeEvent(this.gotoUpdateEvent);
-            this.gotoUpdateEvent = null;
-        }
-        this.gotoStartPose = null;
-        this.gotoEndPose = null;
-        this.gotoResolve = null;
-    }
-
-    // ----------------------------------------------------------------
-    // Helpers
-    // ----------------------------------------------------------------
 
     public applyHologramMaterial(): void {
         if (!this.hologramMaterial) return;
@@ -323,33 +213,4 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
             }
         }
     }
-
-    // Apply easing curve based on interpolation mode. t is in [0,1].
-    private ease(t: number, mode: string): number {
-        switch (mode) {
-            case "minjerk":
-                // Minimum-jerk trajectory: 10t³ - 15t⁴ + 6t⁵
-                return t * t * t * (10 + t * (-15 + t * 6));
-            case "ease":
-                // Ease-in-out (cubic)
-                return t < 0.5
-                    ? 4 * t * t * t
-                    : 1 - Math.pow(-2 * t + 2, 3) / 2;
-            case "cartoon": {
-                // Overshoot then settle
-                const c = 1.70158;
-                const c3 = c + 1;
-                return 1 + c3 * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2);
-            }
-            case "linear":
-            default:
-                return t;
-        }
-    }
-
-    private lerp(a: number, b: number, t: number): number {
-        return a + (b - a) * t;
-    }
-
 }
- 

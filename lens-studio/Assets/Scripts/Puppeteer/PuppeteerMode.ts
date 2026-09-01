@@ -50,6 +50,7 @@ export class PuppeteerMode extends BaseScriptComponent {
         this.animateSceneObjectState(this.interactable.sceneObject, true, 0.75, new vec3(0.35, 0.35, 0.35));
         this.robotDriver.reset();
         this.robotDriver.setParams(PRESETS.puppeteer);
+        this.robotDriver.resume();
 
         this.startHeadToInteractableLine();
     }
@@ -83,7 +84,6 @@ export class PuppeteerMode extends BaseScriptComponent {
     public update(): void {
         if (!this.robotDriver || !this.interactable) return;
         this.robotDriver.setGazeTarget(this.interactable.sceneObject.getTransform().getWorldPosition());
-        this.robotDriver.updateFrame();
         this.updateHeadToInteractableLine();
     }
 

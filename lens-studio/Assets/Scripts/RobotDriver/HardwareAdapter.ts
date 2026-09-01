@@ -28,14 +28,26 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     private audioComponent: AudioComponent | null = null;
 
     // --- WebSocket state ---
+    private static readonly CONNECT_TIMEOUT_S = 5.0;
     private ws: WebSocket | null = null;
     private requestId: number = 0;
     private pendingRequests: Map<number, PendingRequest> = new Map();
     private isConnecting: boolean = false;
+    private openHost: string | null = null;
+    private connectingHost: string | null = null;
+    private connectingSocket: WebSocket | null = null;
+    private connectPromise: Promise<void> | null = null;
+    private pendingConnectResolve: (() => void) | null = null;
+    private pendingConnectReject: ((error: Error) => void) | null = null;
+    private retiredSockets = new Set<WebSocket>();
+    private connectTimeoutEvent: DelayedCallbackEvent | null = null;
 
-    // --- set_target throttling (aligns with Python 20 Hz send rate) ---
+    // --- set_target coalescing (20 Hz max; latest pose always wins) ---
     private static readonly SET_TARGET_MIN_INTERVAL_SEC = 0.05; // 20 Hz max
     private lastSetTargetTime: number = 0;
+    private pendingTarget: { headPose: XYZRPYPose; bodyYaw?: number; antennas?: [number, number] } | null = null;
+    private flushEvent: DelayedCallbackEvent | null = null;
+    private flushScheduled: boolean = false;
 
     // --- IP persistence ---
     private static readonly IP_KEY = "reachy_mini_ip";
@@ -49,6 +61,24 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
         if (saved) {
             this.baseUrl = saved;
         }
+        this.flushEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
+        this.flushEvent.bind(() => this.flushPendingTarget());
+
+        const connectTimeout = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
+        connectTimeout.bind(() => {
+            const socket = this.connectingSocket;
+            if (!this.isConnecting || this.ws !== socket || socket === null) {
+                return;
+            }
+            if (socket.readyState === WS_OPEN) {
+                this.completeConnectOpen(socket);
+                return;
+            }
+            this.retireSocket(socket);
+            this.ws = null;
+            this.finishConnectAttempt(new Error("WebSocket connection timeout"));
+        });
+        this.connectTimeoutEvent = connectTimeout;
     }
 
     public saveIp(ip: string): void {
@@ -67,113 +97,239 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     // ================================================================
 
     /**
-     * Derive a ws:// URL from the user-entered IP (or baseUrl).
-     * Port 8765 is always used; the user only enters the IP address.
+     * Strip protocol, trailing slashes, and a user-entered port from an IP/host string.
      */
-    private deriveWsUrl(input: string): string {
-        let host = input.trim();
-        // Strip any protocol prefix
+    private normalizeIp(raw: string): string {
+        let host = raw.trim();
         if (host.startsWith("http://")) host = host.substring(7);
         if (host.startsWith("https://")) host = host.substring(8);
         if (host.startsWith("ws://")) host = host.substring(5);
         if (host.startsWith("wss://")) host = host.substring(6);
-        // Strip trailing slashes
         while (host.endsWith("/")) host = host.substring(0, host.length - 1);
-        // Use fixed port 8765 (Spectacles bridge); strip any user-entered port
         const colonIdx = host.lastIndexOf(":");
         if (colonIdx > 0) {
             host = host.substring(0, colonIdx);
         }
-        return `ws://${host}:8765/ws`;
+        return host;
+    }
+
+    /**
+     * Derive a ws:// URL from the user-entered IP (or baseUrl).
+     * Port 8765 is always used; the user only enters the IP address.
+     */
+    private deriveWsUrl(input: string): string {
+        return `ws://${this.normalizeIp(input)}:8765/ws`;
+    }
+
+    private isSocketOpen(): boolean {
+        return this.ws !== null && this.ws.readyState === WS_OPEN;
     }
 
     /**
      * Open a WebSocket connection to the Python bridge app.
      * Resolves when the connection is open, rejects on failure/timeout.
+     * Spectacles-safe: never hard-closes a CONNECTING socket; host change
+     * reconnects after the in-flight attempt settles.
      */
-    public async connect(): Promise<void> {
-        // Already connected
-        if (this.ws && this.ws.readyState === WS_OPEN) {
-            return;
+    public connect(): Promise<void> {
+        const targetHost = this.normalizeIp(this.baseUrl);
+        if (this.isSocketOpen() && this.openHost === targetHost) {
+            return Promise.resolve();
         }
-        // Avoid concurrent connect attempts
-        if (this.isConnecting) {
-            return;
+        if (this.isConnecting && this.connectPromise) {
+            return this.connectPromise;
         }
-        this.isConnecting = true;
 
-        // Close any existing connection
         this.disconnect();
+        this.drainRetiredSockets();
+        this.isConnecting = true;
+        this.connectingHost = targetHost;
 
         const wsUrl = this.deriveWsUrl(this.baseUrl);
         print(`HardwareAdapter: Connecting to ${wsUrl}`);
 
-        return new Promise<void>((resolve, reject) => {
+        this.connectPromise = new Promise<void>((resolve, reject) => {
+            this.pendingConnectResolve = resolve;
+            this.pendingConnectReject = reject;
             try {
                 this.ws = this.internetModule.createWebSocket(wsUrl);
             } catch (error) {
-                this.isConnecting = false;
                 print(`HardwareAdapter: Failed to create WebSocket: ${error}`);
-                reject(new Error(`Failed to create WebSocket: ${error}`));
+                this.finishConnectAttempt(new Error(`Failed to create WebSocket: ${error}`));
                 return;
             }
 
-            this.ws.onopen = (event: WebSocketEvent) => {
-                this.isConnecting = false;
-                print(`HardwareAdapter: WebSocket connected to ${wsUrl}`);
-                resolve();
+            const socket = this.ws;
+            this.connectingSocket = socket;
+
+            socket.onopen = () => {
+                if (this.ws !== socket) {
+                    return;
+                }
+                this.completeConnectOpen(socket);
             };
 
-            this.ws.onmessage = (event: WebSocketMessageEvent) => {
+            socket.onmessage = (event: WebSocketMessageEvent) => {
+                if (this.ws !== socket) {
+                    return;
+                }
+                if (this.isConnecting && this.connectingSocket === socket) {
+                    this.completeConnectOpen(socket);
+                }
                 this.onMessage(event);
             };
 
-            this.ws.onerror = (event: WebSocketEvent) => {
-                this.isConnecting = false;
-                print(`HardwareAdapter: WebSocket error`);
-                reject(new Error("WebSocket connection error"));
-            };
-
-            this.ws.onclose = (event: WebSocketCloseEvent) => {
-                print(`HardwareAdapter: WebSocket closed`);
-                this.ws = null;
-                // Reject all pending requests
-                this.pendingRequests.forEach((pending) => {
-                    pending.reject(new Error("WebSocket closed"));
-                });
-                this.pendingRequests.clear();
-            };
-
-            // Timeout after 5 seconds
-            const timeoutEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
-            timeoutEvent.bind(() => {
-                if (this.isConnecting) {
-                    this.isConnecting = false;
-                    if (this.ws) {
-                        this.ws.close();
-                        this.ws = null;
-                    }
-                    reject(new Error("WebSocket connection timeout"));
+            socket.onerror = () => {
+                if (this.ws !== socket) {
+                    return;
                 }
-            });
-            timeoutEvent.reset(5.0);
+                print(`HardwareAdapter: WebSocket error`);
+                this.retireSocket(socket);
+                this.ws = null;
+                this.cancelPendingTarget();
+                this.rejectPendingRequests("WebSocket connection error");
+                this.finishConnectAttempt(new Error("WebSocket connection error"));
+            };
+
+            socket.onclose = () => {
+                if (this.ws !== socket) {
+                    return;
+                }
+                print(`HardwareAdapter: WebSocket closed`);
+                const wasConnecting = this.isConnecting && this.connectingSocket === socket;
+                this.ws = null;
+                this.openHost = null;
+                this.cancelPendingTarget();
+                this.rejectPendingRequests("WebSocket closed");
+                if (wasConnecting) {
+                    this.finishConnectAttempt(new Error("WebSocket connection closed"));
+                }
+            };
+
+            this.connectTimeoutEvent?.reset(HardwareAdapter.CONNECT_TIMEOUT_S);
         });
+
+        return this.connectPromise;
     }
 
     /**
-     * Close the WebSocket connection.
+     * Close the WebSocket connection. Never hard-closes a CONNECTING native socket
+     * (that freezes Spectacles); retired sockets close themselves if they open later.
      */
     public disconnect(): void {
-        if (this.ws) {
-            this.ws.onclose = null; // Prevent the onclose handler from running
-            this.ws.close();
+        this.cancelPendingTarget();
+        this.rejectPendingRequests("Disconnected");
+
+        if (this.isConnecting) {
+            const socket = this.connectingSocket ?? this.ws;
+            if (socket) {
+                this.retireSocket(socket);
+            }
             this.ws = null;
+            this.openHost = null;
+            this.finishConnectAttempt(new Error("Disconnected"));
+        } else if (this.ws) {
+            const socket = this.ws;
+            if (socket.readyState === WS_OPEN) {
+                this.detachSocketHandlers(socket);
+                socket.close();
+            } else {
+                this.retireSocket(socket);
+            }
+            this.ws = null;
+            this.openHost = null;
         }
+        this.isConnecting = false;
+    }
+
+    private rejectPendingRequests(message: string): void {
         this.pendingRequests.forEach((pending) => {
-            pending.reject(new Error("Disconnected"));
+            pending.reject(new Error(message));
         });
         this.pendingRequests.clear();
+    }
+
+    private detachSocketHandlers(socket: WebSocket): void {
+        socket.onopen = () => {};
+        socket.onmessage = () => {};
+        socket.onerror = () => {};
+        socket.onclose = () => {};
+    }
+
+    private clearConnectTimeout(): void {
+        this.connectTimeoutEvent?.reset(0);
+    }
+
+    private completeConnectOpen(socket: WebSocket): void {
+        if (!this.isConnecting || this.ws !== socket || this.connectingSocket !== socket) {
+            return;
+        }
+        this.clearConnectTimeout();
         this.isConnecting = false;
+        this.connectingSocket = null;
+        this.openHost = this.connectingHost;
+        this.connectingHost = null;
+        const resolveFn = this.pendingConnectResolve;
+        this.pendingConnectReject = null;
+        this.pendingConnectResolve = null;
+        this.connectPromise = null;
+        print(`HardwareAdapter: WebSocket connected to ${this.deriveWsUrl(this.openHost ?? this.baseUrl)}`);
+        if (resolveFn) {
+            resolveFn();
+        }
+    }
+
+    /**
+     * Abort a socket without hard-closing while CONNECTING (Spectacles freeze risk).
+     * Close only if already OPEN; if it opens later while retired, close then.
+     */
+    private retireSocket(socket: WebSocket): void {
+        if (this.retiredSockets.has(socket)) {
+            return;
+        }
+        this.detachSocketHandlers(socket);
+        this.retiredSockets.add(socket);
+        socket.onopen = () => {
+            if (this.retiredSockets.has(socket)) {
+                socket.close();
+            }
+        };
+        socket.onclose = () => {
+            this.retiredSockets.delete(socket);
+        };
+        socket.onerror = () => {};
+        socket.onmessage = () => {};
+        if (socket.readyState === WS_OPEN) {
+            socket.close();
+        }
+    }
+
+    private drainRetiredSockets(): void {
+        for (const socket of Array.from(this.retiredSockets)) {
+            if (socket.readyState === WS_OPEN) {
+                socket.close();
+            }
+        }
+    }
+
+    private finishConnectAttempt(error?: Error): void {
+        this.clearConnectTimeout();
+        this.isConnecting = false;
+        this.connectingSocket = null;
+        this.connectingHost = null;
+        if (error) {
+            this.openHost = null;
+        }
+        this.connectPromise = null;
+        const rejectFn = this.pendingConnectReject;
+        const resolveFn = this.pendingConnectResolve;
+        this.pendingConnectReject = null;
+        this.pendingConnectResolve = null;
+        if (error && rejectFn) {
+            rejectFn(error);
+        } else if (!error && resolveFn) {
+            resolveFn();
+        }
     }
 
     // ================================================================
@@ -192,7 +348,9 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
             if (id !== undefined && this.pendingRequests.has(id)) {
                 const pending = this.pendingRequests.get(id);
                 this.pendingRequests.delete(id);
-                pending.resolve(data);
+                if (pending) {
+                    pending.resolve(data);
+                }
             }
         } catch (error) {
             print(`HardwareAdapter: Failed to parse WebSocket message: ${error}`);
@@ -245,13 +403,30 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
 
     /**
      * Check if the WebSocket bridge is available and responding.
-     * Will attempt to connect if not already connected.
+     * Will attempt to connect if not already connected to baseUrl.
+     * Never aborts an in-flight CONNECTING socket — a changed IP is picked
+     * up by the next attempt after the current one settles.
      */
     public async checkConnection(): Promise<boolean> {
+        const host = this.normalizeIp(this.baseUrl);
+        if (!host) {
+            print("HardwareAdapter: checkConnection failed — empty IP");
+            return false;
+        }
+
         try {
-            if (!this.ws || this.ws.readyState !== WS_OPEN) {
+            if (this.isSocketOpen() && this.openHost !== host) {
+                this.disconnect();
+            }
+
+            if (!this.isSocketOpen()) {
                 await this.connect();
             }
+
+            if (!this.isSocketOpen() || this.openHost !== host) {
+                return false;
+            }
+
             const result = await this.sendAndWait({ type: "status" }, 5);
             return result && result.type === "status_result";
         } catch (error) {
@@ -283,6 +458,7 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
      * @returns UUID to track/stop the move
      */
     public async goto(headPose: XYZRPYPose, bodyYaw?: number, duration: number = 0.5, interpolation: string = "minjerk"): Promise<string> {
+        this.dropPendingTarget();
         const msg: any = {
             type: "goto",
             head_pose: headPose,
@@ -304,26 +480,72 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
      * Set target pose immediately (no interpolation).
      * Used for real-time tracking at high frequency (e.g., 50Hz).
      * Fire-and-forget: does not wait for a response for maximum performance.
+     * Calls within the 20 Hz window replace a pending slot (latest wins) and
+     * flush when the window opens — never drop the newest pose.
      * @param headPose Target head pose (x, y, z in meters, roll, pitch, yaw in radians)
      * @param bodyYaw Optional target body yaw in radians
      * @param antennas Optional antenna positions [left, right] in radians
      */
     public async setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void> {
         const now = getTime();
-        if (now - this.lastSetTargetTime < HardwareAdapter.SET_TARGET_MIN_INTERVAL_SEC) {
-            return; // Throttle to 20 Hz; Python-side LERP at 30 Hz fills the gaps
+        const elapsed = now - this.lastSetTargetTime;
+        if (elapsed >= HardwareAdapter.SET_TARGET_MIN_INTERVAL_SEC) {
+            // Drop any older buffered pose so a delayed flush cannot overwrite this one.
+            this.dropPendingTarget();
+            this.sendSetTarget(headPose, bodyYaw, antennas);
+            return;
         }
-        this.lastSetTargetTime = now;
 
+        this.pendingTarget = {
+            headPose: { ...headPose },
+            bodyYaw,
+            antennas: antennas ? [antennas[0], antennas[1]] : undefined,
+        };
+        if (!this.flushScheduled && this.flushEvent) {
+            this.flushScheduled = true;
+            this.flushEvent.enabled = true;
+            const wait = Math.max(0, HardwareAdapter.SET_TARGET_MIN_INTERVAL_SEC - elapsed);
+            this.flushEvent.reset(wait);
+        }
+    }
+
+    private sendSetTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): void {
+        this.lastSetTargetTime = getTime();
         const msg: any = {
             type: "set_target",
-            target_head_pose: headPose,
-            target_antennas: antennas ?? [0, 0]
+            target_head_pose: { ...headPose },
+            target_antennas: antennas ? [antennas[0], antennas[1]] : [0, 0]
         };
         if (bodyYaw !== undefined) {
             msg.target_body_yaw = bodyYaw;
         }
         this.send(msg);
+    }
+
+    private flushPendingTarget(): void {
+        this.flushScheduled = false;
+        const pending = this.pendingTarget;
+        this.pendingTarget = null;
+        if (this.flushEvent) {
+            this.flushEvent.enabled = false;
+        }
+        if (!pending) return;
+        if (!this.ws || this.ws.readyState !== WS_OPEN) return;
+        this.sendSetTarget(pending.headPose, pending.bodyYaw, pending.antennas);
+    }
+
+    /** Drop a buffered pose without resetting the 20 Hz window (used when a newer send wins). */
+    private dropPendingTarget(): void {
+        this.pendingTarget = null;
+        this.flushScheduled = false;
+        if (this.flushEvent) {
+            this.flushEvent.enabled = false;
+        }
+    }
+
+    private cancelPendingTarget(): void {
+        this.dropPendingTarget();
+        this.lastSetTargetTime = 0;
     }
 
     // ================================================================
