@@ -11,6 +11,8 @@ Packages/**/* filter=lfs diff=lfs merge=lfs -text
 
 Assets/**/*.css !filter !diff !merge text
 Packages/**/*.css !filter !diff !merge text
+Assets/**/*.customCode !filter !diff !merge text
+Packages/**/*.customCode !filter !diff !merge text
 Assets/**/*.glsl !filter !diff !merge text
 Packages/**/*.glsl !filter !diff !merge text
 Assets/**/*.js !filter !diff !merge text
