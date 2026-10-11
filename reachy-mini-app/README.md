@@ -32,7 +32,7 @@ The bridge accepts JSON messages with a `type` field. Supported types:
 | `set_target` | Stream target head pose (full 6-DOF: x, y, z, roll, pitch, yaw), body yaw, antennas. Nonzero x/y are allowed and clamped to an 18 mm disk; tilt is projected onto the existing (roll, pitch, z) ellipsoid. Unreachable IK samples retry a shorter step from last-sent (0.5, then 0.25); if all fail, the last reachable pose is held. |
 | `goto` | Move to a head pose / body yaw over a duration (with interpolation). Same clamps and IK gate as `set_target`. |
 | `stop_move` | Cancel a move by UUID. |
-| `play_audio` | Play raw audio (base64, sample rate, channels). |
+| `play_audio` | Play raw audio (base64, sample rate, channels). A newer `play_audio` cancels the one already playing. |
 | `status` | Connectivity check (returns `connected: true`). |
 | `get_robot_camera_frame` | Capture one frame from the robot camera (base64 image). |
 

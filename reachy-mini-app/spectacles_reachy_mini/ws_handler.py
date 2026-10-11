@@ -133,10 +133,15 @@ class WebSocketHandler:
         channels = msg.get("channels", 1)
         if not data_b64:
             return {"type": "play_audio_result", "success": False, "message": "No audio data"}
+        gen = self.audio.accept_play()
+        if gen is None:
+            return {"type": "play_audio_result", "success": False, "message": "clear_player unavailable"}
         loop = asyncio.get_running_loop()
-        await loop.run_in_executor(
-            None, lambda: self.audio.play_raw_audio(data_b64, sample_rate, channels)
+        ok = await loop.run_in_executor(
+            None, lambda d=data_b64, sr=sample_rate, ch=channels, g=gen: self.audio.play_raw_audio(d, sr, ch, g)
         )
+        if not ok:
+            return {"type": "play_audio_result", "success": False, "message": "superseded"}
         return {"type": "play_audio_result", "success": True}
 
     async def _handle_status(self, _msg: dict[str, Any]) -> dict[str, Any]:
