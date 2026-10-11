@@ -10,6 +10,7 @@ import logging
 import os
 import socket
 import threading
+import time
 from pathlib import Path
 
 import uvicorn
@@ -21,6 +22,7 @@ from reachy_mini import ReachyMini, ReachyMiniApp
 
 from spectacles_reachy_mini.audio_handler import AudioHandler
 from spectacles_reachy_mini.camera_handler import CameraHandler
+from spectacles_reachy_mini.ip_relay import IP_RELAY_URL, IpRelayPublisher
 from spectacles_reachy_mini.movement_handler import MovementHandler
 from spectacles_reachy_mini.ws_handler import WebSocketHandler
 
@@ -67,7 +69,22 @@ def get_local_ips() -> list[str]:
     return list(dict.fromkeys(ips))
 
 
-def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
+def _wait_until_listening(port: int, timeout: float = 5.0) -> None:
+    """Return once something accepts connections on localhost, or the timeout passes."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                return
+        except OSError:
+            time.sleep(0.1)
+
+
+def create_app(
+    reachy_mini: ReachyMini,
+    stop_event: threading.Event,
+    publisher: IpRelayPublisher | None = None,
+) -> FastAPI:
     """Build the FastAPI application with WebSocket and info endpoints."""
 
     app = FastAPI(title="Reachy Mini Spectacles Bridge")
@@ -107,6 +124,7 @@ def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
                 "ips": ips,
                 "port": WS_PORT,
                 "ws_url": f"ws://{ips[0]}:{WS_PORT}/ws" if ips else None,
+                "pin": publisher.pin if publisher else None,
             }
         )
 
@@ -127,7 +145,7 @@ def create_app(reachy_mini: ReachyMini, stop_event: threading.Event) -> FastAPI:
 class SpectaclesReachyMini(ReachyMiniApp):
     """Reachy Mini App that exposes a WebSocket bridge for Snap Spectacles."""
 
-    name = "Spectacles AR controller"
+    name = "SPECS AR Controller"
     emoji = "😎"
     custom_app_url: str | None = None  # We run our own server on port 8765
 
@@ -151,8 +169,12 @@ class SpectaclesReachyMini(ReachyMiniApp):
         except Exception as exc:
             logger.warning("Could not initialize robot audio: %s", exc)
 
+        publisher: IpRelayPublisher | None = None
+        if ips:
+            publisher = IpRelayPublisher(IP_RELAY_URL, ips[0], WS_PORT)
+
         # Build FastAPI app
-        app = create_app(reachy_mini, stop_event)
+        app = create_app(reachy_mini, stop_event, publisher)
 
         # Run uvicorn in a background thread
         config = uvicorn.Config(
@@ -165,11 +187,16 @@ class SpectaclesReachyMini(ReachyMiniApp):
 
         server_thread = threading.Thread(target=server.run, daemon=True)
         server_thread.start()
+        _wait_until_listening(WS_PORT)
+        if publisher is not None:
+            publisher.start()
 
         # Block until the daemon signals us to stop
         stop_event.wait()
 
         # Shutdown
+        if publisher is not None:
+            publisher.stop()
         server.should_exit = True
         server_thread.join(timeout=5)
 

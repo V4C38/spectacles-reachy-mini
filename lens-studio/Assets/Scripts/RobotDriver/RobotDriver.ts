@@ -429,6 +429,10 @@ export class RobotDriver extends BaseScriptComponent {
         return this.hardwareAdapter ? this.hardwareAdapter.baseUrl : "";
     }
 
+    public getInternetModule(): InternetModule | null {
+        return this.hardwareAdapter ? this.hardwareAdapter.getInternetModule() : null;
+    }
+
     public saveIp(ip: string): void {
         if (this.hardwareAdapter) this.hardwareAdapter.saveIp(ip);
     }

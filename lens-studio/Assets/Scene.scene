@@ -2144,6 +2144,9 @@
       buttonPrevious: !<MappingBased.AssignableType_4> 2e5af6d8-3159-4ece-9ed4-840619624ba6
       textButtonPrevious: !<reference.Text> 33eee511-9596-4de4-9aed-f8e531cb1b49
       textInputField: !<MappingBased.AssignableType_5> 6e30f728-7048-4ace-a132-1860d843e3d1
+      buttonConnectionMethod: !<MappingBased.AssignableType_6> 7940b3ae-7a5d-4c5b-987c-06ab9aae493c
+      textButtonConnectionMethod: !<reference.Text> b962a55b-75b7-401b-9835-1440f7caebb4
+      internetModule: !<reference.InternetModule> 18654882-5fcd-4b6a-8eb7-f7f008eeb099
   ScriptTypes:
     "":
       {}
@@ -3579,6 +3582,46 @@
     - !<own> d33a7c38-7289-40a1-b69a-06184032ec6d
   Components:
     - !<own> 4c285579-f218-4cf5-b281-5d35c4793522
+- !<ScriptComponent/7940b3ae-7a5d-4c5b-987c-06ab9aae493c>
+  PrefabRemaps:
+    []
+  Name: RectangleButton
+  Enabled: true
+  ScriptAsset: !<reference> 173d7099-914c-4f24-ac1c-1b67a66ae138
+  ScriptInputsDefault:
+    _renderOrder: true
+    _inactive: true
+    _style: true
+    _toggleable: true
+    _defaultToOn: true
+    addCallbacks: true
+    triggerUpCallbacks: true
+    triggerDownCallbacks: true
+    onValueChangeCallbacks: true
+    onFinishedCallbacks: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      _renderOrder: 0
+      _size: !<Vec3> {x: 8.000000, y: 3.000000, z: 1.000000}
+      _inactive: false
+      _playAudio: true
+      _style: PrimaryNeutral
+      _toggleable: false
+      _defaultToOn: false
+      addCallbacks: false
+      triggerUpCallbacks:
+        []
+      triggerDownCallbacks:
+        []
+      onValueChangeCallbacks:
+        []
+      onFinishedCallbacks:
+        []
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/7b9d067f-414a-4620-a6b1-b0824953478c>
   PrefabRemaps:
     []
@@ -4756,6 +4799,7 @@
     - !<own> b67b1b29-4328-4334-a06d-c0160695a633
     - !<own> a11153e6-34ca-49e0-8e08-c151c708f893
     - !<own> b009eac1-69af-4a38-bb7e-9816032b893b
+    - !<own> b1cea071-4928-4de3-bde6-d72f6872bd80
     - !<own> bc8cfeda-52a0-49e1-8ca9-ef4e3814315b
     - !<own> 68e5ae90-e07d-4d93-afb4-213c6c364a27
   Components:
@@ -5163,7 +5207,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.500000, z: 0.500000}
+    Position: {x: -4.500000, y: 0.500000, z: 0.500000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -5187,6 +5231,21 @@
     - !<own> 39f9bd6f-06ed-412b-9b48-d21a963bf621
   Components:
     - !<own> f93ae479-d30e-45b9-8714-57f0c684a21e
+- !<SceneObject/b1cea071-4928-4de3-bde6-d72f6872bd80>
+  PrefabRemaps:
+    []
+  Name: Button_PinIpToggle
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 9.500000, y: 0.500000, z: 1.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> f8325837-2237-49cd-9e76-82794aa9cd5b
+  Components:
+    - !<own> 7940b3ae-7a5d-4c5b-987c-06ab9aae493c
 - !<Text/b1e81ab9-f093-4622-9c4e-50516a6cb630>
   PrefabRemaps:
     []
@@ -5601,6 +5660,87 @@
     - !<own> ed7074f4-802d-4336-9588-237c5c48f33e
   Components:
     []
+- !<Text/b962a55b-75b7-401b-9835-1440f7caebb4>
+  PrefabRemaps:
+    []
+  Name: Text
+  Enabled: true
+  RenderOrder: 0
+  StretchMode: Stretch
+  VerticalAlignment: Center
+  HorizontalAlignment: Center
+  MeshShadowMode: None
+  ShadowColor: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+  ShadowDensity: 1.000000
+  Text: Complete
+  Editable: false
+  ShowEditingPreview: true
+  TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000
+  SizeToFit: false
+  FontSize: 48
+  Font: !<reference> 00000000-0000-0000-0000-000000000000
+  LayoutRect:
+    left: -7.500000
+    bottom: -2.250000
+    right: 7.500000
+    top: 2.250000
+  OverflowVertical: Overflow
+  OverflowHorizontal: Overflow
+  Fill: !<TextFill>
+    Mode: Solid
+    Color: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+    Texture: !<reference> 00000000-0000-0000-0000-000000000000
+    ColorTint: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+    TileCount: 5.000000
+    TileZone: Rect
+    TextureStretch: FitWidth
+  BlendMode: PremultipliedAlpha
+  Outline: !<OutlineSettings>
+    Enabled: false
+    Fill: !<TextFill>
+      Mode: Solid
+      Color: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}
+      Texture: !<reference> 00000000-0000-0000-0000-000000000000
+      ColorTint: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+      TileCount: 5.000000
+      TileZone: Rect
+      TextureStretch: FitWidth
+    Size: 0.250000
+  Dropshadow: !<DropshadowSettings>
+    Enabled: false
+    Fill: !<TextFill>
+      Mode: Solid
+      Color: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}
+      Texture: !<reference> 00000000-0000-0000-0000-000000000000
+      ColorTint: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+      TileCount: 5.000000
+      TileZone: Rect
+      TextureStretch: FitWidth
+    OffsetX: 0.250000
+    OffsetY: 0.250000
+  Background: !<BackgroundSettings>
+    Enabled: false
+    Fill: !<TextFill>
+      Mode: Solid
+      Color: {x: 0.000000, y: 0.000000, z: 0.000000, w: 1.000000}
+      Texture: !<reference> 00000000-0000-0000-0000-000000000000
+      ColorTint: {x: 1.000000, y: 1.000000, z: 1.000000, w: 1.000000}
+      TileCount: 5.000000
+      TileZone: Rect
+      TextureStretch: FitWidth
+    Margins:
+      left: 0.000000
+      bottom: 0.000000
+      right: 0.000000
+      top: 0.000000
+    CornerRadius: 0.000000
+  AdvancedLayout: !<TextAdvancedLayout>
+    ExtentsTarget: !<reference> 00000000-0000-0000-0000-000000000000
+    LetterSpacing: 0.000000
+    LineSpacing: 1.000000
+    CapitalizationOverride: None
+  DepthTest: false
+  TwoSided: false
 - !<RenderMeshVisual/bad67218-0c9e-4bd2-b2f3-2292d27635cc>
   PrefabRemaps:
     []
@@ -7132,6 +7272,21 @@
     - !<own> 6dc5dd7a-4726-4cb6-b42f-a12f4b6416c3
   Components:
     []
+- !<SceneObject/f8325837-2237-49cd-9e76-82794aa9cd5b>
+  PrefabRemaps:
+    []
+  Name: ToggleText
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> b962a55b-75b7-401b-9835-1440f7caebb4
 - !<LookAtComponent/f93ae479-d30e-45b9-8714-57f0c684a21e>
   PrefabRemaps:
     []

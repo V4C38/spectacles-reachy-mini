@@ -24,7 +24,7 @@ See also the [Demo Video](https://youtu.be/o7Qg9_Oi4b0)
 
    <img src="Assets/rm_setup_wizard.gif" alt="Setup Wizard">
 
-   You will be asked to enter the IP of the machine running the Reachy Mini App. This can be on your local network (better latency) or over the internet.
+   The Reachy Mini app publishes its LAN address to the IP relay and shows a six-digit PIN. Enter that PIN in the Setup Wizard, or switch the wizard to IP entry. The relay URL is `IP_RELAY_URL` (`https://spectacles-ip-relay.johannestscharn.workers.dev`) at the top of `reachy-mini-app/spectacles_reachy_mini/ip_relay.py`.
    Select 'I have no Reachy Mini' to enter Simulation Mode.
 
 

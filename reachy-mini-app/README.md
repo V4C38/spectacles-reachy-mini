@@ -1,11 +1,11 @@
 ---
-title: Spectacles AR — Reachy Mini Bridge
+title: SPECS AR Controller
 emoji: 😎
 colorFrom: blue
 colorTo: indigo
 sdk: static
 pinned: false
-short_description: WebSocket bridge for the Spectacles AR headset
+short_description: WebSocket bridge to control Reachy Mini from Snap SPECS
 tags:
   - reachy_mini
   - reachy_mini_python_app
@@ -13,15 +13,15 @@ tags:
   - websocket
 ---
 
-# Spectacles AR controller — Reachy Mini
+# SPECS AR Controller
 
-WebSocket bridge that lets **Snap Spectacles** (AR glasses) control a **Reachy Mini** robot. The app extends the Reachy Mini API with a WebSocket server on port 8765, used by the Spectacles Lens for movement, audio, and camera.
+WebSocket bridge that lets **Snap SPECS** control a **Reachy Mini** robot. The app extends the Reachy Mini API with a WebSocket server on port 8765, used by the SPECS lens for movement, audio, and camera.
 
 ## What this app does
 
 - Runs alongside the Reachy Mini Desktop App (or daemon).
 - Exposes a WebSocket at `/ws` with JSON request/response.
-- Serves a simple status page at the app URL (HTTP + WebSocket status, list of message types).
+- Serves a simple status page at the app URL (message types exposed by the bridge).
 
 ## WebSocket message types
 
@@ -53,7 +53,7 @@ Look-at from Spectacles still typically sends `x = 0`, `y = 0`. Direct pose cont
 
 1. Install the [Reachy Mini SDK](https://github.com/pollen-robotics/reachy_mini) and start the Desktop App (or daemon).
 2. In the Reachy Mini Desktop App, install the **spectacles-reachy-mini** app (uncheck “official” if needed to find it) and start it.
-3. On Spectacles, open the Lens, run the Setup Wizard, and enter your PC’s IP address (the app runs on port 8765).
+3. The app publishes its LAN address to the IP relay and shows a six-digit PIN on the status page. Enter that PIN in the Spectacles Setup Wizard, or switch the wizard to IP entry. The relay URL is `IP_RELAY_URL` (`https://spectacles-ip-relay.johannestscharn.workers.dev`) at the top of `spectacles_reachy_mini/ip_relay.py`. The WebSocket stays on port 8765.
 
 For full setup (Lens project, modes, simulation), see the main repo: [spectacles-reachy-mini](https://github.com/V4C38/spectacles-reachy-mini) (or the parent of this app).
 

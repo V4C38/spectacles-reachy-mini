@@ -24,6 +24,10 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     @input
     private internetModule!: InternetModule;
 
+    public getInternetModule(): InternetModule {
+        return this.internetModule;
+    }
+
     @input
     private audioComponent: AudioComponent | null = null;
 
