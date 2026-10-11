@@ -24,7 +24,8 @@ See also the [Demo Video](https://youtu.be/o7Qg9_Oi4b0)
 
    <img src="Assets/rm_setup_wizard.gif" alt="Setup Wizard">
 
-   The Reachy Mini app publishes its LAN address to the IP relay and shows a six-digit PIN. Enter that PIN in the Setup Wizard, or switch the wizard to IP entry. The relay URL is `IP_RELAY_URL` (`https://spectacles-ip-relay.johannestscharn.workers.dev`) at the top of `reachy-mini-app/spectacles_reachy_mini/ip_relay.py`.
+   The Reachy Mini app shows a six-digit PIN. Enter that PIN in the Setup Wizard, or switch the wizard to IP entry. 
+   
    Select 'I have no Reachy Mini' to enter Simulation Mode.
 
 
@@ -139,6 +140,8 @@ This setup has some latency but transcription is required to support tool callin
 
 - `get_state` (return both the robot and user head transform in worldspace)
 - `look_at` (set the look_at target for Reachy to a vec3 location)
+- `get_available_animations` (list the animation names Reachy can play, and what each one means)
+- `play_animation` (play one of those names on the head; clips are baked into the lens)
 - `draw_line` (draw a line for a duration from startPos to endPos)
 - `take_picture_robot_view` (Take a picture from the Reachy camera and add it to the LLMs context)
 
@@ -147,6 +150,8 @@ This setup has some latency but transcription is required to support tool callin
 - `scan_objects` (Object detection from headset view using [Depth Cache](https://github.com/specs-devs/samples/tree/main/Depth%20Cache))
 
   *Note: this tool requires [camera access](https://developers.snap.com/spectacles/about-spectacles-features/apis/camera-module). Since both camera access and internet access prevent publishing the Lens, consider removing this tool if you wish to publish a Lens based on this repo.*
+
+The clips come from the Pollen Robotics emotion and dance libraries (Hugging Face, Apache 2.0). Assistant and Puppeteer share one `RobotDriver`, so both use the same head speed (`headMoveSpeed` 0.18, capped at 1.5 rad/s).
 
 ***Adding your own tools***
 

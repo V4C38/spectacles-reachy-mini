@@ -3694,7 +3694,6 @@
   ScriptAsset: !<reference> b80e7b61-9cb9-4bb7-93b7-d539cf169dc7
   ScriptInputsDefault:
     headMoveSpeed: true
-    maxHeadDelta: true
     rollAmplitude: true
     yBobAmplitude: true
     headYBase: true
@@ -3706,8 +3705,7 @@
       hardwareAdapter: !<MappingBased.AssignableType> 37423103-2105-48f1-86aa-18e72b387397
       simulationAdapter: !<MappingBased.AssignableType_1> aeb4dfe7-1fcb-4203-8e94-ad260f65195c
       headRoot: !<reference.SceneObject> 297d11c3-4b21-472d-b768-6ea74f2f1615
-      headMoveSpeed: 0.050000
-      maxHeadDelta: !<float> 2.000000
+      headMoveSpeed: 0.180000
       rollAmplitude: !<float> 8.000000
       yBobAmplitude: 0.012000
       headYBase: 0.100000
