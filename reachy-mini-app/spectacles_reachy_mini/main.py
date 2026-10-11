@@ -10,26 +10,21 @@ import logging
 import os
 import socket
 import threading
-import time
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-import uvicorn
-
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from reachy_mini import ReachyMini, ReachyMiniApp
 
-from spectacles_reachy_mini.audio_handler import AudioHandler
-from spectacles_reachy_mini.camera_handler import CameraHandler
 from spectacles_reachy_mini.ip_relay import IP_RELAY_URL, IpRelayPublisher
-from spectacles_reachy_mini.movement_handler import MovementHandler
-from spectacles_reachy_mini.ws_handler import WebSocketHandler
+
+if TYPE_CHECKING:
+    from spectacles_reachy_mini.movement_handler import MovementHandler
+    from spectacles_reachy_mini.ws_handler import WebSocketHandler
 
 logger = logging.getLogger(__name__)
 
 WS_PORT = 8765
-STATIC_DIR = Path(__file__).parent / "static"
 
 # Movement send rate (Hz): how often we send set_target to the daemon. Configurable via env.
 ENV_SEND_RATE_HZ = "REACHY_SPECTACLES_SEND_RATE_HZ"
@@ -57,89 +52,33 @@ def _get_send_rate_hz() -> float:
 
 
 def get_local_ips() -> list[str]:
-    """Return all non-loopback IPv4 addresses of this machine."""
+    """Return all non-loopback IPv4 addresses of this machine, default-route address first."""
     ips: list[str] = []
     try:
+        # A UDP connect sends nothing; it only makes the OS pick the outbound interface.
+        # Needed because gethostname() often does not resolve (macOS) or maps to 127.0.1.1 (Debian).
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            ips.append(s.getsockname()[0])
+    except OSError as e:
+        logger.debug("Could not find default-route IP: %s", e)
+    try:
         for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
-            addr = info[4][0]
-            if not addr.startswith("127."):
-                ips.append(addr)
-    except (socket.gaierror, OSError) as e:
+            ips.append(info[4][0])
+    except OSError as e:
         logger.debug("Could not resolve local IPs: %s", e)
-    return list(dict.fromkeys(ips))
+    return [ip for ip in dict.fromkeys(ips) if not ip.startswith("127.")]
 
 
-def _wait_until_listening(port: int, timeout: float = 5.0) -> None:
-    """Return once something accepts connections on localhost, or the timeout passes."""
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
-                return
-        except OSError:
-            time.sleep(0.1)
-
-
-def create_app(
-    reachy_mini: ReachyMini,
-    stop_event: threading.Event,
-    publisher: IpRelayPublisher | None = None,
-) -> FastAPI:
-    """Build the FastAPI application with WebSocket and info endpoints."""
-
-    app = FastAPI(title="Reachy Mini Spectacles Bridge")
-    audio_handler = AudioHandler(reachy_mini)
-    send_rate_hz = _get_send_rate_hz()
-    movement_handler = MovementHandler(reachy_mini, send_rate_hz=send_rate_hz)
-    camera_handler = CameraHandler(reachy_mini)
-    ws_handler = WebSocketHandler(movement_handler, audio_handler, camera_handler)
-
-    # ----------------------------------------------------------------
-    # WebSocket endpoint
-    # ----------------------------------------------------------------
-    @app.websocket("/ws")
-    async def websocket_endpoint(websocket: WebSocket) -> None:
-        await websocket.accept()
-        logger.info("Spectacles client connected")
-        movement_handler.start()
-        try:
-            while not stop_event.is_set():
-                raw = await websocket.receive_text()
-                await ws_handler.handle_message(websocket, raw)
-        except WebSocketDisconnect:
-            logger.info("Spectacles client disconnected")
-        except Exception as exc:
-            logger.error("WebSocket error: %s", exc)
-        finally:
-            ws_handler.cleanup()
-
-    # ----------------------------------------------------------------
-    # REST endpoints
-    # ----------------------------------------------------------------
-    @app.get("/api/info")
-    async def info() -> JSONResponse:
-        ips = get_local_ips()
-        return JSONResponse(
-            {
-                "ips": ips,
-                "port": WS_PORT,
-                "ws_url": f"ws://{ips[0]}:{WS_PORT}/ws" if ips else None,
-                "pin": publisher.pin if publisher else None,
-            }
-        )
-
-    @app.get("/api/status")
-    async def status() -> JSONResponse:
-        return JSONResponse({"status": "ok"})
-
-    @app.get("/")
-    async def root() -> FileResponse:
-        return FileResponse(STATIC_DIR / "index.html")
-
-    # Serve remaining static assets (CSS, etc.)
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-    return app
+def _load_media(reachy_mini: ReachyMini) -> None:
+    """Swap the no_media manager for the real one. Blocks for as long as GStreamer init takes."""
+    try:
+        reachy_mini._media_backend = "default"
+        reachy_mini.acquire_media()
+        reachy_mini.media.start_playing()
+        logger.info("Robot audio output initialized")
+    except Exception as exc:
+        logger.warning("Could not initialize robot media: %s", exc)
 
 
 class SpectaclesReachyMini(ReachyMiniApp):
@@ -147,10 +86,69 @@ class SpectaclesReachyMini(ReachyMiniApp):
 
     name = "SPECS AR Controller"
     emoji = "😎"
-    custom_app_url: str | None = None  # We run our own server on port 8765
+    custom_app_url: str | None = "http://0.0.0.0:8765"
+    # Media loads in run() on a background thread. The first GStreamer init after a
+    # dashboard update rebuilds its plugin registry (~2 min); inside ReachyMini() it
+    # would hold back the robot connection, the WebSocket and the PIN for that long.
+    request_media_backend = "no_media"
+
+    def __init__(self, running_on_wireless: bool = False) -> None:
+        super().__init__(running_on_wireless=running_on_wireless)
+        self._ws_handler: WebSocketHandler | None = None
+        self._movement: MovementHandler | None = None
+        self._publisher: IpRelayPublisher | None = None
+        self._bridge_stop: threading.Event | None = None
+        app = self.settings_app
+        assert app is not None
+
+        @app.websocket("/ws")
+        async def websocket_endpoint(websocket: WebSocket) -> None:
+            handler = self._ws_handler
+            movement = self._movement
+            stop_event = self._bridge_stop
+            if handler is None or movement is None or stop_event is None:
+                await websocket.close(code=1013)
+                return
+            await websocket.accept()
+            logger.info("Spectacles client connected")
+            movement.start()
+            try:
+                while not stop_event.is_set():
+                    raw = await websocket.receive_text()
+                    await handler.handle_message(websocket, raw)
+            except WebSocketDisconnect:
+                logger.info("Spectacles client disconnected")
+            except Exception as exc:
+                logger.error("WebSocket error: %s", exc)
+            finally:
+                handler.cleanup()
+
+        @app.get("/api/info")
+        async def info() -> JSONResponse:
+            ips = get_local_ips()
+            publisher = self._publisher
+            return JSONResponse(
+                {
+                    "ips": ips,
+                    "port": WS_PORT,
+                    "ws_url": f"ws://{ips[0]}:{WS_PORT}/ws" if ips else None,
+                    "pin": publisher.pin if publisher else None,
+                }
+            )
+
+        @app.get("/api/status")
+        async def status() -> JSONResponse:
+            return JSONResponse({"status": "ok"})
 
     def run(self, reachy_mini: ReachyMini, stop_event: threading.Event) -> None:
-        # Print local IPs for easy discovery
+        # Imported here, after the settings server is already listening: these pull in
+        # cv2 and onnxruntime, whose first load after a dashboard update (which
+        # force-reinstalls every dependency) can exceed the dashboard's 60 s page timeout.
+        from spectacles_reachy_mini.audio_handler import AudioHandler
+        from spectacles_reachy_mini.camera_handler import CameraHandler
+        from spectacles_reachy_mini.movement_handler import MovementHandler
+        from spectacles_reachy_mini.ws_handler import WebSocketHandler
+
         ips = get_local_ips()
         logger.info("=" * 50)
         logger.info("Reachy Mini Spectacles WebSocket Bridge")
@@ -162,50 +160,42 @@ class SpectaclesReachyMini(ReachyMiniApp):
             logger.warning("  Could not detect local IP addresses")
         logger.info("=" * 50)
 
-        # Initialize audio output on the robot
-        try:
-            reachy_mini.media.start_playing()
-            logger.info("Robot audio output initialized")
-        except Exception as exc:
-            logger.warning("Could not initialize robot audio: %s", exc)
-
-        publisher: IpRelayPublisher | None = None
-        if ips:
-            publisher = IpRelayPublisher(IP_RELAY_URL, ips[0], WS_PORT)
-
-        # Build FastAPI app
-        app = create_app(reachy_mini, stop_event, publisher)
-
-        # Run uvicorn in a background thread
-        config = uvicorn.Config(
-            app,
-            host="0.0.0.0",
-            port=WS_PORT,
-            log_level="info",
+        media_thread = threading.Thread(
+            target=_load_media, args=(reachy_mini,), name="media-load", daemon=True
         )
-        server = uvicorn.Server(config)
+        media_thread.start()
 
-        server_thread = threading.Thread(target=server.run, daemon=True)
-        server_thread.start()
-        _wait_until_listening(WS_PORT)
-        if publisher is not None:
-            publisher.start()
+        self._bridge_stop = stop_event
+        audio_handler = AudioHandler(reachy_mini)
+        self._movement = MovementHandler(reachy_mini, send_rate_hz=_get_send_rate_hz())
+        camera_handler = CameraHandler(reachy_mini)
+        self._ws_handler = WebSocketHandler(self._movement, audio_handler, camera_handler)
 
-        # Block until the daemon signals us to stop
-        stop_event.wait()
-
-        # Shutdown
-        if publisher is not None:
-            publisher.stop()
-        server.should_exit = True
-        server_thread.join(timeout=5)
+        self._publisher = IpRelayPublisher(
+            IP_RELAY_URL, lambda: next(iter(get_local_ips()), None), WS_PORT
+        )
+        self._publisher.start()
 
         try:
-            reachy_mini.media.stop_playing()
-        except Exception:
-            pass
-
-        logger.info("Reachy Mini Spectacles Bridge stopped")
+            stop_event.wait()
+        finally:
+            if self._publisher is not None:
+                self._publisher.stop()
+                self._publisher = None
+            if media_thread.is_alive():
+                # Still inside GStreamer init. Give the daemon its camera/mic back here,
+                # and keep ReachyMini.__exit__ from starting a second init that would block exit.
+                try:
+                    reachy_mini.client.acquire_media()
+                except Exception as exc:
+                    logger.warning("Could not hand media back to the daemon: %s", exc)
+                reachy_mini._media_released = False
+            else:
+                try:
+                    reachy_mini.media.stop_playing()
+                except Exception:
+                    pass
+            logger.info("Reachy Mini Spectacles Bridge stopped")
 
 
 if __name__ == "__main__":

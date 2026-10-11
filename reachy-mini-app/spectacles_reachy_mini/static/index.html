@@ -69,9 +69,12 @@
     <main class="card">
         <p class="label">SPECS x Reachy Mini</p>
         <p class="pin" id="pin">…</p>
-        <p class="hint" id="pin-hint">Checking the IP relay…</p>
+        <p class="hint" id="pin-hint">Waiting for PIN…</p>
     </main>
     <script>
+        const PIN_TIMEOUT_MS = 30000;
+        const startedAt = Date.now();
+
         function formatPin(pin) {
             const digits = String(pin).replace(/\s/g, '');
             if (digits.length === 6) {
@@ -86,6 +89,11 @@
             if (info && info.pin) {
                 pinEl.innerHTML = formatPin(info.pin);
                 hint.textContent = 'Type this PIN when prompted during setup';
+                return;
+            }
+            if (Date.now() - startedAt < PIN_TIMEOUT_MS) {
+                pinEl.textContent = '…';
+                hint.textContent = 'Waiting for PIN…';
                 return;
             }
             pinEl.textContent = '—';
@@ -103,7 +111,7 @@
         }
 
         fetchInfo();
-        setInterval(fetchInfo, 10000);
+        setInterval(fetchInfo, 2000);
     </script>
 </body>
 </html>

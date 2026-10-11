@@ -7,6 +7,7 @@ import logging
 import threading
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -14,15 +15,21 @@ logger = logging.getLogger(__name__)
 IP_RELAY_URL = "https://spectacles-ip-relay.johannestscharn.workers.dev"
 
 _REFRESH_SECONDS = 30
+_RETRY_SECONDS = 3
 
 
 class IpRelayPublisher:
-    """Register, refresh, and delete one PIN record. relay_url is IP_RELAY_URL."""
+    """Register, refresh, and delete one PIN record. relay_url is IP_RELAY_URL.
 
-    def __init__(self, relay_url: str, ip: str, port: int) -> None:
+    get_ip is asked again on every cycle, so a network that comes up late or a
+    changed LAN address still ends in a live PIN for the current IP.
+    """
+
+    def __init__(self, relay_url: str, get_ip: Callable[[], str | None], port: int) -> None:
         self.relay_url = relay_url.rstrip("/")
-        self.ip = ip
+        self.get_ip = get_ip
         self.port = port
+        self.ip: str | None = None
         self.pin: str | None = None
         self._key: str | None = None
         self._stop = threading.Event()
@@ -40,29 +47,42 @@ class IpRelayPublisher:
         self.pin = None
 
     def _run(self) -> None:
-        if not self._create():
-            logger.warning("PIN unavailable, enter IP")
-            return
-        logger.info("PIN: %s", self.pin)
-        while not self._stop.wait(_REFRESH_SECONDS):
-            if self._refresh():
-                continue
+        warned = False
+        while not self._stop.is_set():
+            self._cycle()
+            if self.pin is not None:
+                warned = False
+            elif not warned:
+                logger.warning("PIN unavailable, enter IP. Retrying every %d s", _RETRY_SECONDS)
+                warned = True
+            self._stop.wait(_REFRESH_SECONDS if self.pin is not None else _RETRY_SECONDS)
+
+    def _cycle(self) -> None:
+        try:
+            ip = self.get_ip()
+        except Exception as exc:
+            logger.debug("Could not read local IP: %s", exc)
+            ip = None
+        if self.pin is not None and ip != self.ip:
+            logger.info("Local IP changed %s -> %s, re-registering PIN", self.ip, ip)
+            self._delete()
             self.pin = None
-            if not self._create():
-                logger.warning("PIN unavailable, enter IP")
-                return
+        if self.pin is not None and not self._refresh():
+            self.pin = None
+        if self.pin is None and ip and self._create(ip):
             logger.info("PIN: %s", self.pin)
 
-    def _create(self) -> bool:
+    def _create(self, ip: str) -> bool:
         body = self._request(
             "POST",
             "/v1/pins",
-            {"ip": self.ip, "port": self.port},
+            {"ip": ip, "port": self.port},
         )
         if not body or "pin" not in body or "key" not in body:
             return False
-        self.pin = str(body["pin"])
+        self.ip = ip
         self._key = str(body["key"])
+        self.pin = str(body["pin"])
         return True
 
     def _refresh(self) -> bool:
@@ -86,6 +106,8 @@ class IpRelayPublisher:
     ) -> dict | None:
         data = None if payload is None else json.dumps(payload).encode()
         req = urllib.request.Request(self.relay_url + path, data=data, method=method)
+        # Cloudflare's bot check answers the default "Python-urllib" User-Agent with 403.
+        req.add_header("User-Agent", "spectacles-reachy-mini")
         if payload is not None:
             req.add_header("Content-Type", "application/json")
         if key is not None:
