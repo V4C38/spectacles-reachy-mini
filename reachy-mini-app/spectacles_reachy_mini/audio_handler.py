@@ -1,18 +1,23 @@
 """
 Audio playback on the Reachy Mini robot: raw PCM via base64.
 
-Handles play_audio (base64 float32 PCM decode and push to robot).
+Handles play_audio (base64 PCM decode and push to robot).
+`format` is "f32" (float32 PCM, the original) or "s16" (int16 PCM).
 A newer play_audio cancels the buffer already on the speaker and the
 new samples start as soon as they are decoded (last-wins).
-Uses the robot's media API; sample rate and format are fixed for the hardware.
+set_volume talks to the daemon REST API (ADR #99).
+Uses the robot's media API; the speaker sample rate is fixed for the hardware.
 """
 
 from __future__ import annotations
 
 import base64
+import json
 import logging
+import os
 import threading
 import time
+import urllib.request
 
 import numpy as np
 from reachy_mini import ReachyMini
@@ -21,7 +26,14 @@ logger = logging.getLogger(__name__)
 
 # Target sample rate for Reachy Mini speaker output
 ROBOT_SAMPLE_RATE = 16000
+# f32: little-endian float32 PCM. s16: little-endian int16 PCM, full scale = 32768.
+AUDIO_FORMATS = ("f32", "s16")
 _POLL_SEC = 0.05
+
+# The daemon's REST API (reachy-mini-daemon, same host as this bridge).
+# POST /api/volume/set {"volume": 0..100} sets the robot speaker. Override
+# with REACHY_DAEMON_URL when the daemon is elsewhere.
+DAEMON_URL = os.environ.get("REACHY_DAEMON_URL", "http://localhost:8000").rstrip("/")
 
 
 class AudioHandler:
@@ -31,6 +43,40 @@ class AudioHandler:
         self.mini = reachy_mini
         self._lock = threading.Lock()
         self.playGen = 0
+        # Speaker volume from the lens (set_volume). Latest wins: presses can
+        # arrive faster than the daemon answers, so one lock applies the
+        # newest wanted value and skips stale ones.
+        self._volume_lock = threading.Lock()
+        self._volume_want: int | None = None
+        self._volume_applied: int | None = None
+
+    def set_volume(self, value: float) -> int | None:
+        """Set the robot speaker from the lens mix (0..1 -> daemon 0..100).
+
+        Returns the level now on the daemon, or None if the daemon refused
+        or is unreachable (the lens keeps working either way).
+        """
+        level = max(0, min(100, int(round(float(value) * 100))))
+        with self._volume_lock:
+            self._volume_want = level
+        with self._volume_lock:
+            want = self._volume_want
+            if want is None or want == self._volume_applied:
+                return self._volume_applied
+            try:
+                body = json.dumps({"volume": want}).encode()
+                req = urllib.request.Request(
+                    DAEMON_URL + "/api/volume/set", data=body, method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=2.0) as resp:
+                    resp.read()
+            except Exception as exc:  # daemon down / older daemon: never break the lens
+                logger.warning("set_volume %d failed: %s", want, exc)
+                return None
+            self._volume_applied = want
+            logger.info("set_volume %d", want)
+            return want
 
     def accept_play(self) -> int | None:
         """Drop the buffer on the speaker and issue a playGen. None if no barge-in."""
@@ -49,10 +95,19 @@ class AudioHandler:
         sample_rate: int = 16000,
         channels: int = 1,
         gen: int = 0,
+        fmt: str = "f32",
     ) -> bool:
-        """Decode base64 PCM float32 and push if this playGen is still current."""
+        """Decode base64 PCM and push if this playGen is still current.
+
+        fmt "f32" is float32 PCM. fmt "s16" is int16 PCM (/ 32768). Anything else raises.
+        """
         raw_bytes = base64.b64decode(data_b64)
-        samples = np.frombuffer(raw_bytes, dtype=np.float32)
+        if fmt == "f32":
+            samples = np.frombuffer(raw_bytes, dtype=np.float32)
+        elif fmt == "s16":
+            samples = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        else:
+            raise ValueError(f"Unknown audio format: {fmt}")
 
         if channels > 1:
             samples = samples.reshape(-1, channels)

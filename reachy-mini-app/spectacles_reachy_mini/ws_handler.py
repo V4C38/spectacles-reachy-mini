@@ -1,7 +1,7 @@
 """
 WebSocket message router: parse JSON, dispatch by type, correlate request/response.
 
-Receives text frames from the Spectacles client, parses JSON, and routes set_target, goto, stop_move, play_audio, status, and get_robot_camera_frame.
+Receives text frames from the Spectacles client, parses JSON, and routes set_target, goto, stop_move, play_audio, set_volume, status, and get_robot_camera_frame. play_audio accepts format "f32" (default) or "s16".
 Animations are handled on the Lens side (RobotDriver / RobotAnimationConfig).
 Slow handlers run in background tasks so the receive loop is never blocked. Sends JSON responses back with _id for request correlation.
 """
@@ -15,7 +15,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from spectacles_reachy_mini.audio_handler import AudioHandler
+from spectacles_reachy_mini.audio_handler import AUDIO_FORMATS, AudioHandler
 from spectacles_reachy_mini.camera_handler import CameraHandler
 from spectacles_reachy_mini.movement_handler import MovementHandler
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 # Message types that are slow (blocking) and must run as background tasks
 # so the receive loop is never stalled.
-_SLOW_TYPES = frozenset({"play_audio", "get_robot_camera_frame"})
+_SLOW_TYPES = frozenset({"play_audio", "get_robot_camera_frame", "set_volume"})
 
 
 class WebSocketHandler:
@@ -56,6 +56,7 @@ class WebSocketHandler:
             "goto": self._handle_goto,
             "stop_move": self._handle_stop_move,
             "play_audio": self._handle_play_audio,
+            "set_volume": self._handle_set_volume,
             "status": self._handle_status,
             "get_robot_camera_frame": self._handle_get_robot_camera_frame,
         }.get(msg_type)
@@ -131,21 +132,38 @@ class WebSocketHandler:
         data_b64 = msg.get("data", "")
         sample_rate = msg.get("sample_rate", 16000)
         channels = msg.get("channels", 1)
+        fmt = msg.get("format", "f32")
         if not data_b64:
             return {"type": "play_audio_result", "success": False, "message": "No audio data"}
+        if fmt not in AUDIO_FORMATS:
+            return {"type": "play_audio_result", "success": False, "message": f"Unknown audio format: {fmt}"}
         gen = self.audio.accept_play()
         if gen is None:
             return {"type": "play_audio_result", "success": False, "message": "clear_player unavailable"}
         loop = asyncio.get_running_loop()
         ok = await loop.run_in_executor(
-            None, lambda d=data_b64, sr=sample_rate, ch=channels, g=gen: self.audio.play_raw_audio(d, sr, ch, g)
+            None,
+            lambda d=data_b64, sr=sample_rate, ch=channels, g=gen, f=fmt: self.audio.play_raw_audio(d, sr, ch, g, f),
         )
         if not ok:
             return {"type": "play_audio_result", "success": False, "message": "superseded"}
         return {"type": "play_audio_result", "success": True}
 
+    async def _handle_set_volume(self, msg: dict[str, Any]) -> dict[str, Any]:
+        """Robot speaker level from the lens sound menu, value 0..1 (daemon REST, blocking -> executor)."""
+        try:
+            value = float(msg.get("value", 0.5))
+        except (TypeError, ValueError):
+            return {"type": "set_volume_result", "success": False, "message": "Bad value"}
+        loop = asyncio.get_running_loop()
+        level = await loop.run_in_executor(None, lambda: self.audio.set_volume(value))
+        result: dict[str, Any] = {"type": "set_volume_result", "success": level is not None, "volume": level}
+        if level is None:
+            result["message"] = "Daemon volume endpoint unreachable"
+        return result
+
     async def _handle_status(self, _msg: dict[str, Any]) -> dict[str, Any]:
-        return {"type": "status_result", "connected": True}
+        return {"type": "status_result", "connected": True, "audio_formats": list(AUDIO_FORMATS)}
 
     async def _handle_get_robot_camera_frame(self, _msg: dict[str, Any]) -> dict[str, Any]:
         loop = asyncio.get_running_loop()

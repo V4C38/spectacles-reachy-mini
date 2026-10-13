@@ -16,6 +16,10 @@ from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 from reachy_mini import ReachyMini, ReachyMiniApp
 
+# A newer Spectacles connection replaces the previous one. Code 4000 is
+# "another client took the robot" — not a network failure.
+REPLACED_CODE = 4000
+
 from spectacles_reachy_mini.ip_relay import IP_RELAY_URL, IpRelayPublisher
 
 if TYPE_CHECKING:
@@ -70,6 +74,56 @@ def get_local_ips() -> list[str]:
     return [ip for ip in dict.fromkeys(ips) if not ip.startswith("127.")]
 
 
+class ActiveSocket:
+    """The one client allowed to drive the robot. Newest connection wins."""
+
+    def __init__(self) -> None:
+        self.ws: WebSocket | None = None
+
+    async def claim(self, websocket: WebSocket) -> None:
+        previous = self.ws
+        self.ws = websocket
+        if previous is None:
+            return
+        try:
+            await previous.close(code=REPLACED_CODE)
+        except Exception as exc:
+            logger.info("Replaced client already gone: %s", exc)
+
+    def release(self, websocket: WebSocket) -> bool:
+        """True only for the client that still owns the robot."""
+        if self.ws is not websocket:
+            return False
+        self.ws = None
+        return True
+
+
+async def handle_socket(
+    websocket: WebSocket,
+    *,
+    handler: WebSocketHandler,
+    movement: MovementHandler,
+    stop_event: threading.Event,
+    active: ActiveSocket,
+) -> None:
+    """Serve one client. A replaced client's exit does not stop the motion loop."""
+    await websocket.accept()
+    await active.claim(websocket)
+    logger.info("Spectacles client connected")
+    movement.start()
+    try:
+        while not stop_event.is_set():
+            raw = await websocket.receive_text()
+            await handler.handle_message(websocket, raw)
+    except WebSocketDisconnect:
+        logger.info("Spectacles client disconnected")
+    except Exception as exc:
+        logger.error("WebSocket error: %s", exc)
+    finally:
+        if active.release(websocket):
+            handler.cleanup()
+
+
 def _load_media(reachy_mini: ReachyMini) -> None:
     """Swap the no_media manager for the real one. Blocks for as long as GStreamer init takes."""
     try:
@@ -98,6 +152,7 @@ class SpectaclesReachyMini(ReachyMiniApp):
         self._movement: MovementHandler | None = None
         self._publisher: IpRelayPublisher | None = None
         self._bridge_stop: threading.Event | None = None
+        self._active_ws = ActiveSocket()
         app = self.settings_app
         assert app is not None
 
@@ -109,19 +164,13 @@ class SpectaclesReachyMini(ReachyMiniApp):
             if handler is None or movement is None or stop_event is None:
                 await websocket.close(code=1013)
                 return
-            await websocket.accept()
-            logger.info("Spectacles client connected")
-            movement.start()
-            try:
-                while not stop_event.is_set():
-                    raw = await websocket.receive_text()
-                    await handler.handle_message(websocket, raw)
-            except WebSocketDisconnect:
-                logger.info("Spectacles client disconnected")
-            except Exception as exc:
-                logger.error("WebSocket error: %s", exc)
-            finally:
-                handler.cleanup()
+            await handle_socket(
+                websocket,
+                handler=handler,
+                movement=movement,
+                stop_event=stop_event,
+                active=self._active_ws,
+            )
 
         @app.get("/api/info")
         async def info() -> JSONResponse:
