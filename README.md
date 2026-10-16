@@ -24,7 +24,7 @@ See also the [Demo Video](https://youtu.be/o7Qg9_Oi4b0)
 
    <img src="Assets/rm_setup_wizard.gif" alt="Setup Wizard">
 
-   The Reachy Mini app shows a six-digit PIN. Enter that PIN in the Setup Wizard, or switch the wizard to IP entry. 
+   The Reachy Mini app shows a six-digit PIN. Enter the IP address of your PC in the Setup Wizard, or switch the wizard to PIN entry. 
    
    Select 'I have no Reachy Mini' to enter Simulation Mode.
 

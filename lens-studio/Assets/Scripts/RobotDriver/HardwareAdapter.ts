@@ -46,6 +46,12 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     private retiredSockets = new Set<WebSocket>();
     private connectTimeoutEvent: DelayedCallbackEvent | null = null;
 
+    // Rest pose sent once the socket opens so the metal matches the hologram.
+    private static readonly REST_HEAD: XYZRPYPose = {
+        x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0,
+    };
+    private static readonly REST_GOTO_DURATION_SEC = 1.5;
+
     // --- set_target coalescing (20 Hz max; latest pose always wins) ---
     private static readonly SET_TARGET_MIN_INTERVAL_SEC = 0.05; // 20 Hz max
     private lastSetTargetTime: number = 0;
@@ -281,6 +287,25 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
         if (resolveFn) {
             resolveFn();
         }
+        this.sendRestGoto();
+    }
+
+    /**
+     * Ease the physical robot back to rest. Fire-and-forget: the connect
+     * promise must not wait on motion, and a leftover pose makes the
+     * positioning hologram impossible to align.
+     */
+    private sendRestGoto(): void {
+        this.goto(
+            HardwareAdapter.REST_HEAD,
+            0,
+            HardwareAdapter.REST_GOTO_DURATION_SEC,
+            "minjerk",
+        ).then(() => {
+            print("HardwareAdapter: Rest pose goto started");
+        }).catch((error) => {
+            print(`HardwareAdapter: Rest pose goto failed: ${error}`);
+        });
     }
 
     /**

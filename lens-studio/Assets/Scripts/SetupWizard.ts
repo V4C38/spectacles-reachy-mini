@@ -51,7 +51,7 @@ export class SetupWizard extends BaseScriptComponent {
     @input
     private internetModule: InternetModule | null = null;
 
-    private connectionMethod: ConnectionMethod = "pin";
+    private connectionMethod: ConnectionMethod = "ip";
     private ipRelayClient: IpRelayClient | null = null;
     private connectionToggleRoot: SceneObject | null = null;
 
@@ -64,7 +64,7 @@ export class SetupWizard extends BaseScriptComponent {
 
     private stepDescriptions: string[] = [
         " \n \n In the Reachy Mini Desktop application, start the app: \n \n 😎 spectacles_reachy_mini ",
-        " \n Enter the PIN shown by the Reachy Mini app",
+        " \n Enter the IP address of your PC",
         " \n \n Position Reachy Mini in the desired location  \n You can adjust this later in the settings.",
         ""
     ];
@@ -191,7 +191,7 @@ export class SetupWizard extends BaseScriptComponent {
                 }
 
                 const savedIp = this.reachyMiniManager ? this.reachyMiniManager.loadIp() : null;
-                this.connectionMethod = savedIp ? "ip" : "pin";
+                this.connectionMethod = "ip";
                 if (savedIp && this.reachyMiniManager) {
                     this.reachyMiniManager.setBaseUrl(savedIp);
                 }
@@ -211,10 +211,10 @@ export class SetupWizard extends BaseScriptComponent {
                     this.textStepStatus.sceneObject.enabled = true;
                 }
                 this.applyConnectionMethod(false);
-                if (this.connectionMethod === "ip") {
+                if (savedIp) {
                     this.startAutoconnect();
                 } else if (this.textStepStatus) {
-                    this.textStepStatus.text = "Enter a 6-digit PIN";
+                    this.textStepStatus.text = "Enter the IP address of your PC";
                 }
                 break;
 
@@ -281,7 +281,7 @@ export class SetupWizard extends BaseScriptComponent {
         textObject.setParent(root);
         const text = textObject.createComponent("Component.Text") as Text;
         text.size = 32;
-        text.text = "Mode: PIN";
+        text.text = "Mode: IP";
         this.textButtonConnectionMethod = text;
 
         const collider = root.createComponent("Physics.ColliderComponent") as ColliderComponent;
