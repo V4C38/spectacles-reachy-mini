@@ -104,6 +104,22 @@ export class RobotDriver extends BaseScriptComponent {
     private isPaused: boolean = true;
     private simulationMode: boolean = false;
 
+    // A yaw that arrives inside ±0.75 rad stops ~0.08 rad short. One that arrives
+    // at ±0.90 rad already gets there (measured 2026-10-16). After the hold, the
+    // metal is told to go 0.08 rad further; the hologram keeps the asked yaw.
+    // Wander below 0.18 rad does not cancel the lead.
+    private static readonly YAW_LEAD_RAD = 0.08;
+    private static readonly YAW_LEAD_HOLD_SEC = 0.4;
+    private static readonly YAW_LEAD_MIN_TRAVEL = 0.20;
+    // ±0.90 already arrives (a little past). ±0.45 and a return to 0 stop short.
+    private static readonly YAW_LEAD_MAX_DEST = 0.75;
+    private yawLeadFrom = 0;
+    private yawLeadWindow = 0;
+    private yawLeadStill = 0;
+    private yawLead = 0;
+    private yawLeadSettled = false;
+    private yawLeadReady = false;
+
     private animKeys: AnimationKey[] | null = null;
     private animIndex: number = 0;
     private animElapsed: number = 0;
@@ -406,11 +422,59 @@ export class RobotDriver extends BaseScriptComponent {
         this.prevHeadYaw = cur.head.yaw;
     }
 
+    /** Copy of the head with the settle lead on yaw. The hologram is not given this copy. */
+    private hardwareHead(head: XYZRPYPose): XYZRPYPose {
+        const lead = this.yawSettleLead(head.yaw);
+        if (lead === 0) return head;
+        return {
+            x: head.x, y: head.y, z: head.z,
+            roll: head.roll, pitch: head.pitch,
+            yaw: head.yaw + lead,
+        };
+    }
+
+    private yawSettleLead(yaw: number): number {
+        const dt = Math.min(Math.max(getDeltaTime(), 0), 0.05);
+        if (!this.yawLeadReady) {
+            this.yawLeadReady = true;
+            this.yawLeadFrom = yaw;
+            this.yawLeadWindow = yaw;
+            this.yawLeadSettled = true;
+            return 0;
+        }
+        if (this.yawLeadSettled) {
+            if (Math.abs(yaw - this.yawLeadFrom) > 0.18) {
+                this.yawLeadWindow = yaw;
+                this.yawLeadStill = 0;
+                this.yawLead = 0;
+                this.yawLeadSettled = false;
+            }
+            return this.yawLead;
+        }
+        if (Math.abs(yaw - this.yawLeadWindow) > 0.03) {
+            this.yawLeadWindow = yaw;
+            this.yawLeadStill = 0;
+            return 0;
+        }
+        this.yawLeadStill += dt;
+        if (this.yawLeadStill >= RobotDriver.YAW_LEAD_HOLD_SEC) {
+            const travel = yaw - this.yawLeadFrom;
+            const mag = Math.abs(travel);
+            this.yawLead = (mag >= RobotDriver.YAW_LEAD_MIN_TRAVEL && Math.abs(yaw) <= RobotDriver.YAW_LEAD_MAX_DEST)
+                ? Math.sign(travel) * RobotDriver.YAW_LEAD_RAD
+                : 0;
+            this.yawLeadFrom = yaw;
+            this.yawLeadSettled = true;
+        }
+        return this.yawLead;
+    }
+
     private emitCurrent(): void {
         const iface = this.getActiveInterface();
         if (!iface) return;
         const pose = this.currentPose;
-        iface.setTarget(pose.head, pose.bodyYaw, pose.antennas).catch(() => {});
+        const head = this.simulationMode ? pose.head : this.hardwareHead(pose.head);
+        iface.setTarget(head, pose.bodyYaw, pose.antennas).catch(() => {});
 
         if (!this.simulationMode && this.simulationAdapter) {
             this.simulationAdapter.setTarget(pose.head, pose.bodyYaw, pose.antennas).catch(() => {});
