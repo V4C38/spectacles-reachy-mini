@@ -1,4 +1,5 @@
-"""play_audio: a newer buffer cancels the one already on the speaker."""
+"""play_audio: a newer buffer cancels the one already on the speaker.
+push_audio appends and returns without clearing or waiting."""
 
 from __future__ import annotations
 
@@ -6,6 +7,7 @@ import asyncio
 import base64
 import struct
 import threading
+import time
 
 import numpy as np
 
@@ -169,5 +171,51 @@ def test_status_advertises_audio_formats() -> None:
     asyncio.run(run())
     assert ws.sent == [{
         "type": "status_result", "connected": True,
-        "audio_formats": ["f32", "s16"], "_id": 1,
+        "audio_formats": ["f32", "s16"], "push_audio": True, "_id": 1,
     }]
+
+
+def test_push_audio_appends_in_order_without_clear_or_wait() -> None:
+    mini = _FakeMini()
+    audio = AudioHandler(mini)  # type: ignore[arg-type]
+    first = np.array([0.0, 0.5], dtype=np.float32)
+    second = np.array([-0.5, 0.25], dtype=np.float32)
+    a = base64.b64encode((first * 32768).astype(np.int16).tobytes()).decode()
+    b = base64.b64encode((second * 32768).astype(np.int16).tobytes()).decode()
+    # A play_raw of this many samples would sleep about a second.
+    long = base64.b64encode(np.zeros(16000, dtype=np.int16).tobytes()).decode()
+    t0 = time.monotonic()
+    audio.push_audio(a, 16000, 1, "s16")
+    audio.push_audio(b, 16000, 1, "s16")
+    audio.push_audio(long, 16000, 1, "s16")
+    assert time.monotonic() - t0 < 0.5
+    assert mini.media.audio.clears == 0
+    assert audio.playGen == 0
+    assert mini.media.pushes == [2, 2, 16000]
+    np.testing.assert_allclose(mini.media.samples[0].reshape(-1), first)
+    np.testing.assert_allclose(mini.media.samples[1].reshape(-1), second)
+
+
+def test_ws_push_audio_returns_without_reply() -> None:
+    mini = _FakeMini()
+    handler = WebSocketHandler(None, AudioHandler(mini), None)  # type: ignore[arg-type]
+    ws = _FakeSocket()
+    pcm = base64.b64encode(np.zeros(16000, dtype=np.int16).tobytes()).decode()
+
+    async def run() -> None:
+        t0 = time.monotonic()
+        await handler.handle_message(
+            ws,
+            '{"type":"push_audio","data":"%s","sample_rate":16000,"channels":1,"format":"s16","_id":9}' % pcm,
+        )
+        await handler.handle_message(
+            ws,
+            '{"type":"push_audio","data":"%s","sample_rate":16000,"channels":1,"format":"s16"}' % pcm,
+        )
+        assert time.monotonic() - t0 < 0.5
+        assert handler._background_tasks == set()
+
+    asyncio.run(run())
+    assert mini.media.audio.clears == 0
+    assert mini.media.pushes == [16000, 16000]
+    assert ws.sent == []

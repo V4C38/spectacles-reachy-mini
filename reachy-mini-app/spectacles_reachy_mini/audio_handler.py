@@ -1,7 +1,8 @@
 """
 Audio playback on the Reachy Mini robot: raw PCM via base64.
 
-Handles play_audio (base64 PCM decode and push to robot).
+Handles play_audio (base64 PCM decode and push to robot) and push_audio
+(the same decode, appended, no clear and no wait).
 `format` is "f32" (float32 PCM, the original) or "s16" (int16 PCM).
 A newer play_audio cancels the buffer already on the speaker and the
 new samples start as soon as they are decoded (last-wins).
@@ -101,6 +102,43 @@ class AudioHandler:
 
         fmt "f32" is float32 PCM. fmt "s16" is int16 PCM (/ 32768). Anything else raises.
         """
+        samples, target_rate = self._decode_pcm(data_b64, sample_rate, channels, fmt)
+
+        with self._lock:
+            if gen != self.playGen:
+                return False
+            self.mini.media.push_audio_sample(samples)
+
+        duration = len(samples) / target_rate
+        deadline = time.monotonic() + duration
+        while time.monotonic() < deadline:
+            with self._lock:
+                if gen != self.playGen:
+                    return False
+            time.sleep(_POLL_SEC)
+        logger.info("Raw audio playback complete (%d samples)", len(samples))
+        return True
+
+    def push_audio(
+        self,
+        data_b64: str,
+        sample_rate: int = 16000,
+        channels: int = 1,
+        fmt: str = "s16",
+    ) -> None:
+        """Append decoded PCM. Does not clear the player, touch playGen, or wait."""
+        samples, _target_rate = self._decode_pcm(data_b64, sample_rate, channels, fmt)
+        with self._lock:
+            self.mini.media.push_audio_sample(samples)
+
+    def _decode_pcm(
+        self,
+        data_b64: str,
+        sample_rate: int,
+        channels: int,
+        fmt: str,
+    ) -> tuple[np.ndarray, int]:
+        """Decode base64 PCM and resample to the speaker rate. Returns (samples, rate)."""
         raw_bytes = base64.b64decode(data_b64)
         if fmt == "f32":
             samples = np.frombuffer(raw_bytes, dtype=np.float32)
@@ -120,21 +158,7 @@ class AudioHandler:
             for ch in range(samples.shape[1]):
                 resampled_channels.append(self._resample(samples[:, ch], sample_rate, target_rate))
             samples = np.column_stack(resampled_channels)
-
-        with self._lock:
-            if gen != self.playGen:
-                return False
-            self.mini.media.push_audio_sample(samples)
-
-        duration = len(samples) / target_rate
-        deadline = time.monotonic() + duration
-        while time.monotonic() < deadline:
-            with self._lock:
-                if gen != self.playGen:
-                    return False
-            time.sleep(_POLL_SEC)
-        logger.info("Raw audio playback complete (%d samples)", len(samples))
-        return True
+        return samples, target_rate
 
     def _get_output_sample_rate(self) -> int:
         """Get the robot's output sample rate, defaulting to 16 kHz."""
