@@ -24,6 +24,8 @@ export class AssistantConversation {
     private debounceTimer: number = 0;
     private isProcessingSpeech: boolean = false;
     public isPaused: boolean = false;
+    private asrErrorCount: number = 0;
+    private isAsrMarkedActive: boolean = false;
 
     // --- Configuration ---
     private readonly WAKE_WORDS = ["reachy", "richie", "richy", "reach", "reachie", "ritchie", "richi", "reechy", "reechi", "reachi"];
@@ -39,7 +41,22 @@ export class AssistantConversation {
         private assistantTools: ToolFactory | null,
         private camera: SceneObject,
         private asrModule: AsrModule,
-    ) {}
+    ) {
+        this.initAsrOptions();
+    }
+
+    private initAsrOptions(): void {
+        if (this.asrOptions) return;
+        const options = AsrModule.AsrTranscriptionOptions.create();
+        options.mode = AsrModule.AsrMode.HighAccuracy;
+        options.onTranscriptionUpdateEvent.add((eventArgs: AsrModule.TranscriptionUpdateEvent) => {
+            this.onTranscriptionUpdate(eventArgs);
+        });
+        options.onTranscriptionErrorEvent.add((errorCode: AsrModule.AsrStatusCode) => {
+            this.onTranscriptionError(errorCode);
+        });
+        this.asrOptions = options;
+    }
 
     // ----------------------------------------------------------------
     // Session Management
@@ -47,12 +64,15 @@ export class AssistantConversation {
     private openSession(): void {
         this.lastActivityTime = getTime();
         this.debounceTimer = 0;
+        this.isSessionActive = true;
+        this.asrErrorCount = 0;
         this.registerTools();
         print("AssistantMode: Conversation session opened");
         this.mode.onSessionChanged.forEach(cb => cb(true));
     }
 
     public closeSession(): void {
+        this.isSessionActive = false;
         if (this.llmInterface) {
             this.llmInterface.clearHistory();
         }
@@ -107,9 +127,8 @@ export class AssistantConversation {
         if (!this.asrWanted || generation !== this.asrGeneration) return;
 
         const state = this.mode.getState();
-        const options = AsrModule.AsrTranscriptionOptions.create();
-        options.silenceUntilTerminationMs = state === AssistantState.Sleeping ? this.WAKE_SILENCE_MS : this.CONVO_SILENCE_MS;
-        options.mode = AsrModule.AsrMode.HighSpeed;
+        const silenceMs = state === AssistantState.Sleeping ? this.WAKE_SILENCE_MS : this.CONVO_SILENCE_MS;
+        this.asrOptions!.silenceUntilTerminationMs = silenceMs;
 
         options.onTranscriptionUpdateEvent.add((eventArgs: AsrModule.TranscriptionUpdateEvent) => {
             if (generation !== this.asrGeneration || !this.asrWanted) return;
@@ -121,7 +140,8 @@ export class AssistantConversation {
             this.onTranscriptionError(errorCode, generation);
         });
 
-        this.asrModule.startTranscribing(options);
+    private beginTranscribing(): void {
+        this.asrModule.startTranscribing(this.asrOptions!);
         this.currentTranscription = "";
         this.asrRestarting = false;
         print("TTS / ASR started");
@@ -135,6 +155,10 @@ export class AssistantConversation {
 
         if (this.mode.getState() === AssistantState.Idle) {
             this.mode.setState(AssistantState.Listening);
+        }
+
+        if (this.isSessionActive && this.mode.getState() === AssistantState.Listening) {
+            this.postSpeakListeningEndTime = getTime() + this.POST_SPEAK_LISTENING_SEC;
         }
 
         if (!isFinal) {
@@ -168,6 +192,7 @@ export class AssistantConversation {
         if (this.asrRestarting) return;
 
         const state = this.mode.getState();
+        this.asrErrorCount++;
         const message = `ASR error: ${errorCode}`;
         print(`AssistantMode: ${message} state: ${AssistantState[state]})`);
         this.mode.logDebug(message);
@@ -241,6 +266,8 @@ export class AssistantConversation {
             }
             this.mode.setState(AssistantState.Listening);
             this.postSpeakListeningEndTime = getTime() + this.POST_SPEAK_LISTENING_SEC;
+            this.asrErrorCount = 0;
+            this.startASR();
 
             this.debounceTimer = getTime();
             this.lastActivityTime = getTime();
@@ -277,8 +304,6 @@ export class AssistantConversation {
 
             this.debounceTimer = getTime();
             this.lastActivityTime = getTime();
-            this.mode.setState(AssistantState.Listening);
-            this.postSpeakListeningEndTime = getTime() + this.POST_SPEAK_LISTENING_SEC;
         } catch (error) {
             const message = `playGreeting failed: ${error}`;
             print(`AssistantMode: ${message}`);
