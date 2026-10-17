@@ -51,7 +51,7 @@ export class SetupWizard extends BaseScriptComponent {
     @input
     private internetModule: InternetModule | null = null;
 
-    private connectionMethod: ConnectionMethod = "ip";
+    private connectionMethod: ConnectionMethod = "pin";
     private ipRelayClient: IpRelayClient | null = null;
     private connectionToggleRoot: SceneObject | null = null;
 
@@ -64,7 +64,7 @@ export class SetupWizard extends BaseScriptComponent {
 
     private stepDescriptions: string[] = [
         " \n \n In the Reachy Mini Desktop application, start the app: \n \n 😎 spectacles_reachy_mini ",
-        " \n Enter the IP address of your PC",
+        " \n Enter the PIN shown by the Reachy Mini app",
         " \n \n Position Reachy Mini in the desired location  \n You can adjust this later in the settings.",
         ""
     ];
@@ -190,32 +190,19 @@ export class SetupWizard extends BaseScriptComponent {
                     this.textButtonNext.text = "Next";
                 }
 
-                const savedIp = this.reachyMiniManager ? this.reachyMiniManager.loadIp() : null;
-                this.connectionMethod = "ip";
-                if (savedIp && this.reachyMiniManager) {
-                    this.reachyMiniManager.setBaseUrl(savedIp);
-                }
+                this.connectionMethod = "pin";
 
-                if (this.textInputField && this.reachyMiniManager) {
+                if (this.textInputField) {
                     this.textInputField.enabled = true;
                     this.textInputField.initialize();
-                    this.textInputField.placeholderText = this.connectionMethod === "ip"
-                        ? "IP Address"
-                        : "6 Digit PIN code";
-                    this.textInputField.text = this.connectionMethod === "ip"
-                        ? (savedIp || this.reachyMiniManager.getBaseUrl())
-                        : "";
+                    this.textInputField.text = "";
                 }
                 if (this.textStepStatus) {
                     this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
                     this.textStepStatus.sceneObject.enabled = true;
+                    this.textStepStatus.text = "Enter a 6-digit PIN";
                 }
                 this.applyConnectionMethod(false);
-                if (savedIp) {
-                    this.startAutoconnect();
-                } else if (this.textStepStatus) {
-                    this.textStepStatus.text = "Enter the IP address of your PC";
-                }
                 break;
 
             // Step 3: Position Reachy Mini
@@ -248,6 +235,7 @@ export class SetupWizard extends BaseScriptComponent {
                         this.reachyMiniManager.showReachyMiniMesh(true);
                     }
                     this.reachyMiniManager.setPositioningEnabled(true);
+                    this.reachyMiniManager.resetPosition();
                 }
                 break;
 
@@ -258,8 +246,8 @@ export class SetupWizard extends BaseScriptComponent {
                 }
                 this.animateSceneObjectState(this.uiSetupContainer, false);
                 if (this.uiManager) {
-                    this.uiManager.setUIState(2);
-                    this.uiManager.setMode(2);
+                    this.uiManager.setMode(1);
+                    this.uiManager.setUIState(1);
                 }
                 break;
         }
@@ -281,7 +269,7 @@ export class SetupWizard extends BaseScriptComponent {
         textObject.setParent(root);
         const text = textObject.createComponent("Component.Text") as Text;
         text.size = 32;
-        text.text = "Mode: IP";
+        text.text = "Mode: PIN";
         this.textButtonConnectionMethod = text;
 
         const collider = root.createComponent("Physics.ColliderComponent") as ColliderComponent;

@@ -34,12 +34,23 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     private static readonly MAX_POS_VEL = 0.05;
     private static readonly MAX_DT_FOR_VEL_CLAMP = 0.06;
 
-    /** Wi-Fi + the 20 Hz windows + daemon. The servo stage covers the rest. */
+    /** Sim clock: Wi-Fi + the 20 Hz windows + daemon, when no ack is coming back. */
     private static readonly TRANSPORT_DELAY_SEC = 0.155;
+    /** After set_target_result. Localhost send-to-motors; the hop is inside the ack. */
+    private static readonly POST_ACK_HEAD_SEC = 0.13;
     /** First-order servo lag after the bridge clamp. Fit on the 2026-10-16 traces. The head only. */
     private static readonly SERVO_TAU_SEC = 0.09;
     /** Antennas skip the head servo stage. Send-to-motors 0.09 s plus the lens 20 Hz hold. */
     private static readonly ANTENNA_DELAY_SEC = 0.115;
+    /** Antenna motors after the ack. The 0.025 s lens hold is inside the ack. */
+    private static readonly POST_ACK_ANTENNA_SEC = 0.09;
+    /** True once the bridge is acking poses. The plant then times from the ack, not from the command. */
+    private ackClock: boolean = false;
+    /** One plant step. A long lens frame is split so the clamp keeps the time the bridge kept (ADR #153). */
+    private static readonly SUBSTEP_SEC = 1 / 60;
+    // ponytail: a frame longer than 0.5 s steps coarser than 60 Hz. The clamp stays honest until a
+    // step exceeds MAX_DT_FOR_VEL_CLAMP (a stall past ~1.8 s). Raise MAX_SUBSTEPS if hitches grow past that.
+    private static readonly MAX_SUBSTEPS = 30;
     // ponytail: 32 slots covers about 0.5 s at 60 fps; grow the ring if the delay is raised.
     private static readonly RING = 32;
     private static readonly SLOT = 10;
@@ -114,10 +125,39 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     }
 
     /**
-     * Store the commanded pose. The sample sits in a ring; the filter reads it
-     * TRANSPORT_DELAY_SEC later.
+     * Store the commanded pose. The sample sits in a ring. The filter reads it
+     * after the command delay, or after the shorter post-ack delay once
+     * set_target_result is arriving.
      */
     public async setTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): Promise<void> {
+        this.setTargetNow(headPose, bodyYaw, antennas);
+    }
+
+    /** Command clock. Ignored while the bridge is acking poses. */
+    public setTargetNow(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): void {
+        if (this.ackClock) return;
+        this.writeRing(getTime(), headPose, bodyYaw, antennas);
+    }
+
+    /** The bridge stored this pose. Later samples are timed from the ack. */
+    public noteAck(headPose: XYZRPYPose, bodyYaw: number, antennas: [number, number]): void {
+        if (!this.ackClock) {
+            this.ackClock = true;
+            this.ringWrite = 0;
+            this.ringCount = 0;
+        }
+        this.writeRing(getTime(), headPose, bodyYaw, antennas);
+    }
+
+    /** No recent ack. The command clock owns the ring again. */
+    public releaseAckClock(): void {
+        if (!this.ackClock) return;
+        this.ackClock = false;
+        this.ringWrite = 0;
+        this.ringCount = 0;
+    }
+
+    private writeRing(at: number, headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): void {
         if (bodyYaw !== undefined) this.heldBodyYaw = bodyYaw;
         if (antennas) {
             this.heldAntennas[0] = antennas[0];
@@ -125,7 +165,7 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
         }
         const s = this.ringWrite * SimulationAdapter.SLOT;
         const r = this.ring;
-        r[s] = getTime();
+        r[s] = at;
         r[s + 1] = headPose.x; r[s + 2] = headPose.y; r[s + 3] = headPose.z;
         r[s + 4] = headPose.roll; r[s + 5] = headPose.pitch; r[s + 6] = headPose.yaw;
         r[s + 7] = this.heldBodyYaw;
@@ -134,11 +174,10 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
         if (this.ringCount < SimulationAdapter.RING) this.ringCount++;
     }
 
-    /** Newest sample at least `delaySec` old, else the oldest. -1 if empty. */
-    private delayedSlot(delaySec: number): number {
+    /** Newest sample at or before `cutoff`, else the oldest. -1 if empty. */
+    private delayedSlot(cutoff: number): number {
         const n = this.ringCount;
         if (n === 0) return -1;
-        const cutoff = getTime() - delaySec;
         const ring = SimulationAdapter.RING;
         const stride = SimulationAdapter.SLOT;
         for (let k = 1; k <= n; k++) {
@@ -148,8 +187,11 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
         return n < ring ? 0 : this.ringWrite;
     }
 
-    private sampleDelayedTarget(): void {
-        const idx = this.delayedSlot(SimulationAdapter.TRANSPORT_DELAY_SEC);
+    /** The command the plant sees at time `at`: head delay and antenna delay differ. */
+    private sampleDelayedTarget(at: number): void {
+        const headDelay = this.ackClock ? SimulationAdapter.POST_ACK_HEAD_SEC : SimulationAdapter.TRANSPORT_DELAY_SEC;
+        const antDelay = this.ackClock ? SimulationAdapter.POST_ACK_ANTENNA_SEC : SimulationAdapter.ANTENNA_DELAY_SEC;
+        const idx = this.delayedSlot(at - headDelay);
         if (idx < 0) return;
         const r = this.ring;
         const s = idx * SimulationAdapter.SLOT;
@@ -157,7 +199,7 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
         t.x = r[s + 1]; t.y = r[s + 2]; t.z = r[s + 3];
         t.roll = r[s + 4]; t.pitch = r[s + 5]; t.yaw = r[s + 6];
         this.targetBodyYaw = r[s + 7];
-        const aidx = this.delayedSlot(SimulationAdapter.ANTENNA_DELAY_SEC);
+        const aidx = this.delayedSlot(at - antDelay);
         const as = aidx * SimulationAdapter.SLOT;
         this.targetAntennas[0] = r[as + 8];
         this.targetAntennas[1] = r[as + 9];
@@ -166,31 +208,34 @@ export class SimulationAdapter extends BaseScriptComponent implements RobotInter
     private smoothingTick(): void {
         const dt = getDeltaTime();
         if (dt <= 0) return;
-        this.sampleDelayedTarget();
-
-        const alphaPose = 1 - Math.exp(-SimulationAdapter.POSE_RATE * dt);
-        const alphaAnt = 1 - Math.exp(-SimulationAdapter.ANTENNA_RATE * dt);
-
-        const dtClamped = Math.min(dt, SimulationAdapter.MAX_DT_FOR_VEL_CLAMP);
+        // One step per frame caps travel at 60 ms, so a hitch leaves the hologram behind the bridge.
+        const n = Math.min(
+            SimulationAdapter.MAX_SUBSTEPS,
+            Math.ceil(dt / SimulationAdapter.SUBSTEP_SEC),
+        );
+        const h = dt / n;
+        const alphaPose = 1 - Math.exp(-SimulationAdapter.POSE_RATE * h);
+        const alphaAnt = 1 - Math.exp(-SimulationAdapter.ANTENNA_RATE * h);
+        const dtClamped = Math.min(h, SimulationAdapter.MAX_DT_FOR_VEL_CLAMP);
         const maxDAng = SimulationAdapter.MAX_ANGULAR_VEL * dtClamped;
         const maxDPos = SimulationAdapter.MAX_POS_VEL * dtClamped;
-
         const clamp = (delta: number, maxAbs: number): number =>
             Math.max(-maxAbs, Math.min(maxAbs, delta));
-
-        this.displayedPose.x += clamp(alphaPose * (this.targetPose.x - this.displayedPose.x), maxDPos);
-        this.displayedPose.y += clamp(alphaPose * (this.targetPose.y - this.displayedPose.y), maxDPos);
-        this.displayedPose.z += clamp(alphaPose * (this.targetPose.z - this.displayedPose.z), maxDPos);
-        this.displayedPose.roll += clamp(alphaPose * (this.targetPose.roll - this.displayedPose.roll), maxDAng);
-        this.displayedPose.pitch += clamp(alphaPose * (this.targetPose.pitch - this.displayedPose.pitch), maxDAng);
-        this.displayedPose.yaw += clamp(alphaPose * (this.targetPose.yaw - this.displayedPose.yaw), maxDAng);
-
-        this.displayedBodyYaw += clamp(alphaPose * (this.targetBodyYaw - this.displayedBodyYaw), maxDAng);
-        // Antennas are not velocity-clamped: movement_handler.py sends _current_antennas raw.
-        this.displayedAntennas[0] += alphaAnt * (this.targetAntennas[0] - this.displayedAntennas[0]);
-        this.displayedAntennas[1] += alphaAnt * (this.targetAntennas[1] - this.displayedAntennas[1]);
-
-        this.easeShown(dt);
+        const start = getTime() - dt;
+        for (let i = 1; i <= n; i++) {
+            this.sampleDelayedTarget(start + i * h);
+            this.displayedPose.x += clamp(alphaPose * (this.targetPose.x - this.displayedPose.x), maxDPos);
+            this.displayedPose.y += clamp(alphaPose * (this.targetPose.y - this.displayedPose.y), maxDPos);
+            this.displayedPose.z += clamp(alphaPose * (this.targetPose.z - this.displayedPose.z), maxDPos);
+            this.displayedPose.roll += clamp(alphaPose * (this.targetPose.roll - this.displayedPose.roll), maxDAng);
+            this.displayedPose.pitch += clamp(alphaPose * (this.targetPose.pitch - this.displayedPose.pitch), maxDAng);
+            this.displayedPose.yaw += clamp(alphaPose * (this.targetPose.yaw - this.displayedPose.yaw), maxDAng);
+            this.displayedBodyYaw += clamp(alphaPose * (this.targetBodyYaw - this.displayedBodyYaw), maxDAng);
+            // Antennas are not velocity-clamped: movement_handler.py sends _current_antennas raw.
+            this.displayedAntennas[0] += alphaAnt * (this.targetAntennas[0] - this.displayedAntennas[0]);
+            this.displayedAntennas[1] += alphaAnt * (this.targetAntennas[1] - this.displayedAntennas[1]);
+            this.easeShown(h);
+        }
         this.applyToScene(this.shownPose, this.shownBodyYaw, this.shownAntennas);
     }
 

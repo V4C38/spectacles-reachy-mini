@@ -24,7 +24,7 @@ See also the [Demo Video](https://youtu.be/o7Qg9_Oi4b0)
 
    <img src="Assets/rm_setup_wizard.gif" alt="Setup Wizard">
 
-   The Reachy Mini app shows a six-digit PIN. Enter the IP address of your PC in the Setup Wizard, or switch the wizard to PIN entry. 
+   The Reachy Mini app shows a six-digit PIN. Enter that PIN in the Setup Wizard, or switch the wizard to IP entry. 
    
    Select 'I have no Reachy Mini' to enter Simulation Mode.
 
@@ -256,5 +256,4 @@ Contributions, ideas, and bug reports are more than welcome. Feel free to open a
 
 #### Known Issues
 
-- **ASR Error 0** Sometimes TTS can fail on the Spectacles. If it occurs an on screen error is displayed to the user so TTS does not fail silently.
-The cause of this is unknown but you can restart the Spectacles to resolve the issue.
+- **ASR Error 0** was a stopped session reporting `AsrStatusCode.Success` (numeric 0). The lens treated that as a failure and started a new session before `stopTranscribing` finished, which left the mic dead after switching to puppeteer and back. Restarts now wait for the stop to finish, and status 0 is ignored. A real failure still shows on the debug panel.

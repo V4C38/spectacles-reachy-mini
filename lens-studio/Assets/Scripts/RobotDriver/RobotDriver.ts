@@ -119,6 +119,11 @@ export class RobotDriver extends BaseScriptComponent {
     private yawLead = 0;
     private yawLeadSettled = false;
     private yawLeadReady = false;
+    /** Last set_target_result. Negative until the first one. */
+    private lastPoseAck: number = -1;
+    private ackLive: boolean = false;
+    /** No ack this long and the hologram goes back to the command clock. */
+    private static readonly ACK_STALE_SEC = 0.4;
 
     private animKeys: AnimationKey[] | null = null;
     private animIndex: number = 0;
@@ -126,6 +131,16 @@ export class RobotDriver extends BaseScriptComponent {
 
     onAwake() {
         this.createEvent("UpdateEvent").bind(() => this.tick());
+        this.createEvent("OnStartEvent").bind(() => this.bindPoseAck());
+    }
+
+    /** After HardwareAdapter is awake. Calling it from onAwake is not a function yet. */
+    private bindPoseAck(): void {
+        if (!this.hardwareAdapter) return;
+        this.hardwareAdapter.setPoseAckListener((head, bodyYaw, antennas) => {
+            this.lastPoseAck = getTime();
+            if (this.simulationAdapter) this.simulationAdapter.noteAck(head, bodyYaw, antennas);
+        });
     }
 
     public setParams(incoming: Partial<AnimationParams>): void {
@@ -473,11 +488,30 @@ export class RobotDriver extends BaseScriptComponent {
         const iface = this.getActiveInterface();
         if (!iface) return;
         const pose = this.currentPose;
-        const head = this.simulationMode ? pose.head : this.hardwareHead(pose.head);
-        iface.setTarget(head, pose.bodyYaw, pose.antennas).catch(() => {});
+        if (this.simulationMode) {
+            if (this.simulationAdapter) this.simulationAdapter.releaseAckClock();
+            iface.setTarget(pose.head, pose.bodyYaw, pose.antennas).catch(() => {});
+            return;
+        }
+        if (this.hardwareAdapter) {
+            this.hardwareAdapter.armMirror(pose.head, pose.bodyYaw, pose.antennas);
+        }
+        iface.setTarget(this.hardwareHead(pose.head), pose.bodyYaw, pose.antennas).catch(() => {});
+        if (this.simulationAdapter) this.mirrorOrFallback(pose);
+    }
 
-        if (!this.simulationMode && this.simulationAdapter) {
-            this.simulationAdapter.setTarget(pose.head, pose.bodyYaw, pose.antennas).catch(() => {});
+    /** Ack clock while replies are fresh. Otherwise the command clock, so an old bridge still moves the hologram. */
+    private mirrorOrFallback(pose: CompleteBodyPose): void {
+        const sim = this.simulationAdapter;
+        if (!sim) return;
+        const live = this.lastPoseAck >= 0 && getTime() - this.lastPoseAck < RobotDriver.ACK_STALE_SEC;
+        if (live !== this.ackLive) {
+            this.ackLive = live;
+            print(`POSE_ACK ${live ? "bridge" : "local"}`);
+        }
+        if (!live) {
+            sim.releaseAckClock();
+            sim.setTargetNow(pose.head, pose.bodyYaw, pose.antennas);
         }
     }
 
@@ -522,6 +556,26 @@ export class RobotDriver extends BaseScriptComponent {
 
     public async connect(): Promise<void> {
         if (this.hardwareAdapter) await this.hardwareAdapter.connect();
+    }
+
+    /**
+     * Snap the local plant and hologram to rest. Hardware rest on connect
+     * is the 1.5 s goto HardwareAdapter fires when the socket opens.
+     */
+    public resetToRestPose(): void {
+        this.reset();
+        if (this.simulationAdapter) {
+            this.simulationAdapter.setTarget(
+                { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
+                0,
+                [0, 0],
+            ).catch(() => {});
+        }
+    }
+
+    /** One send of the current pose. Tick does not run while paused, so rest would otherwise stay local. */
+    public pushPose(): void {
+        this.emitCurrent();
     }
 
     public disconnect(): void {

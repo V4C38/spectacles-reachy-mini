@@ -140,7 +140,10 @@ export class ReachyMiniManager extends BaseScriptComponent {
         if (this.puppeteerMode) {
             this.puppeteerMode.activate();
             this.startPuppeteerUpdateLoop();
-            if (!this.isActive) {
+            // activate() does not set the grab-sphere color. resume() does.
+            if (this.isActive) {
+                this.puppeteerMode.resume();
+            } else {
                 this.puppeteerMode.pause();
             }
         }
@@ -282,7 +285,7 @@ export class ReachyMiniManager extends BaseScriptComponent {
         if (this.puppeteerMode) {
             this.puppeteerMode.reset();
         }
-        this.resetRobotToDefaultPose();
+        this.resetPosition();
     }
 
 
@@ -295,14 +298,11 @@ export class ReachyMiniManager extends BaseScriptComponent {
         }
     }
 
-    private resetRobotToDefaultPose() {
-        if (this.robotDriver) {
-            this.robotDriver.setBodyPose({
-                head: { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
-                bodyYaw: 0,
-                antennas: [0, 0],
-            });
-        }
+    /** Neutral head, body, and antennas, sent even while the driver is paused. */
+    public resetPosition(): void {
+        if (!this.robotDriver) return;
+        this.robotDriver.resetToRestPose();
+        this.robotDriver.pushPose();
     }
 
     private animateRobotBody(sceneObject: SceneObject, state: boolean, duration: number = 0.5, scale: vec3 = new vec3(1, 1, 1)): Promise<void> {
