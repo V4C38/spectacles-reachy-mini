@@ -96,6 +96,7 @@ export class AssistantMode extends BaseScriptComponent {
     // ----------------------------------------------------------------
     public updateFrame(): void {
         if (!this.robotDriver || this.robotDriver.getIsPaused()) return;
+        if (this.robotDriver.isPlayingAnimation()) return;
 
         const now = getTime();
 

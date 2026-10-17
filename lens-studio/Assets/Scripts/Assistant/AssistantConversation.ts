@@ -11,10 +11,12 @@ export class AssistantConversation {
 
     // --- ASR state ---
     private currentTranscription: string = "";
-    private asrOptions: AsrModule.AsrTranscriptionOptions | null = null;
-    private readonly MAX_ASR_ERROR_RETRIES = 3;
-    private readonly ASR_ERROR_RETRY_DELAY_SEC = 0.5;
-    public isSessionActive: boolean = false;
+    // stopTranscribing() resolves later. A start must wait for that promise.
+    // Status 0 is Success from the session that just ended, not a failure.
+    private asrWanted: boolean = false;
+    private asrGeneration: number = 0;
+    private stopPromise: Promise<void> = Promise.resolve();
+    private asrRestarting: boolean = false;
 
     // --- Timers (public so AssistantMode.updateFrame can read them) ---
     public lastActivityTime: number = 0;
@@ -88,30 +90,61 @@ export class AssistantConversation {
     // ASR / Speech to Text
     // ----------------------------------------------------------------
     public startASR(): void {
-        this.initAsrOptions();
+        this.asrWanted = true;
+        const generation = ++this.asrGeneration;
+        this.stopPromise.then(() => {
+            if (!this.asrWanted || generation !== this.asrGeneration) return;
+            this.beginAsrSession(generation);
+        });
+    }
+
+    public stopASR(): void {
+        this.asrWanted = false;
+        ++this.asrGeneration;
+        this.currentTranscription = "";
+        this.enqueueStop();
+        print("TTS / ASR stopped");
+    }
+
+    private enqueueStop(): void {
+        const previous = this.stopPromise;
+        this.stopPromise = previous.then(() => this.invokeStop(), () => this.invokeStop());
+    }
+
+    private invokeStop(): Promise<void> {
+        try {
+            const pending = this.asrModule.stopTranscribing();
+            if (pending && typeof pending.then === "function") {
+                return pending.then(() => undefined, () => undefined);
+            }
+        } catch (_error) {
+            // No session was running, or the module rejected the stop.
+        }
+        return Promise.resolve();
+    }
+
+    private beginAsrSession(generation: number): void {
+        if (!this.asrWanted || generation !== this.asrGeneration) return;
+
         const state = this.mode.getState();
         const silenceMs = state === AssistantState.Sleeping ? this.WAKE_SILENCE_MS : this.CONVO_SILENCE_MS;
         this.asrOptions!.silenceUntilTerminationMs = silenceMs;
 
-        if (this.isAsrMarkedActive) {
-            this.asrModule.stopTranscribing().then(() => this.beginTranscribing());
-            return;
-        }
-        this.beginTranscribing();
-    }
+        options.onTranscriptionUpdateEvent.add((eventArgs: AsrModule.TranscriptionUpdateEvent) => {
+            if (generation !== this.asrGeneration || !this.asrWanted) return;
+            this.onTranscriptionUpdate(eventArgs);
+        });
+
+        options.onTranscriptionErrorEvent.add((errorCode: AsrModule.AsrStatusCode) => {
+            if (generation !== this.asrGeneration || !this.asrWanted) return;
+            this.onTranscriptionError(errorCode, generation);
+        });
 
     private beginTranscribing(): void {
         this.asrModule.startTranscribing(this.asrOptions!);
         this.currentTranscription = "";
-        this.isAsrMarkedActive = true;
+        this.asrRestarting = false;
         print("TTS / ASR started");
-    }
-
-    public stopASR(): void {
-        this.currentTranscription = "";
-        this.isAsrMarkedActive = false;
-        this.asrModule.stopTranscribing();
-        print("TTS / ASR stopped");
     }
 
     private onTranscriptionUpdate(eventArgs: AsrModule.TranscriptionUpdateEvent): void {
@@ -153,7 +186,11 @@ export class AssistantConversation {
         }
     }
 
-    private onTranscriptionError(errorCode: AsrModule.AsrStatusCode): void {
+    private onTranscriptionError(errorCode: AsrModule.AsrStatusCode, generation: number): void {
+        if (errorCode === AsrModule.AsrStatusCode.Success) return;
+        if (generation !== this.asrGeneration || !this.asrWanted) return;
+        if (this.asrRestarting) return;
+
         const state = this.mode.getState();
         this.asrErrorCount++;
         const message = `ASR error: ${errorCode}`;
@@ -161,29 +198,10 @@ export class AssistantConversation {
         this.mode.logDebug(message);
         this.mode.onErrorOccurred.forEach(cb => cb(message));
 
-        if (this.isAsrMarkedActive) {
-            this.stopASR();
-        }
-
-        if (
-            errorCode === AsrModule.AsrStatusCode.Unauthenticated
-            || errorCode === AsrModule.AsrStatusCode.NoInternet
-        ) {
-            print("AssistantMode: ASR not restarted (connectivity/auth error)");
-            return;
-        }
-
-        if (this.asrErrorCount > this.MAX_ASR_ERROR_RETRIES) {
-            print("AssistantMode: ASR error limit reached, not restarting");
-            return;
-        }
-
-        print("AssistantMode: Scheduling ASR restart after error...");
-        this.mode.scheduleOnce(this.ASR_ERROR_RETRY_DELAY_SEC, () => {
-            if (this.mode.getState() !== AssistantState.Speaking && !this.isPaused) {
-                this.startASR();
-            }
-        });
+        this.asrRestarting = true;
+        print("AssistantMode: Restarting ASR after error...");
+        this.stopASR();
+        this.startASR();
     }
 
     // ----------------------------------------------------------------
@@ -240,8 +258,12 @@ export class AssistantConversation {
 
             this.mode.setState(AssistantState.Speaking);
             this.stopASR();
+            const asrGenerationAtStop = this.asrGeneration;
 
             await this.robotDriver.playAudio(response.audioTrack);
+            if (this.asrGeneration === asrGenerationAtStop) {
+                this.startASR();
+            }
             this.mode.setState(AssistantState.Listening);
             this.postSpeakListeningEndTime = getTime() + this.POST_SPEAK_LISTENING_SEC;
             this.asrErrorCount = 0;
@@ -273,12 +295,12 @@ export class AssistantConversation {
 
             this.mode.setState(AssistantState.Speaking);
             this.stopASR();
+            const asrGenerationAtStop = this.asrGeneration;
 
             await this.robotDriver.playAudio(response.audioTrack);
-            this.mode.setState(AssistantState.Listening);
-            this.postSpeakListeningEndTime = getTime() + this.POST_SPEAK_LISTENING_SEC;
-            this.asrErrorCount = 0;
-            this.startASR();
+            if (this.asrGeneration === asrGenerationAtStop) {
+                this.startASR();
+            }
 
             this.debounceTimer = getTime();
             this.lastActivityTime = getTime();

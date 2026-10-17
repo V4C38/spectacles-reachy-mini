@@ -15,6 +15,11 @@ export interface BodyPose {
     antennas?: [number, number];  // omitted = keep last
 }
 
+export interface AnimationKey {
+    pose: BodyPose;
+    duration: number;
+}
+
 /** Internal pose with required antennas. */
 interface CompleteBodyPose {
     head: XYZRPYPose;
@@ -45,9 +50,7 @@ export class RobotDriver extends BaseScriptComponent {
     private headRoot: SceneObject | null = null;
 
     @input
-    public headMoveSpeed: number = 0.05;
-    @input
-    public maxHeadDelta: number = 2.0;
+    public headMoveSpeed: number = 0.18;
     @input
     public rollAmplitude: number = 8.0;
     @input
@@ -77,7 +80,7 @@ export class RobotDriver extends BaseScriptComponent {
     private readonly ELLIPSOID_Z_PRECLAMP_MAX = 0.025;
     private readonly XY_DISK_RADIUS = 0.018;
 
-    // Plant velocity limits (must stay in sync with movement_handler.py)
+    // Plant velocity limits — the only hard max, same as movement_handler.py.
     private readonly MAX_ANGULAR_VEL = 1.5; // rad/s
     private readonly MAX_POS_VEL = 0.05;    // m/s
     private readonly MAX_DT_FOR_VEL_CLAMP = 0.06;
@@ -101,8 +104,43 @@ export class RobotDriver extends BaseScriptComponent {
     private isPaused: boolean = true;
     private simulationMode: boolean = false;
 
+    // A yaw that arrives inside ±0.75 rad stops ~0.08 rad short. One that arrives
+    // at ±0.90 rad already gets there (measured 2026-10-16). After the hold, the
+    // metal is told to go 0.08 rad further; the hologram keeps the asked yaw.
+    // Wander below 0.18 rad does not cancel the lead.
+    private static readonly YAW_LEAD_RAD = 0.08;
+    private static readonly YAW_LEAD_HOLD_SEC = 0.4;
+    private static readonly YAW_LEAD_MIN_TRAVEL = 0.20;
+    // ±0.90 already arrives (a little past). ±0.45 and a return to 0 stop short.
+    private static readonly YAW_LEAD_MAX_DEST = 0.75;
+    private yawLeadFrom = 0;
+    private yawLeadWindow = 0;
+    private yawLeadStill = 0;
+    private yawLead = 0;
+    private yawLeadSettled = false;
+    private yawLeadReady = false;
+    /** Last set_target_result. Negative until the first one. */
+    private lastPoseAck: number = -1;
+    private ackLive: boolean = false;
+    /** No ack this long and the hologram goes back to the command clock. */
+    private static readonly ACK_STALE_SEC = 0.4;
+
+    private animKeys: AnimationKey[] | null = null;
+    private animIndex: number = 0;
+    private animElapsed: number = 0;
+
     onAwake() {
         this.createEvent("UpdateEvent").bind(() => this.tick());
+        this.createEvent("OnStartEvent").bind(() => this.bindPoseAck());
+    }
+
+    /** After HardwareAdapter is awake. Calling it from onAwake is not a function yet. */
+    private bindPoseAck(): void {
+        if (!this.hardwareAdapter) return;
+        this.hardwareAdapter.setPoseAckListener((head, bodyYaw, antennas) => {
+            this.lastPoseAck = getTime();
+            if (this.simulationAdapter) this.simulationAdapter.noteAck(head, bodyYaw, antennas);
+        });
     }
 
     public setParams(incoming: Partial<AnimationParams>): void {
@@ -120,6 +158,7 @@ export class RobotDriver extends BaseScriptComponent {
 
     /** Look at a world-space position. Pass null to look straight ahead. Applied on the next tick after resume. */
     public setGazeTarget(pos: vec3 | null): void {
+        this.clearPrimaryAnimation();
         this.activeIntent = "gaze";
         this.gazeTarget = pos;
     }
@@ -132,23 +171,25 @@ export class RobotDriver extends BaseScriptComponent {
      * Hold a complete 6-DOF head pose + body yaw. Applied on the next tick after resume if paused.
      */
     public setBodyPose(pose: BodyPose): void {
-        this.activeIntent = "pose";
-        const antennas: [number, number] = pose.antennas
-            ? [
-                this.finiteOr(pose.antennas[0], this.targetPose.antennas[0]),
-                this.finiteOr(pose.antennas[1], this.targetPose.antennas[1]),
-            ]
-            : [this.targetPose.antennas[0], this.targetPose.antennas[1]];
-        const clamped = this.clampBodyPose(
-            this.sanitizeHead(pose.head),
-            this.finiteOr(pose.bodyYaw, this.targetPose.bodyYaw),
-        );
-        this.targetPose = {
-            head: { ...clamped.head },
-            bodyYaw: clamped.bodyYaw,
-            antennas: [antennas[0], antennas[1]],
-        };
-        this.headYBase_current = clamped.head.z;
+        this.clearPrimaryAnimation();
+        this.applyBodyPoseTarget(pose);
+    }
+
+    public playAnimation(keys: AnimationKey[]): void {
+        const validated = this.validateAnimationKeys(keys);
+        this.clearPrimaryAnimation();
+        this.animKeys = validated;
+        this.animIndex = 0;
+        this.animElapsed = 0;
+        this.applyBodyPoseTarget(validated[0].pose);
+    }
+
+    public stopAnimation(): void {
+        this.clearPrimaryAnimation();
+    }
+
+    public isPlayingAnimation(): boolean {
+        return this.animKeys !== null;
     }
 
     /** Current interpolated pose after ellipsoid + xy-disk clamp. */
@@ -161,6 +202,7 @@ export class RobotDriver extends BaseScriptComponent {
     }
 
     public reset(): void {
+        this.clearPrimaryAnimation();
         this.activeIntent = "gaze";
         this.targetPose = this.zeroPose();
         this.currentPose = this.zeroPose();
@@ -244,6 +286,8 @@ export class RobotDriver extends BaseScriptComponent {
         if (this.isPaused) return;
         if (!this.getActiveInterface()) return;
 
+        this.advancePrimaryAnimation(Math.max(getDeltaTime(), 0));
+
         if (this.activeIntent === "gaze") {
             this.deriveGazeTarget();
         }
@@ -324,11 +368,11 @@ export class RobotDriver extends BaseScriptComponent {
 
     private advanceCurrentTowardTarget(): void {
         const p = this.params;
-        const DEG = Math.PI / 180;
+        const dt = Math.min(Math.max(getDeltaTime(), 0), this.MAX_DT_FOR_VEL_CLAMP);
+        const maxPos = this.MAX_POS_VEL * dt;
+        const maxAng = this.MAX_ANGULAR_VEL * dt;
         const yawSmoothing = this.headMoveSpeed * p.gazeResponsiveness;
         const pitchSmoothing = this.headMoveSpeed * p.gazeResponsiveness * 0.8;
-        const maxYawDelta = this.maxHeadDelta * p.gazeResponsiveness * DEG;
-        const maxPitchDelta = this.maxHeadDelta * 0.5 * p.gazeResponsiveness * DEG;
         const bodySmoothing = yawSmoothing * 0.7 * (0.3 + p.liveliness * 0.4);
         const rollSmoothing = yawSmoothing * 0.8;
         const antennaSmoothing = yawSmoothing * 1.5;
@@ -348,8 +392,8 @@ export class RobotDriver extends BaseScriptComponent {
 
         cur.head.x += (tgt.head.x - cur.head.x) * ySmoothing;
         cur.head.y += (tgt.head.y - cur.head.y) * ySmoothing;
-        cur.head.yaw += this.dampen((tgt.head.yaw - cur.head.yaw) * yawSmoothing, maxYawDelta);
-        cur.head.pitch += this.dampen((tgt.head.pitch - cur.head.pitch) * pitchSmoothing, maxPitchDelta);
+        cur.head.yaw += this.dampen((tgt.head.yaw - cur.head.yaw) * yawSmoothing, maxAng);
+        cur.head.pitch += this.dampen((tgt.head.pitch - cur.head.pitch) * pitchSmoothing, maxAng);
         cur.head.pitch = this.clamp(cur.head.pitch, this.MIN_PITCH, this.MAX_PITCH);
 
         if (this.activeIntent === "gaze") {
@@ -361,12 +405,12 @@ export class RobotDriver extends BaseScriptComponent {
             const followStrength = Math.abs(relYaw) > this.MAX_HEAD_YAW * 0.5 ? bodySmoothing * 2 : bodySmoothing;
             if (Math.abs(relYaw) > this.MAX_HEAD_YAW) {
                 const excess = Math.abs(relYaw) - this.MAX_HEAD_YAW;
-                cur.bodyYaw += this.dampen(Math.sign(relYaw) * excess * bodySmoothing * 8, maxYawDelta);
+                cur.bodyYaw += this.dampen(Math.sign(relYaw) * excess * bodySmoothing * 8, maxAng);
             } else {
                 cur.bodyYaw += relYaw * followStrength;
             }
         } else {
-            cur.bodyYaw += this.dampen((tgt.bodyYaw - cur.bodyYaw) * bodySmoothing, maxYawDelta);
+            cur.bodyYaw += this.dampen((tgt.bodyYaw - cur.bodyYaw) * bodySmoothing, maxAng);
         }
         cur.bodyYaw = this.clamp(cur.bodyYaw, -this.MAX_BODY_YAW, this.MAX_BODY_YAW);
         const maxHeadYawRange = Math.min(this.MAX_BODY_YAW + this.MAX_HEAD_YAW, this.MAX_HEAD_YAW_ABSOLUTE);
@@ -378,10 +422,7 @@ export class RobotDriver extends BaseScriptComponent {
         cur.antennas[0] += (tgt.antennas[0] - cur.antennas[0]) * antennaSmoothing;
         cur.antennas[1] += (tgt.antennas[1] - cur.antennas[1]) * antennaSmoothing;
 
-        const dt = Math.min(Math.max(getDeltaTime(), 0), this.MAX_DT_FOR_VEL_CLAMP);
         if (dt > 0) {
-            const maxPos = this.MAX_POS_VEL * dt;
-            const maxAng = this.MAX_ANGULAR_VEL * dt;
             cur.head.x = prevX + this.dampen(cur.head.x - prevX, maxPos);
             cur.head.y = prevY + this.dampen(cur.head.y - prevY, maxPos);
             cur.head.z = prevZ + this.dampen(cur.head.z - prevZ, maxPos);
@@ -396,14 +437,81 @@ export class RobotDriver extends BaseScriptComponent {
         this.prevHeadYaw = cur.head.yaw;
     }
 
+    /** Copy of the head with the settle lead on yaw. The hologram is not given this copy. */
+    private hardwareHead(head: XYZRPYPose): XYZRPYPose {
+        const lead = this.yawSettleLead(head.yaw);
+        if (lead === 0) return head;
+        return {
+            x: head.x, y: head.y, z: head.z,
+            roll: head.roll, pitch: head.pitch,
+            yaw: head.yaw + lead,
+        };
+    }
+
+    private yawSettleLead(yaw: number): number {
+        const dt = Math.min(Math.max(getDeltaTime(), 0), 0.05);
+        if (!this.yawLeadReady) {
+            this.yawLeadReady = true;
+            this.yawLeadFrom = yaw;
+            this.yawLeadWindow = yaw;
+            this.yawLeadSettled = true;
+            return 0;
+        }
+        if (this.yawLeadSettled) {
+            if (Math.abs(yaw - this.yawLeadFrom) > 0.18) {
+                this.yawLeadWindow = yaw;
+                this.yawLeadStill = 0;
+                this.yawLead = 0;
+                this.yawLeadSettled = false;
+            }
+            return this.yawLead;
+        }
+        if (Math.abs(yaw - this.yawLeadWindow) > 0.03) {
+            this.yawLeadWindow = yaw;
+            this.yawLeadStill = 0;
+            return 0;
+        }
+        this.yawLeadStill += dt;
+        if (this.yawLeadStill >= RobotDriver.YAW_LEAD_HOLD_SEC) {
+            const travel = yaw - this.yawLeadFrom;
+            const mag = Math.abs(travel);
+            this.yawLead = (mag >= RobotDriver.YAW_LEAD_MIN_TRAVEL && Math.abs(yaw) <= RobotDriver.YAW_LEAD_MAX_DEST)
+                ? Math.sign(travel) * RobotDriver.YAW_LEAD_RAD
+                : 0;
+            this.yawLeadFrom = yaw;
+            this.yawLeadSettled = true;
+        }
+        return this.yawLead;
+    }
+
     private emitCurrent(): void {
         const iface = this.getActiveInterface();
         if (!iface) return;
         const pose = this.currentPose;
-        iface.setTarget(pose.head, pose.bodyYaw, pose.antennas).catch(() => {});
+        if (this.simulationMode) {
+            if (this.simulationAdapter) this.simulationAdapter.releaseAckClock();
+            iface.setTarget(pose.head, pose.bodyYaw, pose.antennas).catch(() => {});
+            return;
+        }
+        if (this.hardwareAdapter) {
+            this.hardwareAdapter.armMirror(pose.head, pose.bodyYaw, pose.antennas);
+        }
+        iface.setTarget(this.hardwareHead(pose.head), pose.bodyYaw, pose.antennas).catch(() => {});
+        if (this.simulationAdapter) this.mirrorOrFallback(pose);
+    }
 
-        if (!this.simulationMode && this.simulationAdapter) {
-            this.simulationAdapter.setTarget(pose.head, pose.bodyYaw, pose.antennas).catch(() => {});
+    /** Ack clock while replies are fresh. Otherwise the command clock, so an old bridge still moves the hologram. */
+    private mirrorOrFallback(pose: CompleteBodyPose): void {
+        const sim = this.simulationAdapter;
+        if (!sim) return;
+        const live = this.lastPoseAck >= 0 && getTime() - this.lastPoseAck < RobotDriver.ACK_STALE_SEC;
+        if (live !== this.ackLive) {
+            this.ackLive = live;
+            print(`POSE_ACK ${live ? "bridge" : "local"}`);
+        }
+        if (!live) {
+            sim.releaseAckClock();
+            sim.setTargetNow(pose.head, pose.bodyYaw, pose.antennas);
         }
     }
 
@@ -429,6 +537,10 @@ export class RobotDriver extends BaseScriptComponent {
         return this.hardwareAdapter ? this.hardwareAdapter.baseUrl : "";
     }
 
+    public getInternetModule(): InternetModule | null {
+        return this.hardwareAdapter ? this.hardwareAdapter.getInternetModule() : null;
+    }
+
     public saveIp(ip: string): void {
         if (this.hardwareAdapter) this.hardwareAdapter.saveIp(ip);
     }
@@ -446,7 +558,28 @@ export class RobotDriver extends BaseScriptComponent {
         if (this.hardwareAdapter) await this.hardwareAdapter.connect();
     }
 
+    /**
+     * Snap the local plant and hologram to rest. Hardware rest on connect
+     * is the 1.5 s goto HardwareAdapter fires when the socket opens.
+     */
+    public resetToRestPose(): void {
+        this.reset();
+        if (this.simulationAdapter) {
+            this.simulationAdapter.setTarget(
+                { x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0 },
+                0,
+                [0, 0],
+            ).catch(() => {});
+        }
+    }
+
+    /** One send of the current pose. Tick does not run while paused, so rest would otherwise stay local. */
+    public pushPose(): void {
+        this.emitCurrent();
+    }
+
     public disconnect(): void {
+        this.clearPrimaryAnimation();
         if (this.hardwareAdapter) this.hardwareAdapter.disconnect();
     }
 
@@ -480,6 +613,99 @@ export class RobotDriver extends BaseScriptComponent {
         return {
             yaw: Math.atan2(dirInBase.x, dirInBase.z),
             pitch: -Math.atan2(dirInBase.y, hDist),
+        };
+    }
+
+    private applyBodyPoseTarget(pose: BodyPose): void {
+        this.activeIntent = "pose";
+        const antennas: [number, number] = pose.antennas
+            ? [
+                this.finiteOr(pose.antennas[0], this.targetPose.antennas[0]),
+                this.finiteOr(pose.antennas[1], this.targetPose.antennas[1]),
+            ]
+            : [this.targetPose.antennas[0], this.targetPose.antennas[1]];
+        const clamped = this.clampBodyPose(
+            this.sanitizeHead(pose.head),
+            this.finiteOr(pose.bodyYaw, this.targetPose.bodyYaw),
+        );
+        this.targetPose = {
+            head: { ...clamped.head },
+            bodyYaw: clamped.bodyYaw,
+            antennas: [antennas[0], antennas[1]],
+        };
+        this.headYBase_current = clamped.head.z;
+    }
+
+    private advancePrimaryAnimation(dt: number): void {
+        const keys = this.animKeys;
+        if (!keys) return;
+        this.animElapsed += dt;
+        while (this.animKeys === keys) {
+            const key = keys[this.animIndex];
+            if (this.animElapsed < key.duration) return;
+            this.animElapsed -= key.duration;
+            if (this.animIndex >= keys.length - 1) {
+                this.animKeys = null;
+                this.animIndex = 0;
+                this.animElapsed = 0;
+                return;
+            }
+            this.animIndex += 1;
+            this.applyBodyPoseTarget(keys[this.animIndex].pose);
+        }
+    }
+
+    private clearPrimaryAnimation(): void {
+        this.animKeys = null;
+        this.animIndex = 0;
+        this.animElapsed = 0;
+    }
+
+    private validateAnimationKeys(keys: AnimationKey[]): AnimationKey[] {
+        if (!keys || keys.length === 0) {
+            throw new Error("RobotDriver.playAnimation: keys must be a non-empty sequence");
+        }
+        const out: AnimationKey[] = [];
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            this.assertFiniteDuration(key && key.duration, `playAnimation keys[${i}].duration`);
+            this.assertFinitePose(key && key.pose, `playAnimation keys[${i}].pose`);
+            out.push({
+                pose: this.copyBodyPose(key.pose),
+                duration: key.duration,
+            });
+        }
+        return out;
+    }
+
+    private assertFiniteDuration(duration: number, label: string): void {
+        if (typeof duration !== "number" || !isFinite(duration) || duration < 0) {
+            throw new Error(`RobotDriver: ${label} must be a finite duration >= 0`);
+        }
+    }
+
+    private assertFinitePose(pose: BodyPose, label: string): void {
+        if (!pose || !pose.head) {
+            throw new Error(`RobotDriver: ${label} is required`);
+        }
+        const h = pose.head;
+        if (!isFinite(h.x) || !isFinite(h.y) || !isFinite(h.z)
+            || !isFinite(h.roll) || !isFinite(h.pitch) || !isFinite(h.yaw)
+            || !isFinite(pose.bodyYaw)) {
+            throw new Error(`RobotDriver: ${label} must be finite`);
+        }
+        if (pose.antennas) {
+            if (!isFinite(pose.antennas[0]) || !isFinite(pose.antennas[1])) {
+                throw new Error(`RobotDriver: ${label}.antennas must be finite`);
+            }
+        }
+    }
+
+    private copyBodyPose(pose: BodyPose): BodyPose {
+        return {
+            head: { ...pose.head },
+            bodyYaw: pose.bodyYaw,
+            antennas: pose.antennas ? [pose.antennas[0], pose.antennas[1]] : undefined,
         };
     }
 

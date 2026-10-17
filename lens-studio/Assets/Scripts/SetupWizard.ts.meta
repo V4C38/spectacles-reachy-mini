@@ -26,10 +26,13 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    buttonConnectionMethod: false
     buttonNext: false
     buttonPrevious: false
     buttonRestart: false
+    internetModule: false
     reachyMiniManager: false
+    textButtonConnectionMethod: false
     textButtonNext: false
     textButtonPrevious: false
     textInputField: false
@@ -59,6 +62,9 @@
       buttonPrevious: !<MappingBased.AssignableType_4> 00000000-0000-0000-0000-000000000000
       textButtonPrevious: !<reference.Text> 00000000-0000-0000-0000-000000000000
       textInputField: !<MappingBased.AssignableType_5> 00000000-0000-0000-0000-000000000000
+      buttonConnectionMethod: !<MappingBased.AssignableType_6> 00000000-0000-0000-0000-000000000000
+      textButtonConnectionMethod: !<reference.Text> 00000000-0000-0000-0000-000000000000
+      internetModule: !<reference.InternetModule> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -75,3 +81,6 @@
     - // @input AssignableType_4 buttonPrevious
     - // @input Component.Text textButtonPrevious
     - // @input AssignableType_5 textInputField
+    - // @input AssignableType_6 buttonConnectionMethod
+    - // @input Component.Text textButtonConnectionMethod
+    - // @input Asset.InternetModule internetModule

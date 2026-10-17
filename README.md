@@ -24,7 +24,8 @@ See also the [Demo Video](https://youtu.be/o7Qg9_Oi4b0)
 
    <img src="Assets/rm_setup_wizard.gif" alt="Setup Wizard">
 
-   You will be asked to enter the IP of the machine running the Reachy Mini App. This can be on your local network (better latency) or over the internet.
+   The Reachy Mini app shows a six-digit PIN. Enter that PIN in the Setup Wizard, or switch the wizard to IP entry. 
+   
    Select 'I have no Reachy Mini' to enter Simulation Mode.
 
 
@@ -139,6 +140,8 @@ This setup has some latency but transcription is required to support tool callin
 
 - `get_state` (return both the robot and user head transform in worldspace)
 - `look_at` (set the look_at target for Reachy to a vec3 location)
+- `get_available_animations` (list the animation names Reachy can play, and what each one means)
+- `play_animation` (play one of those names on the head; clips are baked into the lens)
 - `draw_line` (draw a line for a duration from startPos to endPos)
 - `take_picture_robot_view` (Take a picture from the Reachy camera and add it to the LLMs context)
 
@@ -147,6 +150,8 @@ This setup has some latency but transcription is required to support tool callin
 - `scan_objects` (Object detection from headset view using [Depth Cache](https://github.com/specs-devs/samples/tree/main/Depth%20Cache))
 
   *Note: this tool requires [camera access](https://developers.snap.com/spectacles/about-spectacles-features/apis/camera-module). Since both camera access and internet access prevent publishing the Lens, consider removing this tool if you wish to publish a Lens based on this repo.*
+
+The clips come from the Pollen Robotics emotion and dance libraries (Hugging Face, Apache 2.0). Assistant and Puppeteer share one `RobotDriver`, so both use the same head speed (`headMoveSpeed` 0.18, capped at 1.5 rad/s).
 
 ***Adding your own tools***
 
@@ -251,5 +256,4 @@ Contributions, ideas, and bug reports are more than welcome. Feel free to open a
 
 #### Known Issues
 
-- **ASR Error 0** Sometimes TTS can fail on the Spectacles. If it occurs an on screen error is displayed to the user so TTS does not fail silently.
-The cause of this is unknown but you can restart the Spectacles to resolve the issue.
+- **ASR Error 0** was a stopped session reporting `AsrStatusCode.Success` (numeric 0). The lens treated that as a failure and started a new session before `stopTranscribing` finished, which left the mic dead after switching to puppeteer and back. Restarts now wait for the stop to finish, and status 0 is ignored. A real failure still shows on the debug panel.

@@ -14,6 +14,8 @@ export class UIManager extends BaseScriptComponent {
     private currentMode: number = 0;
     /** 0=hidden, 1=active (listening), 2=paused (UI open). Used so assistant callbacks don't overwrite "- Paused -". */
     private currentUIState: number = 0;
+    /** True while setUIState is applying, so syncing the enable button does not re-enter. */
+    private applyingUIState: boolean = false;
     @input
     private textStateInidcator: Text | null = null;
     @input
@@ -57,6 +59,7 @@ export class UIManager extends BaseScriptComponent {
 
                 // Enable / Disable UI
                 this.buttonEnable.onValueChange.add((value: number) => {
+                    if (this.applyingUIState) return;
                     const isToggledOn = value === 1;
                     this.setUIState(isToggledOn ? 1 : 2);
                 });
@@ -152,6 +155,7 @@ export class UIManager extends BaseScriptComponent {
     // ------------------------------------------------------------
     public setUIState(state: number) {
         this.currentUIState = state;
+        this.applyingUIState = true;
         switch (state) {
             case 0:
                 if (this.uiContainer) {
@@ -170,6 +174,9 @@ export class UIManager extends BaseScriptComponent {
                 }
                 if (this.buttonEnable && this.buttonEnableVFX) {
                     this.buttonEnable.sceneObject.enabled = true;
+                    if (!this.buttonEnable.isOn) {
+                        this.buttonEnable.isOn = true;
+                    }
                     this.animateSceneObjectState(this.buttonEnableVFX, true, 0.75);
                     this.animateSceneObjectState(this.buttonEnableVFX2, false);
                 }
@@ -232,6 +239,7 @@ export class UIManager extends BaseScriptComponent {
 
                 break;
         }
+        this.applyingUIState = false;
     }
 
 

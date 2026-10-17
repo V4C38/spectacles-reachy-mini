@@ -1,0 +1,11 @@
+name = "spectacles-ip-relay"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[[durable_objects.bindings]]
+name = "PIN_RECORD"
+class_name = "PinRecord"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PinRecord"]

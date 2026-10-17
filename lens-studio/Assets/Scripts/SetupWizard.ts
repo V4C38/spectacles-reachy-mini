@@ -1,9 +1,13 @@
+import { Interactable } from "SpectaclesInteractionKit.lspkg/Components/Interaction/Interactable/Interactable";
 import { RectangleButton } from "SpectaclesUIKit.lspkg/Scripts/Components/Button/RectangleButton";
 import { TextInputField } from "SpectaclesUIKit.lspkg/Scripts/Components/TextInputField/TextInputField";
 import animate from "SpectaclesInteractionKit.lspkg/Utils/animate";
 
+import { IpRelayClient } from "./IpRelayClient";
 import { ReachyMiniManager } from "./ReachyMiniManager";
 import { UIManager } from "./UIManager";
+
+type ConnectionMethod = "pin" | "ip";
 
 @component
 export class SetupWizard extends BaseScriptComponent {
@@ -40,6 +44,17 @@ export class SetupWizard extends BaseScriptComponent {
     @input
     private textInputField: TextInputField | null = null;
 
+    @input
+    private buttonConnectionMethod: RectangleButton | null = null;
+    @input
+    private textButtonConnectionMethod: Text | null = null;
+    @input
+    private internetModule: InternetModule | null = null;
+
+    private connectionMethod: ConnectionMethod = "pin";
+    private ipRelayClient: IpRelayClient | null = null;
+    private connectionToggleRoot: SceneObject | null = null;
+
     private steps: string[] = [
         "Launch Reachy Mini App",
         "Connect to Reachy Mini App",
@@ -49,7 +64,7 @@ export class SetupWizard extends BaseScriptComponent {
 
     private stepDescriptions: string[] = [
         " \n \n In the Reachy Mini Desktop application, start the app: \n \n 😎 spectacles_reachy_mini ",
-        " \n Enter the IP address of your PC",
+        " \n Enter the PIN shown by the Reachy Mini app",
         " \n \n Position Reachy Mini in the desired location  \n You can adjust this later in the settings.",
         ""
     ];
@@ -102,6 +117,15 @@ export class SetupWizard extends BaseScriptComponent {
                 });
             }
 
+            const relayModule = this.internetModule
+                || (this.reachyMiniManager && this.reachyMiniManager.robotDriver
+                    ? this.reachyMiniManager.robotDriver.getInternetModule()
+                    : null);
+            if (relayModule) {
+                this.ipRelayClient = new IpRelayClient(relayModule);
+            }
+            this.ensureConnectionToggle();
+
             this.startSetupWizard();
         });
     }
@@ -121,6 +145,7 @@ export class SetupWizard extends BaseScriptComponent {
         this.stepOperationId++;
 
         this.currentStep = step;
+        this.setConnectionToggleEnabled(step === 1);
         if (this.textStepIndicator && step < this.steps.length) {
             this.textStepIndicator.text = this.steps[step];
         }
@@ -165,22 +190,19 @@ export class SetupWizard extends BaseScriptComponent {
                     this.textButtonNext.text = "Next";
                 }
 
-                const savedIp = this.reachyMiniManager ? this.reachyMiniManager.loadIp() : null;
-                if (savedIp && this.reachyMiniManager) {
-                    this.reachyMiniManager.setBaseUrl(savedIp);
-                }
+                this.connectionMethod = "pin";
 
-                if (this.textInputField && this.reachyMiniManager) {
+                if (this.textInputField) {
                     this.textInputField.enabled = true;
                     this.textInputField.initialize();
-                    this.textInputField.text = savedIp || this.reachyMiniManager.getBaseUrl();
+                    this.textInputField.text = "";
                 }
                 if (this.textStepStatus) {
-                    this.textStepStatus.text = "Connecting...";
                     this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
                     this.textStepStatus.sceneObject.enabled = true;
+                    this.textStepStatus.text = "Enter a 6-digit PIN";
                 }
-                this.startAutoconnect();
+                this.applyConnectionMethod(false);
                 break;
 
             // Step 3: Position Reachy Mini
@@ -213,6 +235,7 @@ export class SetupWizard extends BaseScriptComponent {
                         this.reachyMiniManager.showReachyMiniMesh(true);
                     }
                     this.reachyMiniManager.setPositioningEnabled(true);
+                    this.reachyMiniManager.resetPosition();
                 }
                 break;
 
@@ -223,8 +246,8 @@ export class SetupWizard extends BaseScriptComponent {
                 }
                 this.animateSceneObjectState(this.uiSetupContainer, false);
                 if (this.uiManager) {
-                    this.uiManager.setUIState(2);
-                    this.uiManager.setMode(2);
+                    this.uiManager.setMode(1);
+                    this.uiManager.setUIState(1);
                 }
                 break;
         }
@@ -233,13 +256,137 @@ export class SetupWizard extends BaseScriptComponent {
     // ------------------------------------------------------------
     // Autoconnect
     // ------------------------------------------------------------
+    private ensureConnectionToggle() {
+        if (this.buttonConnectionMethod) {
+            this.buttonConnectionMethod.onTriggerUp.add(() => this.onConnectionToggle());
+            return;
+        }
+        if (!this.uiSetupContainer) return;
+
+        const root = global.scene.createSceneObject("Button_ConnectionMethod");
+        root.setParent(this.uiSetupContainer);
+        const textObject = global.scene.createSceneObject("ConnectionMethodText");
+        textObject.setParent(root);
+        const text = textObject.createComponent("Component.Text") as Text;
+        text.size = 32;
+        text.text = "Mode: PIN";
+        this.textButtonConnectionMethod = text;
+
+        const collider = root.createComponent("Physics.ColliderComponent") as ColliderComponent;
+        const box = Shape.createBoxShape();
+        box.size = new vec3(13, 3, 1);
+        collider.shape = box;
+        const interactable = root.createComponent(Interactable.getTypeName()) as Interactable;
+        interactable.onTriggerEnd.add(() => this.onConnectionToggle());
+        this.connectionToggleRoot = root;
+    }
+
+    private setConnectionToggleEnabled(on: boolean) {
+        const buttonObject = this.buttonConnectionMethod
+            ? this.buttonConnectionMethod.sceneObject
+            : null;
+        if (this.buttonConnectionMethod && buttonObject) {
+            this.buttonConnectionMethod.enabled = on;
+            buttonObject.enabled = on;
+        }
+        if (this.textButtonConnectionMethod) {
+            const labelObject = this.textButtonConnectionMethod.sceneObject;
+            if (!buttonObject || labelObject.getParent() !== buttonObject) {
+                labelObject.enabled = on;
+            }
+        }
+        if (this.connectionToggleRoot) {
+            this.connectionToggleRoot.enabled = on;
+        }
+    }
+
+    private onConnectionToggle() {
+        if (this.currentStep !== 1) return;
+        this.stepOperationId++;
+        this.connectionMethod = this.connectionMethod === "pin" ? "ip" : "pin";
+        if (this.textStepStatus) {
+            this.textStepStatus.text = "";
+        }
+        this.applyConnectionMethod(true);
+        if (this.connectionMethod === "ip") {
+            this.startAutoconnect();
+        }
+    }
+
+    private applyConnectionMethod(clearedByToggle: boolean) {
+        if (this.textInputField) {
+            this.textInputField.placeholderText = this.connectionMethod === "pin"
+                ? "6 Digit PIN code"
+                : "IP Address";
+        }
+        if (this.connectionMethod === "pin") {
+            this.stepDescriptions[1] = " \n Enter the PIN shown by the Reachy Mini app";
+            if (this.textButtonConnectionMethod) {
+                this.textButtonConnectionMethod.text = "Mode: PIN";
+            }
+            if (clearedByToggle && this.textInputField) {
+                this.textInputField.text = "";
+            }
+        } else {
+            this.stepDescriptions[1] = " \n Enter the IP address of your PC";
+            if (this.textButtonConnectionMethod) {
+                this.textButtonConnectionMethod.text = "Mode: IP";
+            }
+            if (this.textInputField && this.reachyMiniManager) {
+                const savedIp = this.reachyMiniManager.loadIp();
+                this.textInputField.text = savedIp || this.reachyMiniManager.getBaseUrl();
+            }
+        }
+        if (this.textStepDescription && this.currentStep === 1) {
+            this.textStepDescription.text = this.stepDescriptions[1];
+        }
+    }
+
     private startAutoconnect() {
         this.stepOperationId++;
         const opId = this.stepOperationId;
 
         if (!this.reachyMiniManager || !this.textInputField) return;
 
-        this.reachyMiniManager.setBaseUrl(this.textInputField.text);
+        if (this.connectionMethod === "pin") {
+            this.resolvePin(opId);
+            return;
+        }
+        this.connectHost(opId, this.textInputField.text);
+    }
+
+    private resolvePin(opId: number) {
+        const pin = (this.textInputField.text || "").replace(/\s/g, "");
+        if (!/^\d{6}$/.test(pin) || !this.ipRelayClient) {
+            if (this.textStepStatus) {
+                this.textStepStatus.text = this.ipRelayClient ? "Enter a 6-digit PIN" : "PIN unavailable";
+                this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
+            }
+            return;
+        }
+
+        if (this.textStepStatus) {
+            this.textStepStatus.text = "Resolving PIN...";
+            this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
+        }
+
+        this.ipRelayClient.resolve(pin).then((found) => {
+            if (opId !== this.stepOperationId) return;
+            if (!found) {
+                if (this.textStepStatus) {
+                    this.textStepStatus.text = "PIN not found";
+                    this.textStepStatus.textFill.color = new vec4(1, 0, 0, 1);
+                }
+                this.schedulePinRetry(opId);
+                return;
+            }
+            this.connectHost(opId, found.ip);
+        });
+    }
+
+    private connectHost(opId: number, host: string) {
+        if (!this.reachyMiniManager) return;
+        this.reachyMiniManager.setBaseUrl(host);
 
         if (this.textStepStatus) {
             this.textStepStatus.text = "Connecting...";
@@ -254,45 +401,31 @@ export class SetupWizard extends BaseScriptComponent {
                     this.textStepStatus.text = "Connected";
                     this.textStepStatus.textFill.color = new vec4(0, 1, 0, 1);
                 }
-                this.reachyMiniManager.saveIp(this.textInputField.text);
+                this.reachyMiniManager.saveIp(host);
             } else {
                 if (this.textStepStatus) {
                     this.textStepStatus.text = "Not connected — retrying...";
                     this.textStepStatus.textFill.color = new vec4(1, 0, 0, 1);
                 }
-                this.scheduleAutoconnectRetry(opId);
+                this.scheduleHostRetry(opId, host);
             }
         });
     }
 
-    private scheduleAutoconnectRetry(opId: number) {
+    private schedulePinRetry(opId: number) {
         const retryEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
         retryEvent.bind(() => {
             if (opId !== this.stepOperationId) return;
-            this.reachyMiniManager.setBaseUrl(this.textInputField.text);
+            this.resolvePin(opId);
+        });
+        retryEvent.reset(2.0);
+    }
 
-            if (this.textStepStatus) {
-                this.textStepStatus.text = "Connecting...";
-                this.textStepStatus.textFill.color = new vec4(1, 1, 1, 1);
-            }
-
-            this.reachyMiniManager.checkConnection().then((isConnected: boolean) => {
-                if (opId !== this.stepOperationId) return;
-
-                if (isConnected) {
-                    if (this.textStepStatus) {
-                        this.textStepStatus.text = "Connected";
-                        this.textStepStatus.textFill.color = new vec4(0, 1, 0, 1);
-                    }
-                    this.reachyMiniManager.saveIp(this.textInputField.text);
-                } else {
-                    if (this.textStepStatus) {
-                        this.textStepStatus.text = "Not connected — retrying...";
-                        this.textStepStatus.textFill.color = new vec4(1, 0, 0, 1);
-                    }
-                    this.scheduleAutoconnectRetry(opId);
-                }
-            });
+    private scheduleHostRetry(opId: number, host: string) {
+        const retryEvent = this.createEvent("DelayedCallbackEvent") as DelayedCallbackEvent;
+        retryEvent.bind(() => {
+            if (opId !== this.stepOperationId) return;
+            this.connectHost(opId, host);
         });
         retryEvent.reset(2.0);
     }

@@ -24,6 +24,10 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     @input
     private internetModule!: InternetModule;
 
+    public getInternetModule(): InternetModule {
+        return this.internetModule;
+    }
+
     @input
     private audioComponent: AudioComponent | null = null;
 
@@ -32,6 +36,12 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     private ws: WebSocket | null = null;
     private requestId: number = 0;
     private pendingRequests: Map<number, PendingRequest> = new Map();
+    /** Hologram pose attached to the next set_target. The yaw settle lead is not in it. */
+    private mirrorPose: { head: XYZRPYPose; bodyYaw: number; antennas: [number, number] } | null = null;
+    /** Poses on the wire, keyed by `_id`, until set_target_result. */
+    private ackWait: Map<number, { head: XYZRPYPose; bodyYaw: number; antennas: [number, number] }> = new Map();
+    private poseAckListener: ((head: XYZRPYPose, bodyYaw: number, antennas: [number, number]) => void) | null = null;
+    private static readonly ACK_WAIT_MAX = 8;
     private isConnecting: boolean = false;
     private openHost: string | null = null;
     private connectingHost: string | null = null;
@@ -41,6 +51,12 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     private pendingConnectReject: ((error: Error) => void) | null = null;
     private retiredSockets = new Set<WebSocket>();
     private connectTimeoutEvent: DelayedCallbackEvent | null = null;
+
+    // Rest pose sent once the socket opens so the metal matches the hologram.
+    private static readonly REST_HEAD: XYZRPYPose = {
+        x: 0, y: 0, z: 0, roll: 0, pitch: 0, yaw: 0,
+    };
+    private static readonly REST_GOTO_DURATION_SEC = 1.5;
 
     // --- set_target coalescing (20 Hz max; latest pose always wins) ---
     private static readonly SET_TARGET_MIN_INTERVAL_SEC = 0.05; // 20 Hz max
@@ -247,6 +263,7 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
             pending.reject(new Error(message));
         });
         this.pendingRequests.clear();
+        this.ackWait.clear();
     }
 
     private detachSocketHandlers(socket: WebSocket): void {
@@ -277,6 +294,25 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
         if (resolveFn) {
             resolveFn();
         }
+        this.sendRestGoto();
+    }
+
+    /**
+     * Ease the physical robot back to rest. Fire-and-forget: the connect
+     * promise must not wait on motion, and a leftover pose makes the
+     * positioning hologram impossible to align.
+     */
+    private sendRestGoto(): void {
+        this.goto(
+            HardwareAdapter.REST_HEAD,
+            0,
+            HardwareAdapter.REST_GOTO_DURATION_SEC,
+            "minjerk",
+        ).then(() => {
+            print("HardwareAdapter: Rest pose goto started");
+        }).catch((error) => {
+            print(`HardwareAdapter: Rest pose goto failed: ${error}`);
+        });
     }
 
     /**
@@ -350,6 +386,12 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
                 this.pendingRequests.delete(id);
                 if (pending) {
                     pending.resolve(data);
+                }
+            } else if (id !== undefined && this.ackWait.has(id)) {
+                const armed = this.ackWait.get(id);
+                this.ackWait.delete(id);
+                if (armed && data.type === "set_target_result" && data.success !== false && this.poseAckListener) {
+                    this.poseAckListener(armed.head, armed.bodyYaw, armed.antennas);
                 }
             }
         } catch (error) {
@@ -477,6 +519,23 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
     }
 
     /**
+     * The pose the hologram should show for the next set_target that leaves.
+     * Called every frame with the pre-lead pose. Latest wins, same as the send.
+     */
+    public armMirror(head: XYZRPYPose, bodyYaw: number, antennas: [number, number]): void {
+        this.mirrorPose = {
+            head: { x: head.x, y: head.y, z: head.z, roll: head.roll, pitch: head.pitch, yaw: head.yaw },
+            bodyYaw,
+            antennas: [antennas[0], antennas[1]],
+        };
+    }
+
+    /** Fired when the bridge has stored that pose (`set_target_result`). */
+    public setPoseAckListener(fn: (head: XYZRPYPose, bodyYaw: number, antennas: [number, number]) => void): void {
+        this.poseAckListener = fn;
+    }
+
+    /**
      * Set target pose immediately (no interpolation).
      * Used for real-time tracking at high frequency (e.g., 50Hz).
      * Fire-and-forget: does not wait for a response for maximum performance.
@@ -511,6 +570,7 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
 
     private sendSetTarget(headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): void {
         this.lastSetTargetTime = getTime();
+        const open = this.ws !== null && this.ws.readyState === WS_OPEN;
         const msg: any = {
             type: "set_target",
             target_head_pose: { ...headPose },
@@ -519,7 +579,32 @@ export class HardwareAdapter extends BaseScriptComponent implements RobotInterfa
         if (bodyYaw !== undefined) {
             msg.target_body_yaw = bodyYaw;
         }
+        if (open) {
+            const id = ++this.requestId;
+            msg._id = id;
+            this.rememberAck(id, headPose, bodyYaw, antennas);
+        }
         this.send(msg);
+    }
+
+    /** The hologram pose for this send. Falls back to the wire pose if nothing was armed. */
+    private rememberAck(id: number, headPose: XYZRPYPose, bodyYaw?: number, antennas?: [number, number]): void {
+        const src = this.mirrorPose;
+        const head = src ? src.head : headPose;
+        const yaw = src ? src.bodyYaw : (bodyYaw !== undefined ? bodyYaw : 0);
+        const ant: [number, number] = src
+            ? [src.antennas[0], src.antennas[1]]
+            : (antennas ? [antennas[0], antennas[1]] : [0, 0]);
+        this.ackWait.set(id, {
+            head: { x: head.x, y: head.y, z: head.z, roll: head.roll, pitch: head.pitch, yaw: head.yaw },
+            bodyYaw: yaw,
+            antennas: ant,
+        });
+        while (this.ackWait.size > HardwareAdapter.ACK_WAIT_MAX) {
+            const oldest = this.ackWait.keys().next().value;
+            if (oldest === undefined) break;
+            this.ackWait.delete(oldest);
+        }
     }
 
     private flushPendingTarget(): void {

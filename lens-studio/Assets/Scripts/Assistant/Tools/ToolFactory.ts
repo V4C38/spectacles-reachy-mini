@@ -13,6 +13,7 @@ import { createLookAtTool } from "./LookAtTool";
 import { createGetStateTool } from "./GetStateTool";
 import { createDrawLineTool } from "./DrawLineTool";
 import { createTakePictureRobotViewTool } from "./TakePictureRobotViewTool";
+import { createGetAvailableAnimationsTool, createPlayAnimationTool } from "./PlayAnimationTool";
 
 /**
  * Component that provides LLM tools for the AssistantMode.
@@ -103,6 +104,16 @@ export class ToolFactory extends BaseScriptComponent {
             registeredCount++;
         } else {
             print("ToolFactory: Skipping look_at tool (missing dependencies)");
+        }
+
+        if (this.robotDriver) {
+            llmService.registerTool(createGetAvailableAnimationsTool());
+            llmService.registerTool(createPlayAnimationTool({
+                robotDriver: this.robotDriver,
+            }));
+            registeredCount += 2;
+        } else {
+            print("ToolFactory: Skipping get_available_animations and play_animation (missing robotDriver)");
         }
 
         // Register get_state tool if dependencies are available
